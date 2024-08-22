@@ -11,7 +11,88 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+const (
+	binanceWsBaseURL = "wss://fstream.binance.com"
+)
+
+// Stream to subscribe to
+var streams = []string{
+	"btcusdt@aggTrade",
+	"btcusdt@depth",
+}
+
 func main() {
+	// Create a channel to handle interrupt signals
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt)
+
+	// Build the WebSocket URL
+	wsURL := binanceWsBaseURL + "/stream?streams=" + streams[0]
+	for _, stream := range streams[1:] {
+		wsURL += "/" + stream
+	}
+
+	log.Printf("Connecting to %s", wsURL)
+
+	// Connect to the WebSocket server
+	c, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		log.Fatal("Dial error:", err)
+	}
+	defer c.Close()
+
+	done := make(chan struct{})
+
+	go func() {
+		defer close(done)
+		for {
+			_, message, err := c.ReadMessage()
+			if err != nil {
+				log.Println("Read error:", err)
+				return
+			}
+			log.Printf("Received: %s", message)
+		}
+	}()
+
+	// Ping/Pong Handling
+	c.SetPingHandler(func(appData string) error {
+		log.Println("Ping received, sending pong")
+		return c.WriteMessage(websocket.PongMessage, []byte(appData))
+	})
+
+	ticker := time.NewTicker(time.Second * 5)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-done:
+			return
+		case t := <-ticker.C:
+			err := c.WriteMessage(websocket.PingMessage, nil)
+			if err != nil {
+				log.Println("Ping error:", err)
+				return
+			}
+			log.Printf("Ping sent at %v", t)
+		case <-interrupt:
+			log.Println("Interrupt received, closing connection")
+			// Cleanly close the connection by sending a close message
+			err := c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+			if err != nil {
+				log.Println("Write close error:", err)
+				return
+			}
+			select {
+			case <-done:
+			case <-time.After(time.Second):
+			}
+			return
+		}
+	}
+}
+
+func bitmex_websocket() {
 	// Define the WebSocket server URL
 	serverURL := "wss://ws.bitmex.com/realtimePlatform"
 
