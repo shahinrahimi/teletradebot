@@ -1,14 +1,18 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/url"
 	"os"
 	"os/signal"
 	"time"
 
+	binance "github.com/adshao/go-binance/v2"
 	"github.com/gorilla/websocket"
+	"github.com/joho/godotenv"
 )
 
 const (
@@ -22,6 +26,24 @@ var streams = []string{
 }
 
 func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Fatal(err)
+	}
+	apiKey := os.Getenv("BIANCE_API_KEY_FUTURES_TESTNET")
+	apiSec := os.Getenv("BIANCE_API_SEC_FUTURES_TESTNET")
+	client := binance.NewClient(apiKey, apiSec)
+	//fetureClient := binance.NewFuturesClient(apiKey, apiSec)
+	prices, err := client.NewListPricesService().Do(context.Background())
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	for _, p := range prices {
+		fmt.Println(p)
+	}
+}
+
+func binance_websocket() {
 	// Create a channel to handle interrupt signals
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
