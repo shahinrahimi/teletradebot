@@ -48,12 +48,19 @@ func main() {
 	b.Use(b.Logger)
 
 	// routes
-	r := b.NewRouter("trades")
+	// help route
+	r := b.NewRouter("help")
 	r.Handle(bot.HELP, b.MakeHandlerBotFunc(b.HandleHelp))
-	r.Handle(bot.ADD, b.MakeHandlerBotFunc(b.HandleAdd))
-	r.Handle(bot.REMOVE, b.MakeHandlerBotFunc(b.HandleRemove))
-	r.Handle(bot.CHECK, b.MakeHandlerBotFunc(b.HandleCheck))
-	r.Handle(bot.CANCEL, b.MakeHandlerBotFunc(b.HandleCancel))
+	r.Handle(bot.START, b.MakeHandlerBotFunc(b.HandleHelp))
+	// new route
+	r1 := b.NewRouter("route-1")
+	r1.Handle(bot.ADD, b.MakeHandlerBotFunc(b.HandleAdd))
+	r1.Use(b.ProvideAddOrder)
+	// get delete cancel execute
+	r2 := b.NewRouter("route-2")
+	r2.Handle(bot.REMOVE, b.MakeHandlerBotFunc(b.HandleRemove))
+	r2.Handle(bot.CHECK, b.MakeHandlerBotFunc(b.HandleCheck))
+	r2.Handle(bot.CANCEL, b.MakeHandlerBotFunc(b.HandleCancel))
 
 	// create context bot to received updates and gracefully shutdown
 	ctx := context.WithoutCancel(context.Background())
