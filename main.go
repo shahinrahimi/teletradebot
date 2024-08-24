@@ -34,6 +34,11 @@ func main() {
 	}
 	defer s.CloseDB()
 
+	// init DB
+	if err := s.Init(); err != nil {
+		logger.Fatalf("error initializing DB: %v", err)
+	}
+
 	b, err := bot.NewBot(logger, s, token)
 	if err != nil {
 		logger.Fatalf("error creating instance of bot: %v", err)

@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"gihub.com/shahinrahimi/teletradebot/models"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -30,6 +31,14 @@ func NewSqliteStore(l *log.Logger) (*SqliteStore, error) {
 		l:  l,
 		db: db,
 	}, nil
+}
+
+func (s *SqliteStore) Init() error {
+	if _, err := s.db.Exec(models.CREATE_TABLE_ORDERS); err != nil {
+		s.l.Printf("error creating table for orders: %v", err)
+		return err
+	}
+	return nil
 }
 
 func (s *SqliteStore) CloseDB() {
