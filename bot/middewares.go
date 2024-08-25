@@ -78,6 +78,24 @@ func (b *Bot) ProvideAddOrder(next Handler) Handler {
 	}
 }
 
+func (b *Bot) ProvideOrderByID(next Handler) Handler {
+	return func(u *tgbotapi.Update, ctx context.Context) {
+		args := strings.Split(u.Message.CommandArguments(), " ")
+		id, err := strconv.Atoi(args[0])
+		if err != nil {
+			b.SendMessage(u.Message.From.ID, fmt.Sprintf("the id is not valid: %s", args[0]))
+			return
+		}
+		o, err := b.s.GetOrder(id)
+		if err != nil {
+			b.SendMessage(u.Message.From.ID, fmt.Sprintf("the id is not valid: %d", id))
+			return
+		}
+		ctx = context.WithValue(ctx, models.KeyOrder{}, *o)
+		next(u, ctx)
+	}
+}
+
 func ParseOrder(tradeArgs []string) (*models.Order, error) {
 	var o models.Order
 	if len(tradeArgs) < 9 {

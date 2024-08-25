@@ -45,6 +45,15 @@ func (b *Bot) HandleRemove(u *tgbotapi.Update, ctx context.Context) error {
 }
 
 func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
+	o := ctx.Value(models.KeyOrder{}).(models.Order)
+	if o.State != models.STATE_IDLE {
+		b.SendMessage(u.Message.From.ID, "the order could not be executed since it is executed once")
+		return nil
+	}
+	if err := b.bc.PlaceOrder(&o); err != nil {
+		b.l.Printf("error in placing order: %v", err)
+		return err
+	}
 	return nil
 }
 

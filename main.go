@@ -70,16 +70,18 @@ func main() {
 	r := b.NewRouter("help")
 	r.Handle(bot.HELP, b.MakeHandlerBotFunc(b.HandleHelp))
 	r.Handle(bot.START, b.MakeHandlerBotFunc(b.HandleHelp))
+	r.Handle(bot.LIST, b.MakeHandlerBotFunc(b.HandleList))
 	// new route
 	r1 := b.NewRouter("route-1")
 	r1.Handle(bot.ADD, b.MakeHandlerBotFunc(b.HandleAdd))
 	r1.Use(b.ProvideAddOrder)
 	// get delete cancel execute
 	r2 := b.NewRouter("route-2")
-	r2.Handle(bot.LIST, b.MakeHandlerBotFunc(b.HandleList))
 	r2.Handle(bot.REMOVE, b.MakeHandlerBotFunc(b.HandleRemove))
 	r2.Handle(bot.CHECK, b.MakeHandlerBotFunc(b.HandleCheck))
 	r2.Handle(bot.CANCEL, b.MakeHandlerBotFunc(b.HandleCancel))
+	r2.Handle(bot.EXECUTE, b.MakeHandlerBotFunc(b.HandleExecute))
+	r2.Use(b.ProvideOrderByID)
 
 	// create context bot to received updates and gracefully shutdown
 	ctx := context.WithoutCancel(context.Background())
