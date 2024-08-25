@@ -6,6 +6,7 @@ const (
 	START   string = "start"
 	HELP    string = "help"
 	ADD     string = "add"
+	LIST    string = "list"
 	CANCEL  string = "cancel"
 	EXECUTE string = "execute"
 	CHECK   string = "check"
@@ -13,5 +14,5 @@ const (
 )
 
 func GetCommandHelp() string {
-	return fmt.Sprintf("Usage\n/%s\n/%s\n/%s\n/%s\n/%s\n/%s\n", HELP, ADD, CANCEL, EXECUTE, CHECK, REMOVE)
+	return fmt.Sprintf("Usage\n/%s\n/%s\n/%s\n/%s\n/%s\n/%s\n/%s\n", HELP, ADD, LIST, CANCEL, EXECUTE, CHECK, REMOVE)
 }

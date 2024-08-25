@@ -25,12 +25,12 @@ func (s *SqliteStore) GetOrders() ([]*models.Order, error) {
 	rows, err := s.db.Query(models.SELECT_ORDERS)
 	var os []*models.Order
 	for rows.Next() {
-		var o *models.Order
+		var o models.Order
 		if err := rows.Scan(o.ToFelids()...); err != nil {
 			s.l.Printf("error selecting a order from DB: %v", err)
 			continue
 		}
-		os = append(os, o)
+		os = append(os, &o)
 	}
 	return os, err
 }

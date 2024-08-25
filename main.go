@@ -58,6 +58,7 @@ func main() {
 	r1.Use(b.ProvideAddOrder)
 	// get delete cancel execute
 	r2 := b.NewRouter("route-2")
+	r2.Handle(bot.LIST, b.MakeHandlerBotFunc(b.HandleList))
 	r2.Handle(bot.REMOVE, b.MakeHandlerBotFunc(b.HandleRemove))
 	r2.Handle(bot.CHECK, b.MakeHandlerBotFunc(b.HandleCheck))
 	r2.Handle(bot.CANCEL, b.MakeHandlerBotFunc(b.HandleCancel))

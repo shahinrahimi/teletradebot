@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type Order struct {
 	ID                int
@@ -68,4 +71,8 @@ func (o *Order) ToArgs() []interface{} {
 // use for scanning from DB
 func (o *Order) ToFelids() []interface{} {
 	return []interface{}{&o.ID, &o.State, &o.Account, &o.Pair, &o.Side, &o.Candle, &o.Offset, &o.SizePercent, &o.SLPercent, &o.TPPercent, &o.ReverseMultiplier, &o.CreatedAt, &o.UpdatedAt}
+}
+
+func (o *Order) ToListString() string {
+	return fmt.Sprintf("id: %d [%s] %s %s %s %s", o.ID, o.Account, o.Pair, o.Side, o.Candle, o.State)
 }

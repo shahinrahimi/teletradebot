@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"fmt"
 
 	"gihub.com/shahinrahimi/teletradebot/models"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -20,6 +21,22 @@ func (b *Bot) HandleAdd(u *tgbotapi.Update, ctx context.Context) error {
 		return err
 	}
 	b.SendMessage(u.Message.From.ID, "Successfully order created!")
+	return nil
+}
+
+func (b *Bot) HandleList(u *tgbotapi.Update, ctx context.Context) error {
+	os, err := b.s.GetOrders()
+	if err != nil {
+		b.l.Printf("error getting orders: %v", err)
+		b.SendMessage(u.Message.From.ID, "internal error listing orders")
+		return err
+	}
+	fmt.Println(len(os))
+	msg := ""
+	for _, o := range os {
+		msg = msg + o.ToListString() + "\n"
+	}
+	b.SendMessage(u.Message.From.ID, "list o orders\n"+msg)
 	return nil
 }
 
