@@ -8,6 +8,7 @@ import (
 )
 
 func (b *Bot) HandleHelp(u *tgbotapi.Update, ctx context.Context) error {
+	b.SendMessage(u.Message.From.ID, GetCommandHelp())
 	return nil
 }
 
