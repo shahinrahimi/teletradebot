@@ -29,7 +29,7 @@ func (b *Bot) ProvideAddOrder(next Handler) Handler {
 			b.SendMessage(u.Message.From.ID, err.Error())
 			return
 		}
-		ctx = context.WithValue(ctx, models.KeyOrder{}, o)
+		ctx = context.WithValue(ctx, models.KeyOrder{}, *o)
 		next(u, ctx)
 	}
 }
@@ -122,6 +122,8 @@ func ParseOrder(args []string) (*models.Order, error) {
 	} else {
 		o.ReverseMultiplier = reverse_multiplier
 	}
+
+	o.State = models.STATE_IDLE
 
 	return &o, nil
 }

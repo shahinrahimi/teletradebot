@@ -52,6 +52,10 @@ const (
 	CANDLE_30MIN        string = `30m`
 	CANDLE_1H           string = `1h`
 	CANDLE_4H           string = `4h`
+	STATE_IDLE          string = `idle`
+	STATE_PLACED        string = `placed`
+	STATE_FILLED        string = `filled`
+	STATE_REVERTING     string = `reverting`
 )
 
 // ToArgs returns state, account, pair, side, candle, offset, size, stop_percent, target_percent and reverse_multiplier as value

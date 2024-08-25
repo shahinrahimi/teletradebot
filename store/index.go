@@ -14,7 +14,12 @@ type SqliteStore struct {
 	db *sql.DB
 }
 
-type Storage interface{}
+type Storage interface {
+	CreateOrder(o *models.Order) error
+	GetOrder(id int) (*models.Order, error)
+	GetOrders() ([]*models.Order, error)
+	DeleteOrder(id int) error
+}
 
 func NewSqliteStore(l *log.Logger) (*SqliteStore, error) {
 	if err := os.MkdirAll("db", 0755); err != nil {
