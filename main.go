@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"gihub.com/shahinrahimi/teletradebot/bot"
+	"gihub.com/shahinrahimi/teletradebot/exchange"
 	"gihub.com/shahinrahimi/teletradebot/store"
 	"github.com/joho/godotenv"
 )
@@ -21,11 +22,28 @@ func main() {
 		logger.Fatalf("error loading environmental file: %v", err)
 	}
 
-	// check environmental variable
+	// check environmental variable for telegram bot
 	token := os.Getenv("TELEGRAM_TOKEN")
 	if token == "" {
 		logger.Fatal("error wrong environmental variable")
 	}
+
+	// check environmental variable for binance api
+	apiKey := os.Getenv("BINANCE_API_KEY_FUTURES_TESTNET")
+	apiSec := os.Getenv("BINANCE_API_SEC_FUTURES_TESTNET")
+	if apiKey == "" || apiSec == "" {
+		logger.Fatal("error wrong environmental variable")
+	}
+
+	// create binance client
+	bc := exchange.NewBinanceClient(logger, apiKey, apiSec)
+	if err := bc.UpdateTickers(); err != nil {
+		logger.Printf("error updating tickers for binance : %v", err)
+	}
+	logger.Printf("Total pairs found for binance: %d", len(bc.Symbols))
+
+	// create bitmex client
+	mc := exchange.NewBitmexClient(logger)
 
 	// create a store
 	s, err := store.NewSqliteStore(logger)
@@ -39,7 +57,7 @@ func main() {
 		logger.Fatalf("error initializing DB: %v", err)
 	}
 
-	b, err := bot.NewBot(logger, s, token)
+	b, err := bot.NewBot(logger, s, bc, mc, token)
 	if err != nil {
 		logger.Fatalf("error creating instance of bot: %v", err)
 	}

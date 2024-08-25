@@ -29,6 +29,30 @@ func (b *Bot) ProvideAddOrder(next Handler) Handler {
 			b.SendMessage(u.Message.From.ID, err.Error())
 			return
 		}
+		// check pair for binance
+		var isAvailable bool = false
+		switch o.Account {
+		case models.ACCOUNT_B:
+			for _, s := range b.bc.Symbols {
+				if s.Symbol == strings.ToUpper(o.Pair) {
+					isAvailable = true
+					break
+				}
+			}
+		case models.ACCOUNT_M:
+			// TODO implement a method to check if pair is available in bitmex
+			isAvailable = true
+		default:
+			// should never happen
+			b.l.Panicf("error checking pair availability pair: %s", o.Pair)
+
+		}
+
+		if !isAvailable {
+			b.SendMessage(u.Message.From.ID, fmt.Sprintf("the pair '%s' is not available", o.Pair))
+			return
+		}
+
 		ctx = context.WithValue(ctx, models.KeyOrder{}, *o)
 		next(u, ctx)
 	}
@@ -69,7 +93,7 @@ func ParseOrder(args []string) (*models.Order, error) {
 	if part4 != models.CANDLE_15MIN && part4 != models.CANDLE_30MIN && part4 != models.CANDLE_1H && part4 != models.CANDLE_4H {
 		return nil, fmt.Errorf("the valid value for candle should be '15min', '30min', '1h' or '4h'")
 	} else {
-		o.Pair = part4
+		o.Candle = part4
 	}
 	// offset
 	part5 := strings.TrimSpace(args[4])
