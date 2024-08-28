@@ -52,7 +52,7 @@ func (b *Bot) HandleRemove(u *tgbotapi.Update, ctx context.Context) error {
 
 func (b *Bot) HandleDescribe(u *tgbotapi.Update, ctx context.Context) error {
 	o := ctx.Value(models.KeyOrder{}).(models.Order)
-	if err := b.bc.GetKline(&o); err != nil {
+	if _, err := b.bc.GetKline(&o); err != nil {
 		return err
 	}
 	return nil

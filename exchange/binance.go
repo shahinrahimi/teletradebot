@@ -122,15 +122,14 @@ func (b *BinanceClient) GetBalance() (string, error) {
 	return "", fmt.Errorf("there is no balance found!")
 }
 
-func (b *BinanceClient) GetKline(o *models.Order) error {
+func (b *BinanceClient) GetKline(o *models.Order) (*futures.Kline, error) {
+	// TODO check if interval works for other intervals (1h and 4h works)
 	klines, err := b.client.NewKlinesService().Limit(100).Interval(o.Candle).Symbol(o.Pair).Do(context.Background())
 	if err != nil {
-		return err
+		return nil, err
 	}
-	for _, k := range klines {
-		fmt.Println(convertTime(k.OpenTime), convertTime(k.CloseTime), k.Open, k.Close, k.High, k.Low)
-	}
-	return nil
+	// return before last element
+	return klines[len(klines)-2], nil
 }
 
 func convertTime(timestamp int64) time.Time {
@@ -143,18 +142,41 @@ func convertTime(timestamp int64) time.Time {
 }
 
 func (b *BinanceClient) PlaceOrder(o *models.Order) error {
-	var side futures.SideType
-	if o.Side == models.SIDE_L {
-		side = futures.SideTypeBuy
-	} else {
-		side = futures.SideTypeSell
-	}
+
 	quantity, err := b.GetQuantity(o)
 	if err != nil {
 		return err
 	}
+	kline, err := b.GetKline(o)
+	if err != nil {
+		return err
+	}
+	h, err := strconv.ParseFloat(kline.High, 64)
+	if err != nil {
+		return err
+	}
+	l, err := strconv.ParseFloat(kline.Low, 64)
+	if err != nil {
+		return err
+	}
+	// for target
+	// r := h-l
+	//
+	var side futures.SideType
+	var stopPrice float64
+	if o.Side == models.SIDE_L {
+		side = futures.SideTypeBuy
+		stopPrice = h + float64(o.Offset)
+	} else {
+		side = futures.SideTypeSell
+		stopPrice = l - float64(o.Offset)
+	}
+	// should never happen
+	if stopPrice <= 0 {
+		return fmt.Errorf("price could not be zero or negative")
+	}
 	fmt.Printf("the quantity calculated for trade is %s", quantity)
-	_, err = b.client.NewCreateOrderService().Symbol(o.Pair).Side(side).Type(futures.OrderTypeStopMarket).Quantity(quantity).StopPrice("1000.00").Do(context.Background())
+	_, err = b.client.NewCreateOrderService().Symbol(o.Pair).Side(side).Type(futures.OrderTypeStopMarket).Quantity(quantity).StopPrice(fmt.Sprintf("%.2f", stopPrice)).Do(context.Background())
 	if err != nil {
 		// TODO add error handler if order type is not good for current price
 		return err
