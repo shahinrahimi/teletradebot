@@ -51,10 +51,21 @@ const (
 	ACCOUNT_M           string = `Bitmex`
 	SIDE_L              string = `LONG`
 	SIDE_S              string = `SHORT`
+	CANDLE_1MIN         string = `1m`
+	CANDLE_3MIN         string = `3m`
+	CANDLE_5MIN         string = `5m`
 	CANDLE_15MIN        string = `15m`
 	CANDLE_30MIN        string = `30m`
 	CANDLE_1H           string = `1h`
+	CANDLE_2H           string = `2h`
 	CANDLE_4H           string = `4h`
+	CANDLE_6H           string = `6h`
+	CANDLE_8H           string = `8h`
+	CANDLE_12H          string = `12h`
+	CANDLE_1D           string = `1d`
+	CANDLE_3D           string = `3d`
+	CANDLE_1W           string = `1w`
+	CANDLE_1M           string = `1M`
 	STATE_IDLE          string = `idle`
 	STATE_PLACED        string = `placed`
 	STATE_FILLED        string = `filled`
@@ -75,4 +86,8 @@ func (o *Order) ToFelids() []interface{} {
 
 func (o *Order) ToListString() string {
 	return fmt.Sprintf("id: %d [%s] %s %s %s %s", o.ID, o.Account, o.Pair, o.Side, o.Candle, o.State)
+}
+
+func (o *Order) ToViewString() string {
+	return fmt.Sprintf("id: %d\nAccount: %s\nPair: %s\nSide: %s\nCandle: %s\nOffset: %f\nSizePercent: %d\nSLPercent: %d\nTPPercent: %d\nRM: %d", o.ID, o.Account, o.Pair, o.Side, o.Candle, o.Offset, o.SizePercent, o.SLPercent, o.TPPercent, o.ReverseMultiplier)
 }

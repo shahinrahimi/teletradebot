@@ -144,12 +144,13 @@ func ParseOrder(tradeArgs []string) (*models.Order, error) {
 	// size percent
 	part6 := strings.TrimSpace(tradeArgs[5])
 	size_percent, err := strconv.Atoi(part6)
+	fmt.Println(part6, size_percent)
 	if err != nil {
 		return nil, fmt.Errorf("the valid value for size should be amount in percent (e.g 5)")
 	} else if size_percent <= 0 || size_percent > 50 {
 		return nil, fmt.Errorf("the valid value for size should be a non-zero none-negative number (max: 50)")
 	} else {
-		o.SLPercent = size_percent
+		o.SizePercent = size_percent
 	}
 
 	// stop-loss percent

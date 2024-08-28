@@ -36,11 +36,20 @@ func main() {
 	}
 
 	// create binance client
-	bc := exchange.NewBinanceClient(logger, apiKey, apiSec)
+	bc := exchange.NewBinanceClient(logger, apiKey, apiSec, true)
 	if err := bc.UpdateTickers(); err != nil {
 		logger.Printf("error updating tickers for binance : %v", err)
 	}
 	logger.Printf("Total pairs found for binance: %d", len(bc.Symbols))
+
+	if err := bc.UpdateListenKey(); err != nil {
+		logger.Printf("error updating listenKey for binance : %v", err)
+	}
+	logger.Printf("ListenKey acquired: %s", bc.ListenKey)
+
+	go bc.GetBalance()
+
+	go bc.UserDataStream()
 
 	// create bitmex client
 	mc := exchange.NewBitmexClient(logger)
@@ -81,6 +90,8 @@ func main() {
 	r2.Handle(bot.CHECK, b.MakeHandlerBotFunc(b.HandleCheck))
 	r2.Handle(bot.CANCEL, b.MakeHandlerBotFunc(b.HandleCancel))
 	r2.Handle(bot.EXECUTE, b.MakeHandlerBotFunc(b.HandleExecute))
+	r2.Handle(bot.VIEW, b.MakeHandlerBotFunc(b.HandleView))
+	r2.Handle(bot.DESCRIBE, b.MakeHandlerBotFunc(b.HandleDescribe))
 	r2.Use(b.ProvideOrderByID)
 
 	// create context bot to received updates and gracefully shutdown

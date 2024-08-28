@@ -13,6 +13,12 @@ func (b *Bot) HandleHelp(u *tgbotapi.Update, ctx context.Context) error {
 	return nil
 }
 
+func (b *Bot) HandleView(u *tgbotapi.Update, ctx context.Context) error {
+	o := ctx.Value(models.KeyOrder{}).(models.Order)
+	b.SendMessage(u.Message.From.ID, o.ToViewString())
+	return nil
+}
+
 func (b *Bot) HandleAdd(u *tgbotapi.Update, ctx context.Context) error {
 	o := ctx.Value(models.KeyOrder{}).(models.Order)
 	if err := b.s.CreateOrder(&o); err != nil {
@@ -41,6 +47,14 @@ func (b *Bot) HandleList(u *tgbotapi.Update, ctx context.Context) error {
 }
 
 func (b *Bot) HandleRemove(u *tgbotapi.Update, ctx context.Context) error {
+	return nil
+}
+
+func (b *Bot) HandleDescribe(u *tgbotapi.Update, ctx context.Context) error {
+	o := ctx.Value(models.KeyOrder{}).(models.Order)
+	if err := b.bc.GetKline(&o); err != nil {
+		return err
+	}
 	return nil
 }
 
