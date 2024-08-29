@@ -83,7 +83,7 @@ func main() {
 	// new route
 	r1 := b.NewRouter("route-1")
 	r1.Handle(bot.ADD, b.MakeHandlerBotFunc(b.HandleAdd))
-	r1.Use(b.ProvideAddOrder)
+	r1.Use(b.ProvideAddTrade)
 	// get delete cancel execute
 	r2 := b.NewRouter("route-2")
 	r2.Handle(bot.REMOVE, b.MakeHandlerBotFunc(b.HandleRemove))
@@ -92,7 +92,7 @@ func main() {
 	r2.Handle(bot.EXECUTE, b.MakeHandlerBotFunc(b.HandleExecute))
 	r2.Handle(bot.VIEW, b.MakeHandlerBotFunc(b.HandleView))
 	r2.Handle(bot.DESCRIBE, b.MakeHandlerBotFunc(b.HandleDescribe))
-	r2.Use(b.ProvideOrderByID)
+	r2.Use(b.ProvideTradeByID)
 
 	// create context bot to received updates and gracefully shutdown
 	ctx := context.WithoutCancel(context.Background())

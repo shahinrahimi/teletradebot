@@ -15,10 +15,10 @@ type SqliteStore struct {
 }
 
 type Storage interface {
-	CreateOrder(o *models.Order) error
-	GetOrder(id int) (*models.Order, error)
-	GetOrders() ([]*models.Order, error)
-	DeleteOrder(id int) error
+	CreateTrade(o *models.Trade) error
+	GetTrade(id int) (*models.Trade, error)
+	GetTrades() ([]*models.Trade, error)
+	DeleteTrade(id int) error
 }
 
 func NewSqliteStore(l *log.Logger) (*SqliteStore, error) {
@@ -39,7 +39,7 @@ func NewSqliteStore(l *log.Logger) (*SqliteStore, error) {
 }
 
 func (s *SqliteStore) Init() error {
-	if _, err := s.db.Exec(models.CREATE_TABLE_ORDERS); err != nil {
+	if _, err := s.db.Exec(models.CREATE_TABLE_TRADES); err != nil {
 		s.l.Printf("error creating table for orders: %v", err)
 		return err
 	}

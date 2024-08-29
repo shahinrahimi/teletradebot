@@ -14,27 +14,27 @@ func (b *Bot) HandleHelp(u *tgbotapi.Update, ctx context.Context) error {
 }
 
 func (b *Bot) HandleView(u *tgbotapi.Update, ctx context.Context) error {
-	o := ctx.Value(models.KeyOrder{}).(models.Order)
+	o := ctx.Value(models.KeyTrade{}).(models.Trade)
 	b.SendMessage(u.Message.From.ID, o.ToViewString())
 	return nil
 }
 
 func (b *Bot) HandleAdd(u *tgbotapi.Update, ctx context.Context) error {
-	o := ctx.Value(models.KeyOrder{}).(models.Order)
-	if err := b.s.CreateOrder(&o); err != nil {
-		b.l.Printf("error creating a new order: %v", err)
-		b.SendMessage(u.Message.From.ID, "internal error creating a new order")
+	o := ctx.Value(models.KeyTrade{}).(models.Trade)
+	if err := b.s.CreateTrade(&o); err != nil {
+		b.l.Printf("error creating a new trade: %v", err)
+		b.SendMessage(u.Message.From.ID, "internal error creating a new trade")
 		return err
 	}
-	b.SendMessage(u.Message.From.ID, "Successfully order created!")
+	b.SendMessage(u.Message.From.ID, "Successfully trade created!")
 	return nil
 }
 
 func (b *Bot) HandleList(u *tgbotapi.Update, ctx context.Context) error {
-	os, err := b.s.GetOrders()
+	os, err := b.s.GetTrades()
 	if err != nil {
-		b.l.Printf("error getting orders: %v", err)
-		b.SendMessage(u.Message.From.ID, "internal error listing orders")
+		b.l.Printf("error getting trades: %v", err)
+		b.SendMessage(u.Message.From.ID, "internal error listing trades")
 		return err
 	}
 	fmt.Println(len(os))
@@ -42,7 +42,7 @@ func (b *Bot) HandleList(u *tgbotapi.Update, ctx context.Context) error {
 	for _, o := range os {
 		msg = msg + o.ToListString() + "\n"
 	}
-	b.SendMessage(u.Message.From.ID, "list o orders\n"+msg)
+	b.SendMessage(u.Message.From.ID, "list o trades\n"+msg)
 	return nil
 }
 
@@ -51,21 +51,22 @@ func (b *Bot) HandleRemove(u *tgbotapi.Update, ctx context.Context) error {
 }
 
 func (b *Bot) HandleDescribe(u *tgbotapi.Update, ctx context.Context) error {
-	o := ctx.Value(models.KeyOrder{}).(models.Order)
-	if _, err := b.bc.GetKline(&o); err != nil {
-		return err
-	}
+	// o := ctx.Value(models.KeyTrade{}).(models.Trade)
+	// if _, err := b.bc.GetKline(&o); err != nil {
+	// 	return err
+	// }
+	b.bc.TrackOrder()
 	return nil
 }
 
 func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
-	o := ctx.Value(models.KeyOrder{}).(models.Order)
-	if o.State != models.STATE_IDLE {
-		b.SendMessage(u.Message.From.ID, "the order could not be executed since it is executed once")
+	t := ctx.Value(models.KeyTrade{}).(models.Trade)
+	if t.State != models.STATE_IDLE {
+		b.SendMessage(u.Message.From.ID, "the trade could not be executed since it is executed once")
 		return nil
 	}
-	if err := b.bc.PlaceOrder(&o); err != nil {
-		b.l.Printf("error in placing order: %v", err)
+	if err := b.bc.PlaceOrder(&t); err != nil {
+		b.l.Printf("error in placing trade: %v", err)
 		return err
 	}
 	return nil
