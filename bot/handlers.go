@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"gihub.com/shahinrahimi/teletradebot/models"
+	"gihub.com/shahinrahimi/teletradebot/types"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -61,7 +62,7 @@ func (b *Bot) HandleDescribe(u *tgbotapi.Update, ctx context.Context) error {
 
 func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 	t := ctx.Value(models.KeyTrade{}).(models.Trade)
-	if t.State != models.STATE_IDLE {
+	if t.State != types.STATE_IDLE {
 		b.SendMessage(u.Message.From.ID, "the trade could not be executed since it is executed once")
 		return nil
 	}

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"gihub.com/shahinrahimi/teletradebot/models"
+	"gihub.com/shahinrahimi/teletradebot/types"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -45,7 +46,7 @@ func (b *Bot) ProvideAddTrade(next Handler) Handler {
 
 		var isAvailable bool = false
 		switch o.Account {
-		case models.ACCOUNT_B:
+		case types.ACCOUNT_B:
 			// check pair for binance
 			for _, s := range b.bc.Symbols {
 				if s.Symbol == strings.ToUpper(o.Pair) {
@@ -53,7 +54,7 @@ func (b *Bot) ProvideAddTrade(next Handler) Handler {
 					break
 				}
 			}
-		case models.ACCOUNT_M:
+		case types.ACCOUNT_M:
 			// check pair for bitmex
 			// TODO implement a method to check if pair is available in bitmex
 			c := http.Client{}
@@ -97,7 +98,7 @@ func (b *Bot) ProvideTradeByID(next Handler) Handler {
 }
 
 func ParseTrade(tradeArgs []string) (*models.Trade, error) {
-	var o models.Trade
+	var t models.Trade
 	if len(tradeArgs) < 9 {
 		return nil, fmt.Errorf("the length of args is not sufficient for parsing")
 	}
@@ -108,9 +109,9 @@ func ParseTrade(tradeArgs []string) (*models.Trade, error) {
 	if len(part1) > 1 || (part1 != "m" && part1 != "b") {
 		return nil, fmt.Errorf("the valid value for account should be 'm' => bitmex, 'b' => binance")
 	} else if part1 == "m" {
-		o.Account = models.ACCOUNT_M
+		t.Account = types.ACCOUNT_M
 	} else if part1 == "b" {
-		o.Account = models.ACCOUNT_B
+		t.Account = types.ACCOUNT_B
 	} else {
 		// should never happen
 		return nil, fmt.Errorf("internal error")
@@ -118,20 +119,20 @@ func ParseTrade(tradeArgs []string) (*models.Trade, error) {
 	// pair
 	// TODO maybe add check if pair exist on the tickers
 	part2 := strings.TrimSpace(strings.ToUpper(tradeArgs[1]))
-	o.Pair = part2
+	t.Pair = part2
 	// side
 	part3 := strings.TrimSpace(strings.ToUpper(tradeArgs[2]))
-	if part3 != models.SIDE_L && part3 != models.SIDE_S {
+	if part3 != types.SIDE_L && part3 != types.SIDE_S {
 		return nil, fmt.Errorf("the valid value for side should be 'long' or 'short'")
 	} else {
-		o.Side = part3
+		t.Side = part3
 	}
-	// pair
-	part4 := strings.TrimSpace(strings.ToLower(tradeArgs[3]))
-	if part4 != models.CANDLE_15MIN && part4 != models.CANDLE_30MIN && part4 != models.CANDLE_1H && part4 != models.CANDLE_4H {
-		return nil, fmt.Errorf("the valid value for candle should be '15min', '30min', '1h' or '4h'")
+	// candle
+	part4 := strings.TrimSpace(tradeArgs[3])
+	if !types.IsValidCandle(part4) {
+		return nil, fmt.Errorf("the valid value for candle should be %s.", types.GetValidCandlesString())
 	} else {
-		o.Candle = part4
+		t.Candle = part4
 	}
 	// offset
 	part5 := strings.TrimSpace(tradeArgs[4])
@@ -139,7 +140,7 @@ func ParseTrade(tradeArgs []string) (*models.Trade, error) {
 	if err != nil {
 		return nil, fmt.Errorf("the valid value for offset_entry should be amount (float or integer)")
 	} else {
-		o.Offset = float32(offset)
+		t.Offset = float32(offset)
 	}
 	// size percent
 	part6 := strings.TrimSpace(tradeArgs[5])
@@ -150,7 +151,7 @@ func ParseTrade(tradeArgs []string) (*models.Trade, error) {
 	} else if size_percent <= 0 || size_percent > 50 {
 		return nil, fmt.Errorf("the valid value for size should be a non-zero none-negative number (max: 50)")
 	} else {
-		o.SizePercent = size_percent
+		t.SizePercent = size_percent
 	}
 
 	// stop-loss percent
@@ -161,7 +162,7 @@ func ParseTrade(tradeArgs []string) (*models.Trade, error) {
 	} else if stop_percent < 100 {
 		return nil, fmt.Errorf("the valid value for stop-loss percent should be a non-zero none-negative number (min: 100)")
 	} else {
-		o.SLPercent = stop_percent
+		t.SLPercent = stop_percent
 	}
 
 	// target-point percent
@@ -172,7 +173,7 @@ func ParseTrade(tradeArgs []string) (*models.Trade, error) {
 	} else if target_percent < 100 {
 		return nil, fmt.Errorf("the valid value for target-point percent should be a non-zero none-negative number (min: 100)")
 	} else {
-		o.TPPercent = target_percent
+		t.TPPercent = target_percent
 	}
 
 	// reverse-multiplier
@@ -183,10 +184,10 @@ func ParseTrade(tradeArgs []string) (*models.Trade, error) {
 	} else if reverse_multiplier <= 0 || reverse_multiplier > 2 {
 		return nil, fmt.Errorf("the valid value for target-point percent should be a non-zero none-negative number (1 or 2)")
 	} else {
-		o.ReverseMultiplier = reverse_multiplier
+		t.ReverseMultiplier = reverse_multiplier
 	}
 
-	o.State = models.STATE_IDLE
+	t.State = types.STATE_IDLE
 
-	return &o, nil
+	return &t, nil
 }

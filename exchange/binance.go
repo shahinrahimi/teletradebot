@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log"
 	"strconv"
-	"time"
 
 	"gihub.com/shahinrahimi/teletradebot/models"
+	"gihub.com/shahinrahimi/teletradebot/types"
 	"github.com/adshao/go-binance/v2/futures"
 )
 
@@ -129,7 +129,7 @@ func (b *BinanceClient) GetBalance() (string, error) {
 			return b.AvailableBalance, nil
 		}
 	}
-	return "", fmt.Errorf("there is no balance found!")
+	return "", fmt.Errorf("there is no balance found")
 }
 
 func (b *BinanceClient) GetKline(t *models.Trade) (*futures.Kline, error) {
@@ -140,15 +140,6 @@ func (b *BinanceClient) GetKline(t *models.Trade) (*futures.Kline, error) {
 	}
 	// return before last element
 	return klines[len(klines)-2], nil
-}
-
-func convertTime(timestamp int64) time.Time {
-	// Convert milliseconds to seconds and nanoseconds
-	seconds := timestamp / 1000
-	nanoseconds := (timestamp % 1000) * 1e6
-
-	// Convert to time.Time
-	return time.Unix(seconds, nanoseconds)
 }
 
 func (b *BinanceClient) PlaceOrder(t *models.Trade) error {
@@ -174,7 +165,7 @@ func (b *BinanceClient) PlaceOrder(t *models.Trade) error {
 	//
 	var side futures.SideType
 	var stopPrice float64
-	if t.Side == models.SIDE_L {
+	if t.Side == types.SIDE_L {
 		side = futures.SideTypeBuy
 		stopPrice = h + float64(t.Offset)
 	} else {

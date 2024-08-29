@@ -50,29 +50,6 @@ const (
 	DELETE_TRADE        string = `DELETE FROM trades WHERE id = ?`
 	UPDATE_TRADE        string = `UPDATE trades SET state = ? WHERE id = ?`
 	UPDATE_ORDER_ID     string = `UPDATE trades SET order_id WHERE id = ?`
-	ACCOUNT_B           string = `Binance`
-	ACCOUNT_M           string = `Bitmex`
-	SIDE_L              string = `LONG`
-	SIDE_S              string = `SHORT`
-	CANDLE_1MIN         string = `1m`
-	CANDLE_3MIN         string = `3m`
-	CANDLE_5MIN         string = `5m`
-	CANDLE_15MIN        string = `15m`
-	CANDLE_30MIN        string = `30m`
-	CANDLE_1H           string = `1h`
-	CANDLE_2H           string = `2h`
-	CANDLE_4H           string = `4h`
-	CANDLE_6H           string = `6h`
-	CANDLE_8H           string = `8h`
-	CANDLE_12H          string = `12h`
-	CANDLE_1D           string = `1d`
-	CANDLE_3D           string = `3d`
-	CANDLE_1W           string = `1w`
-	CANDLE_1M           string = `1M`
-	STATE_IDLE          string = `idle`
-	STATE_PLACED        string = `placed`
-	STATE_FILLED        string = `filled`
-	STATE_REVERTING     string = `reverting`
 )
 
 // ToArgs returns state, account, pair, side, candle, offset, size, stop_percent, target_percent and reverse_multiplier as value
