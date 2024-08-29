@@ -2,7 +2,6 @@ package bot
 
 import (
 	"context"
-	"fmt"
 
 	"gihub.com/shahinrahimi/teletradebot/models"
 	"gihub.com/shahinrahimi/teletradebot/types"
@@ -15,14 +14,14 @@ func (b *Bot) HandleHelp(u *tgbotapi.Update, ctx context.Context) error {
 }
 
 func (b *Bot) HandleView(u *tgbotapi.Update, ctx context.Context) error {
-	o := ctx.Value(models.KeyTrade{}).(models.Trade)
-	b.SendMessage(u.Message.From.ID, o.ToViewString())
+	t := ctx.Value(models.KeyTrade{}).(models.Trade)
+	b.SendMessage(u.Message.From.ID, t.ToViewString())
 	return nil
 }
 
 func (b *Bot) HandleAdd(u *tgbotapi.Update, ctx context.Context) error {
-	o := ctx.Value(models.KeyTrade{}).(models.Trade)
-	if err := b.s.CreateTrade(&o); err != nil {
+	t := ctx.Value(models.KeyTrade{}).(models.Trade)
+	if err := b.s.CreateTrade(&t); err != nil {
 		b.l.Printf("error creating a new trade: %v", err)
 		b.SendMessage(u.Message.From.ID, "internal error creating a new trade")
 		return err
@@ -38,12 +37,15 @@ func (b *Bot) HandleList(u *tgbotapi.Update, ctx context.Context) error {
 		b.SendMessage(u.Message.From.ID, "internal error listing trades")
 		return err
 	}
-	fmt.Println(len(os))
 	msg := ""
 	for _, o := range os {
 		msg = msg + o.ToListString() + "\n"
 	}
-	b.SendMessage(u.Message.From.ID, "list o trades\n"+msg)
+	if len(os) == 0 {
+		b.SendMessage(u.Message.From.ID, "There is no trade found")
+		return nil
+	}
+	b.SendMessage(u.Message.From.ID, "list of trades\n"+msg)
 	return nil
 }
 

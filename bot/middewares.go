@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -90,6 +91,11 @@ func (b *Bot) ProvideTradeByID(next Handler) Handler {
 		}
 		o, err := b.s.GetTrade(id)
 		if err != nil {
+			if err == sql.ErrNoRows {
+				b.SendMessage(u.Message.From.ID, fmt.Sprintf("the trade not found with id: %d", id))
+				return
+			}
+			b.l.Printf("internal error getting the trade from DB")
 			b.SendMessage(u.Message.From.ID, fmt.Sprintf("the id is not valid: %d", id))
 			return
 		}

@@ -1,6 +1,8 @@
 package store
 
 import (
+	"database/sql"
+
 	"gihub.com/shahinrahimi/teletradebot/models"
 )
 
@@ -15,7 +17,9 @@ func (s *SqliteStore) CreateTrade(o *models.Trade) error {
 func (s *SqliteStore) GetTrade(id int) (*models.Trade, error) {
 	var o models.Trade
 	if err := s.db.QueryRow(models.SELECT_TRADE, id).Scan(o.ToFelids()...); err != nil {
-		s.l.Printf("error selecting a trade from DB: %v", err)
+		if err != sql.ErrNoRows {
+			s.l.Printf("error selecting a trade from DB: %v", err)
+		}
 		return nil, err
 	}
 	return &o, nil
