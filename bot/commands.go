@@ -1,6 +1,8 @@
 package bot
 
-import "fmt"
+import (
+	"fmt"
+)
 
 const (
 	START    string = "start"
@@ -15,6 +17,53 @@ const (
 	DESCRIBE string = "describe"
 )
 
+func GetGeneralCommands() []string {
+	commands := []string{
+		START,
+		HELP,
+		LIST,
+	}
+	return commands
+}
+
+func GetSpecifiedCommands() []string {
+	commands := []string{
+		ADD,
+		CANCEL,
+		EXECUTE,
+		CHECK,
+		REMOVE,
+		VIEW,
+		DESCRIBE,
+	}
+	return commands
+}
+
+func GetAllCommands() []string {
+	commands := []string{
+		START,
+		HELP,
+		ADD,
+		LIST,
+		CANCEL,
+		EXECUTE,
+		CHECK,
+		REMOVE,
+		VIEW,
+		DESCRIBE,
+	}
+	return commands
+}
+
 func GetCommandHelp() string {
-	return fmt.Sprintf("Usage\n/%s\n/%s\n/%s\n/%s\n/%s\n/%s\n/%s\n/%s\n/%s", HELP, ADD, LIST, CANCEL, EXECUTE, CHECK, REMOVE, VIEW, DESCRIBE)
+	var commandsStr string = ""
+	gCommands := GetGeneralCommands()
+	for _, c := range gCommands {
+		commandsStr = commandsStr + "/" + c + "\n"
+	}
+	sCommands := GetSpecifiedCommands()
+	for _, c := range sCommands {
+		commandsStr = commandsStr + "/" + c + " [id]\n"
+	}
+	return fmt.Sprintf("Usage\n\n%s", commandsStr)
 }

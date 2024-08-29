@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"gihub.com/shahinrahimi/teletradebot/config"
 	"gihub.com/shahinrahimi/teletradebot/models"
 	"gihub.com/shahinrahimi/teletradebot/types"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -29,7 +30,7 @@ func (b *Bot) ProvideAddTrade(next Handler) Handler {
 		args := strings.Split(u.Message.CommandArguments(), " ")
 		// check shortcuts
 		if len(args) == 1 {
-			value, exist := Shortcuts[args[0]]
+			value, exist := config.Shortcuts[args[0]]
 			if !exist {
 				b.SendMessage(u.Message.From.ID, fmt.Sprintf("shortcut is not found: '%s'", args[0]))
 				return
@@ -130,7 +131,7 @@ func ParseTrade(tradeArgs []string) (*models.Trade, error) {
 	// candle
 	part4 := strings.TrimSpace(tradeArgs[3])
 	if !types.IsValidCandle(part4) {
-		return nil, fmt.Errorf("the valid value for candle should be %s.", types.GetValidCandlesString())
+		return nil, fmt.Errorf("the valid value for candle should be %s", types.GetValidCandlesString())
 	} else {
 		t.Candle = part4
 	}
