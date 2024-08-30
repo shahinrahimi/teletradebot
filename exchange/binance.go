@@ -24,9 +24,7 @@ func NewBinanceClient(l *log.Logger, apiKey string, secretKey string, useTestnet
 	client := futures.NewClient(apiKey, secretKey)
 	return &BinanceClient{l: l, client: client, UseTestnet: useTestnet}
 }
-
 func (b *BinanceClient) UpdateListenKey() error {
-	b.l.Println(b.UseTestnet)
 	listenKey, err := b.client.NewStartUserStreamService().Do(context.Background())
 	if err != nil {
 		return err
@@ -34,7 +32,6 @@ func (b *BinanceClient) UpdateListenKey() error {
 	b.ListenKey = listenKey
 	return nil
 }
-
 func (b *BinanceClient) UpdateTickers() error {
 	symbols, err := b.client.NewListPricesService().Do(context.Background())
 	if err != nil {
@@ -44,7 +41,6 @@ func (b *BinanceClient) UpdateTickers() error {
 	b.Symbols = symbols
 	return nil
 }
-
 func (b *BinanceClient) TrackOrder() error {
 	orders, err := b.client.NewListOrdersService().Do(context.Background())
 	if err != nil {
@@ -101,7 +97,6 @@ func (b *BinanceClient) GetBalance() (string, error) {
 	}
 	return "", fmt.Errorf("there is no balance found")
 }
-
 func (b *BinanceClient) GetKline(t *models.Trade) (*futures.Kline, error) {
 	// TODO check if interval works for other intervals (1h and 4h works)
 	klines, err := b.client.NewKlinesService().Limit(100).Interval(t.Candle).Symbol(t.Pair).Do(context.Background())
@@ -111,7 +106,6 @@ func (b *BinanceClient) GetKline(t *models.Trade) (*futures.Kline, error) {
 	// return before last element
 	return klines[len(klines)-2], nil
 }
-
 func (b *BinanceClient) PlaceOrder(t *models.Trade) (*futures.CreateOrderResponse, error) {
 
 	quantity, err := b.GetQuantity(t)
@@ -146,11 +140,43 @@ func (b *BinanceClient) PlaceOrder(t *models.Trade) (*futures.CreateOrderRespons
 	if stopPrice <= 0 {
 		return nil, fmt.Errorf("price could not be zero or negative")
 	}
-	fmt.Printf("the quantity calculated for trade is %s", quantity)
-	res, err := b.client.NewCreateOrderService().Symbol(t.Pair).Side(side).Type(futures.OrderTypeStopMarket).Quantity(quantity).StopPrice(fmt.Sprintf("%.2f", stopPrice)).Do(context.Background())
+	b.l.Printf("the quantity calculated for trade is %s", quantity)
+	var order *futures.CreateOrderService
+	order = b.client.NewCreateOrderService()
+	order = order.Symbol(t.Pair).Side(side).Quantity(quantity)
+	order = order.StopPrice(fmt.Sprintf("%.2f", stopPrice))
+	order = order.Type(futures.OrderTypeStopMarket)
+	order = order.WorkingType(futures.WorkingTypeMarkPrice)
+	res, err := order.Do(context.Background())
 	//res.OrderID
 	if err != nil {
 		// TODO add error handler if order type is not good for current price
+		return nil, err
+	}
+	// TODO implement a function to cancel the order after desired duration
+	return res, nil
+}
+
+func (b *BinanceClient) CancelOrder(orderID int64, symbol string) error {
+	var order *futures.CancelOrderService
+	order = b.client.NewCancelOrderService()
+	order = order.OrderID(orderID).Symbol(symbol)
+	_, err := order.Do(context.Background())
+	if err != nil {
+		b.l.Printf("error in canceling the order: %v", err)
+		return err
+	}
+	return nil
+
+}
+
+func (b *BinanceClient) GetOrder(orderID int64, symbol string) (*futures.Order, error) {
+	var order *futures.GetOrderService
+	order = b.client.NewGetOrderService()
+	order = order.OrderID(orderID).Symbol(symbol)
+	res, err := order.Do(context.Background())
+	if err != nil {
+		b.l.Printf("error in getting the order: %v", err)
 		return nil, err
 	}
 	return res, nil

@@ -18,8 +18,9 @@ type Storage interface {
 	CreateTrade(o *models.Trade) error
 	GetTrade(id int) (*models.Trade, error)
 	GetTrades() ([]*models.Trade, error)
+	GetTradeByOrderID(order_id string) (*models.Trade, error)
 	DeleteTrade(id int) error
-	UpdateTrade(id int, t *models.Trade) error
+	UpdateTrade(t *models.Trade) error
 }
 
 func NewSqliteStore(l *log.Logger) (*SqliteStore, error) {

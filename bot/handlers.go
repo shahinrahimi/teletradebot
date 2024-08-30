@@ -8,6 +8,7 @@ import (
 
 	"gihub.com/shahinrahimi/teletradebot/models"
 	"gihub.com/shahinrahimi/teletradebot/types"
+	"github.com/adshao/go-binance/v2/futures"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -89,15 +90,35 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 	msg := fmt.Sprintf("order placed successfully order_id: %s", orderID)
 	b.SendMessage(u.Message.From.ID, msg)
 
+	// update trade for order_id
 	t.OrderID = orderID
 	t.State = types.STATE_PLACED
 	t.UpdatedAt = time.Now().UTC()
-	// update trade for order_id
-	if err := b.s.UpdateTrade(t.ID, &t); err != nil {
+	if err := b.s.UpdateTrade(&t); err != nil {
 		msg := fmt.Sprintf("important error happened, the trade with id '%d' can not be updated, so it could be miss-tracked, the order_id: %s", t.ID, t.OrderID)
 		b.SendMessage(u.Message.From.ID, msg)
 		return err
 	}
+	// set expiration time for order
+	go func() {
+		expireDuration, err := types.GetExpirationDuration(t.Candle)
+		if err != nil {
+			b.l.Printf("error getting expiration time for trade id: %d err: %v", t.ID, err)
+			return
+		}
+		time.Sleep(expireDuration)
+		order, err := b.bc.GetOrder(res.OrderID, res.Symbol)
+		if err != nil {
+			b.l.Printf("error getting order for trade id: %d err: %v", t.ID, err)
+			return
+		}
+		if order.Status != futures.OrderStatusTypeFilled {
+			if err := b.bc.CancelOrder(res.OrderID, res.Symbol); err != nil {
+				b.l.Printf("error cancelling order for trade id: %d err: %v", t.ID, err)
+				return
+			}
+		}
+	}()
 
 	return nil
 }

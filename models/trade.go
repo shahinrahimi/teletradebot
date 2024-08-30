@@ -45,13 +45,14 @@ const (
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)	
 	`
-	SELECT_COUNT_TRADES string = `SELECT COUNT(*) FROM trades`
-	SELECT_TRADES       string = `SELECT * FROM trades`
-	SELECT_TRADE        string = `SELECT * FROM trades WHERE id = ?`
-	INSERT_TRADE        string = `INSERT INTO trades (user_id, state, account, pair, side, candle, offset, size_percent, sl_percent, tp_percent, reverse_multiplier) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?)`
-	DELETE_TRADE        string = `DELETE FROM trades WHERE id = ?`
-	UPDATE_TRADE        string = `UPDATE trades SET order_id = ?, state = ?, updated_at WHERE id = ?`
-	UPDATE_ORDER_ID     string = `UPDATE trades SET order_id WHERE id = ?`
+	SELECT_COUNT_TRADES     string = `SELECT COUNT(*) FROM trades`
+	SELECT_TRADES           string = `SELECT * FROM trades`
+	SELECT_TRADE            string = `SELECT * FROM trades WHERE id = ?`
+	SELECT_TRADE_BY_OrderID string = `SELECT * FROM trades WHERE order_id = ?`
+	INSERT_TRADE            string = `INSERT INTO trades (user_id, state, account, pair, side, candle, offset, size_percent, sl_percent, tp_percent, reverse_multiplier) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?)`
+	DELETE_TRADE            string = `DELETE FROM trades WHERE id = ?`
+	UPDATE_TRADE            string = `UPDATE trades SET order_id = ?, state = ?, updated_at = ? WHERE id = ?`
+	UPDATE_ORDER_ID         string = `UPDATE trades SET order_id WHERE id = ?`
 )
 
 // ToArgs returns state, account, pair, side, candle, offset, size, stop_percent, target_percent and reverse_multiplier as value

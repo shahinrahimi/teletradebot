@@ -1,5 +1,10 @@
 package types
 
+import (
+	"fmt"
+	"time"
+)
+
 const (
 	ACCOUNT_B string = `Binance`
 	ACCOUNT_M string = `Bitmex`
@@ -28,6 +33,32 @@ const (
 	STATE_FILLED    string = `filled`
 	STATE_REVERTING string = `reverting`
 )
+
+var ExpireDuration = map[string]time.Duration{
+	CANDLE_1MIN:  time.Minute * 1,
+	CANDLE_3MIN:  time.Minute * 3,
+	CANDLE_5MIN:  time.Minute * 5,
+	CANDLE_15MIN: time.Minute * 15,
+	CANDLE_30MIN: time.Minute * 30,
+	CANDLE_1H:    time.Hour * 1,
+	CANDLE_2H:    time.Hour * 2,
+	CANDLE_4H:    time.Hour * 4,
+	CANDLE_6H:    time.Hour * 6,
+	CANDLE_8H:    time.Hour * 8,
+	CANDLE_12H:   time.Hour * 12,
+	CANDLE_1D:    time.Hour * 24,
+	CANDLE_3D:    time.Hour * 24 * 3,
+	CANDLE_1W:    time.Hour * 24 * 7,
+	CANDLE_1M:    time.Hour * 24 * 30, // Approximation, as months vary in length
+}
+
+func GetExpirationDuration(candle string) (time.Duration, error) {
+	if duration, exists := ExpireDuration[candle]; exists {
+		return duration, nil
+	} else {
+		return 0, fmt.Errorf("Candle interval %s not found", candle)
+	}
+}
 
 func GetValidCandles() []string {
 	validCandles := []string{

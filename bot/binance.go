@@ -1,6 +1,10 @@
 package bot
 
 import (
+	"database/sql"
+	"fmt"
+	"strconv"
+
 	"gihub.com/shahinrahimi/teletradebot/utils"
 	"github.com/adshao/go-binance/v2/futures"
 )
@@ -17,11 +21,8 @@ func (b *Bot) StartBinanceService() error {
 		return err
 	}
 	b.l.Printf("ListenKey acquired: %s", b.bc.ListenKey)
-	return nil
-}
-
-func (b *Bot) StartWsBinanceService() {
 	go b.startUserDataStream()
+	return nil
 }
 
 func (b *Bot) startUserDataStream() {
@@ -39,6 +40,33 @@ func (b *Bot) startUserDataStream() {
 
 func (b *Bot) handleOrderTradeUpdate(f futures.WsOrderTradeUpdate) {
 	utils.PrintStructFields(f)
+	switch f.Status {
+	case futures.OrderStatusTypeCanceled:
+		b.l.Println("handle canceled")
+	case futures.OrderStatusTypeFilled:
+		b.l.Println("handle filled")
+	case futures.OrderStatusTypeRejected:
+		b.l.Println("handle rejected")
+	case futures.OrderStatusTypeNew:
+		b.l.Println("handle new order")
+	case futures.OrderStatusTypeExpired:
+		b.l.Println("handle expiration")
+	case futures.OrderStatusTypePartiallyFilled:
+		b.l.Println("handle partially filled")
+	default:
+		b.l.Println("handle unknown")
+	}
+	orderID := strconv.FormatInt(f.ID, 10)
+	t, err := b.s.GetTradeByOrderID(orderID)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			b.l.Printf("internal error for getting trade by OrderID")
+		}
+		// probably the order created by another client
+		return
+	}
+	msg := fmt.Sprintf("the order status changed order_id: %s", orderID)
+	b.SendMessage(t.UserID, msg)
 }
 
 func (b *Bot) wsHandler(event *futures.WsUserDataEvent) {
