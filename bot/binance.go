@@ -44,6 +44,9 @@ func (b *Bot) handleOrderTradeUpdate(f futures.WsOrderTradeUpdate) {
 	case futures.OrderStatusTypeCanceled:
 		b.l.Println("handle canceled")
 	case futures.OrderStatusTypeFilled:
+		// update trade to filled
+		// place stopPrice order
+		// place takeprofit order
 		b.l.Println("handle filled")
 	case futures.OrderStatusTypeRejected:
 		b.l.Println("handle rejected")
