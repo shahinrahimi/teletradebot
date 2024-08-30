@@ -12,7 +12,16 @@ import (
 )
 
 func (b *Bot) HandleHelp(u *tgbotapi.Update, ctx context.Context) error {
-	b.SendMessage(u.Message.From.ID, GetCommandHelp())
+	var userID int64 = u.Message.From.ID
+	b.SendMessage(userID, GetCommandHelp())
+	return nil
+}
+
+func (b *Bot) HandleInfo(u *tgbotapi.Update, ctx context.Context) error {
+	var userID int64 = u.Message.From.ID
+	var username string = u.Message.From.UserName
+	msg := fmt.Sprintf("UserID:\t%d\nUsername:\t%s", userID, username)
+	b.SendMessage(userID, msg)
 	return nil
 }
 

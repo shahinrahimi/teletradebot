@@ -8,3 +8,7 @@ var Shortcuts = map[string]string{
 	"h": "m XBTUSD long 1h 0.1 1 105 101 1",
 	"b": "b BNBUSDT long 1h 0.1 1 105 101 1",
 }
+
+var UserIDs = []int64{
+	104196468,
+}

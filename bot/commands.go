@@ -7,6 +7,7 @@ import (
 const (
 	START    string = "start"
 	HELP     string = "help"
+	INFO     string = "info"
 	ADD      string = "add"
 	LIST     string = "list"
 	CANCEL   string = "cancel"
@@ -21,6 +22,7 @@ func GetGeneralCommands() []string {
 	commands := []string{
 		START,
 		HELP,
+		INFO,
 		LIST,
 	}
 	return commands
@@ -43,6 +45,7 @@ func GetAllCommands() []string {
 	commands := []string{
 		START,
 		HELP,
+		INFO,
 		ADD,
 		LIST,
 		CANCEL,
