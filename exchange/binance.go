@@ -35,37 +35,6 @@ func (b *BinanceClient) UpdateListenKey() error {
 	return nil
 }
 
-func (b *BinanceClient) UserDataStream() {
-	futures.UseTestnet = b.UseTestnet
-
-	wsHandler := func(event *futures.WsUserDataEvent) {
-		b.l.Println("we got a event", event)
-		b.l.Println("we got a event", event.AccountConfigUpdate)
-		b.l.Println("we got a event", event.AccountUpdate)
-		b.l.Println("we got a event", event.CrossWalletBalance)
-		b.l.Println("we got a event", event.Event)
-		b.l.Println("we got a event", event.MarginCallPositions)
-		b.l.Println("we got a event", event.OrderTradeUpdate)
-		b.l.Println("we got a event", event.Time)
-		b.l.Println("we got a event", event.TransactionTime)
-		b.l.Println("we got a event", event.AccountUpdate.Balances)
-		b.l.Println("we got a event", event.AccountUpdate.Positions)
-		b.l.Println("we got a event", event.AccountUpdate.Reason)
-	}
-
-	errHandler := func(err error) {
-		fmt.Println(err)
-	}
-	doneC, _, err := futures.WsUserDataServe(b.ListenKey, wsHandler, errHandler)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	b.l.Println("WebSocket connection established. Listening for events...")
-	<-doneC
-
-}
 func (b *BinanceClient) UpdateTickers() error {
 	symbols, err := b.client.NewListPricesService().Do(context.Background())
 	if err != nil {
@@ -115,8 +84,9 @@ func (b *BinanceClient) GetQuantity(t *models.Trade) (string, error) {
 		return "", err
 	}
 	size := balance * float64(t.SizePercent) / 100
-	fmt.Println(size, balance, t.SizePercent, float64(t.SizePercent)/100)
-	return fmt.Sprintf("%.2f", size/price), nil
+	quantity := size / price
+	b.l.Printf("the balance is %.2f, the size of trade will be %.2f and the quantity will be %0.3f %s", balance, size, quantity, symbol.Symbol)
+	return fmt.Sprintf("%.3f", quantity), nil
 }
 func (b *BinanceClient) GetBalance() (string, error) {
 	balances, err := b.client.NewGetBalanceService().Do(context.Background())
@@ -142,23 +112,23 @@ func (b *BinanceClient) GetKline(t *models.Trade) (*futures.Kline, error) {
 	return klines[len(klines)-2], nil
 }
 
-func (b *BinanceClient) PlaceOrder(t *models.Trade) error {
+func (b *BinanceClient) PlaceOrder(t *models.Trade) (*futures.CreateOrderResponse, error) {
 
 	quantity, err := b.GetQuantity(t)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	kline, err := b.GetKline(t)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	h, err := strconv.ParseFloat(kline.High, 64)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	l, err := strconv.ParseFloat(kline.Low, 64)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// for target
 	// r := h-l
@@ -174,15 +144,14 @@ func (b *BinanceClient) PlaceOrder(t *models.Trade) error {
 	}
 	// should never happen
 	if stopPrice <= 0 {
-		return fmt.Errorf("price could not be zero or negative")
+		return nil, fmt.Errorf("price could not be zero or negative")
 	}
 	fmt.Printf("the quantity calculated for trade is %s", quantity)
-	_, err = b.client.NewCreateOrderService().Symbol(t.Pair).Side(side).Type(futures.OrderTypeStopMarket).Quantity(quantity).StopPrice(fmt.Sprintf("%.2f", stopPrice)).Do(context.Background())
+	res, err := b.client.NewCreateOrderService().Symbol(t.Pair).Side(side).Type(futures.OrderTypeStopMarket).Quantity(quantity).StopPrice(fmt.Sprintf("%.2f", stopPrice)).Do(context.Background())
 	//res.OrderID
 	if err != nil {
 		// TODO add error handler if order type is not good for current price
-		return err
+		return nil, err
 	}
-	// TODO add stoploss and take profit as well
-	return nil
+	return res, nil
 }

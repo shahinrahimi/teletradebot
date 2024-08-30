@@ -2,6 +2,9 @@ package bot
 
 import (
 	"context"
+	"fmt"
+	"strconv"
+	"time"
 
 	"gihub.com/shahinrahimi/teletradebot/models"
 	"gihub.com/shahinrahimi/teletradebot/types"
@@ -68,10 +71,25 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 		b.SendMessage(u.Message.From.ID, "the trade could not be executed since it is executed once")
 		return nil
 	}
-	if err := b.bc.PlaceOrder(&t); err != nil {
+	res, err := b.bc.PlaceOrder(&t)
+	if err != nil {
 		b.l.Printf("error in placing trade: %v", err)
 		return err
 	}
+	orderID := strconv.FormatInt(res.OrderID, 10)
+	msg := fmt.Sprintf("order placed successfully order_id: %s", orderID)
+	b.SendMessage(u.Message.From.ID, msg)
+
+	t.OrderID = orderID
+	t.State = types.STATE_PLACED
+	t.UpdatedAt = time.Now().UTC()
+	// update trade for order_id
+	if err := b.s.UpdateTrade(t.ID, &t); err != nil {
+		msg := fmt.Sprintf("important error happened, the trade with id '%d' can not be updated, so it could be miss-tracked, the order_id: %s", t.ID, t.OrderID)
+		b.SendMessage(u.Message.From.ID, msg)
+		return err
+	}
+
 	return nil
 }
 

@@ -46,3 +46,7 @@ func (s *SqliteStore) DeleteTrade(id int) error {
 	}
 	return nil
 }
+
+func (s *SqliteStore) UpdateTrade(id int, t *models.Trade) error {
+	return nil
+}

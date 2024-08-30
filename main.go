@@ -37,19 +37,6 @@ func main() {
 
 	// create binance client
 	bc := exchange.NewBinanceClient(logger, apiKey, apiSec, true)
-	if err := bc.UpdateTickers(); err != nil {
-		logger.Printf("error updating tickers for binance : %v", err)
-	}
-	logger.Printf("Total pairs found for binance: %d", len(bc.Symbols))
-
-	if err := bc.UpdateListenKey(); err != nil {
-		logger.Printf("error updating listenKey for binance : %v", err)
-	}
-	logger.Printf("ListenKey acquired: %s", bc.ListenKey)
-
-	go bc.GetBalance()
-
-	go bc.UserDataStream()
 
 	// create bitmex client
 	mc := exchange.NewBitmexClient(logger)
@@ -69,6 +56,10 @@ func main() {
 	b, err := bot.NewBot(logger, s, bc, mc, token)
 	if err != nil {
 		logger.Fatalf("error creating instance of bot: %v", err)
+	}
+
+	if err := b.StartBinanceService(); err != nil {
+		logger.Fatalf("error starting binance service: %v", err)
 	}
 
 	// global middleware

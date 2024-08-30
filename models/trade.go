@@ -28,7 +28,7 @@ const (
 	CREATE_TABLE_TRADES string = `
 		CREATE TABLE IF NOT EXISTS trades (
 			id INTEGER PRIMARY KEY AUTOINCREMENT UNIQUE,
-			order_id TEXT,
+			order_id TEXT NOT NULL DEFAULT '',
 			state TEXT NOT NULL,
 			account TEXT NOT NULL,
 			pair TEXT NOT NULL,
@@ -48,7 +48,7 @@ const (
 	SELECT_TRADE        string = `SELECT * FROM trades WHERE id = ?`
 	INSERT_TRADE        string = `INSERT INTO trades (state, account, pair, side, candle, offset, size_percent, sl_percent, tp_percent, reverse_multiplier) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ? ,?)`
 	DELETE_TRADE        string = `DELETE FROM trades WHERE id = ?`
-	UPDATE_TRADE        string = `UPDATE trades SET state = ? WHERE id = ?`
+	UPDATE_TRADE        string = `UPDATE trades SET order_id = ?, state = ?, updated_at WHERE id = ?`
 	UPDATE_ORDER_ID     string = `UPDATE trades SET order_id WHERE id = ?`
 )
 
@@ -58,10 +58,16 @@ func (t *Trade) ToArgs() []interface{} {
 	return []interface{}{t.State, t.Account, t.Pair, t.Side, t.Candle, t.Offset, t.SizePercent, t.SLPercent, t.TPPercent, t.ReverseMultiplier}
 }
 
+// ToUpdatedArgs returns order_id, state, updated_at and id as value
+// use for updating record in DB
+func (t *Trade) ToUpdatedArgs() []interface{} {
+	return []interface{}{t.OrderID, t.State, t.UpdatedAt, t.ID}
+}
+
 // ToFeilds returns id, state, account, pair, side, candle, offset, size, stop_percent, target_percent, reverse_multiplier, created_at and updated_at as reference
 // use for scanning from DB
 func (t *Trade) ToFelids() []interface{} {
-	return []interface{}{&t.ID, &t.State, &t.Account, &t.Pair, &t.Side, &t.Candle, &t.Offset, &t.SizePercent, &t.SLPercent, &t.TPPercent, &t.ReverseMultiplier, &t.CreatedAt, &t.UpdatedAt}
+	return []interface{}{&t.ID, &t.OrderID, &t.State, &t.Account, &t.Pair, &t.Side, &t.Candle, &t.Offset, &t.SizePercent, &t.SLPercent, &t.TPPercent, &t.ReverseMultiplier, &t.CreatedAt, &t.UpdatedAt}
 }
 
 func (t *Trade) ToListString() string {
