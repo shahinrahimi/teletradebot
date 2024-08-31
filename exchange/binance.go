@@ -13,23 +13,27 @@ import (
 )
 
 type BinanceClient struct {
-	l                *log.Logger
-	client           *futures.Client
-	Symbols          []*futures.SymbolPrice
-	SymbolPriceChan  chan []*futures.SymbolPrice
-	ExchangeInfoChan chan *futures.ExchangeInfo
-	ListenKey        string
-	UseTestnet       bool
+	l                  *log.Logger
+	client             *futures.Client
+	Symbols            []*futures.SymbolPrice
+	SymbolPriceChan    chan []*futures.SymbolPrice
+	ExchangeInfoChan   chan *futures.ExchangeInfo
+	AccountChan        chan *futures.Account
+	accountTriggerChan chan struct{} // Channel to trigger immediate balance refresh
+	ListenKey          string
+	UseTestnet         bool
 }
 
 func NewBinanceClient(l *log.Logger, apiKey string, secretKey string, useTestnet bool) *BinanceClient {
 	futures.UseTestnet = useTestnet
 	client := futures.NewClient(apiKey, secretKey)
 	return &BinanceClient{
-		l:                l,
-		client:           client,
-		SymbolPriceChan:  make(chan []*futures.SymbolPrice),
-		ExchangeInfoChan: make(chan *futures.ExchangeInfo),
+		l:                  l,
+		client:             client,
+		SymbolPriceChan:    make(chan []*futures.SymbolPrice),
+		ExchangeInfoChan:   make(chan *futures.ExchangeInfo),
+		AccountChan:        make(chan *futures.Account),
+		accountTriggerChan: make(chan struct{}, 1),
 	}
 }
 
@@ -56,6 +60,48 @@ func (bc *BinanceClient) PollExchangeInfo(interval time.Duration) {
 		time.Sleep(interval)
 	}
 }
+
+func (bc *BinanceClient) PollAccount(interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C: // regular interval trigger
+			bc.fetchAndSendAccount()
+		case <-bc.accountTriggerChan: // forced refresh trigger
+			bc.fetchAndSendAccount()
+		}
+	}
+}
+
+func (bc *BinanceClient) StartPolling() {
+	// Weight: 5
+	go bc.PollAccount(time.Minute)
+	// Weight: 1
+	go bc.PollExchangeInfo(time.Minute)
+	// Weight: 2
+	go bc.PollSymbolPrice(time.Minute)
+}
+
+func (bc *BinanceClient) fetchAndSendAccount() {
+	res, err := bc.client.NewGetAccountService().Do(context.Background())
+	if err != nil {
+		bc.l.Printf("Error fetching account: %v", err)
+		return
+	}
+	bc.AccountChan <- res
+}
+
+func (bc *BinanceClient) ForceAccountRefresh() {
+	select {
+	case bc.accountTriggerChan <- struct{}{}:
+		// trigger sent
+	default:
+		// If there is already a trigger pending, do nothing
+	}
+}
+
 func (b *BinanceClient) UpdateListenKey() error {
 	listenKey, err := b.client.NewStartUserStreamService().Do(context.Background())
 	if err != nil {
