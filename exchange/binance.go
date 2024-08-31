@@ -29,18 +29,6 @@ type BinanceClient struct {
 	LastAccount      *futures.Account
 }
 
-func (bc *BinanceClient) GetLatestSymbolPrices() []*futures.SymbolPrice {
-	return bc.LastSymbolPrices
-}
-
-func (bc *BinanceClient) GetLatestExchangeInfo() *futures.ExchangeInfo {
-	return bc.LastExchangeInfo
-}
-
-func (bc *BinanceClient) GetLatestAccount() *futures.Account {
-	return bc.LastAccount
-}
-
 func NewBinanceClient(l *log.Logger, apiKey string, secretKey string, useTestnet bool) *BinanceClient {
 	futures.UseTestnet = useTestnet
 	client := futures.NewClient(apiKey, secretKey)
@@ -51,7 +39,20 @@ func NewBinanceClient(l *log.Logger, apiKey string, secretKey string, useTestnet
 		ExchangeInfoChan:   make(chan *futures.ExchangeInfo),
 		AccountChan:        make(chan *futures.Account),
 		accountTriggerChan: make(chan struct{}, 1),
+		UseTestnet:         useTestnet,
 	}
+}
+
+func (bc *BinanceClient) GetLatestSymbolPrices() []*futures.SymbolPrice {
+	return bc.LastSymbolPrices
+}
+
+func (bc *BinanceClient) GetLatestExchangeInfo() *futures.ExchangeInfo {
+	return bc.LastExchangeInfo
+}
+
+func (bc *BinanceClient) GetLatestAccount() *futures.Account {
+	return bc.LastAccount
 }
 
 func (bc *BinanceClient) StartPolling() {
@@ -123,43 +124,6 @@ func (bc *BinanceClient) ForceAccountRefresh() {
 	default:
 		// If there is already a trigger pending, do nothing
 	}
-}
-
-func (bc *BinanceClient) TryPlaceOrderForTrade(t *models.Trade) (*futures.CreateOrderResponse, error) {
-	quantity, err := bc.GetQuantity(t)
-	if err != nil {
-		return nil, err
-	}
-	kline, err := bc.GetKlineBeforeLast(t.Pair, t.Candle)
-	if err != nil {
-		return nil, err
-	}
-	stopPrice, err := bc.GetStopPrice(t, kline)
-	if err != nil {
-		return nil, err
-	}
-	var side futures.SideType
-	if t.Side == types.SIDE_L {
-		side = futures.SideTypeBuy
-	} else {
-		side = futures.SideTypeSell
-	}
-	bc.l.Printf("Placing order with quantity %s and stop price %s", quantity, stopPrice)
-
-	order := bc.client.NewCreateOrderService().
-		Symbol(t.Pair).
-		Side(side).
-		Quantity(quantity).
-		StopPrice(stopPrice).
-		Type(futures.OrderTypeStopMarket).
-		WorkingType(futures.WorkingTypeMarkPrice)
-
-	res, err := order.Do(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
-	return res, nil
 }
 
 func (bc *BinanceClient) GetLatestPrice(symbol string) (float64, error) {
@@ -259,6 +223,112 @@ func (bc *BinanceClient) GetStopPrice(t *models.Trade, kline *futures.Kline) (st
 	stopPrice = math.Floor(stopPrice/pricePrecision) * pricePrecision
 
 	return fmt.Sprintf("%.*f", symbol.PricePrecision, stopPrice), nil
+}
+
+func (bc *BinanceClient) GetStopLossTakeProfitPrice(t *models.Trade, stopPrice string) (stopLossPrice string, takeProfitPrice string, err error) {
+	kline, err := bc.GetKlineBeforeLast(t.Pair, t.Candle)
+	if err != nil {
+		return "", "", err
+	}
+	h, err := strconv.ParseFloat(kline.High, 64)
+	if err != nil {
+		return "", "", err
+	}
+	l, err := strconv.ParseFloat(kline.Low, 64)
+	if err != nil {
+		return "", "", err
+	}
+	r := h - l
+	sp, err := strconv.ParseFloat(stopPrice, 64)
+	if err != nil {
+		return "", "", err
+	}
+
+	var sl float64
+	var tp float64
+	if t.Side == types.SIDE_L {
+		sl = sp - (r * (float64(t.SLPercent)) / 100)
+		tp = sp + (r * (float64(t.TPPercent)) / 100)
+	} else {
+		sl = sp + (r * (float64(t.SLPercent)) / 100)
+		tp = sp - (r * (float64(t.TPPercent)) / 100)
+	}
+
+	// Adjust the stop price according to price precision
+	symbol, err := bc.GetSymbol(t.Pair)
+	if err != nil {
+		return "", "", err
+	}
+	pricePrecision := math.Pow10(int(-symbol.PricePrecision))
+	sl = math.Floor(sl/pricePrecision) * pricePrecision
+	tp = math.Floor(tp/pricePrecision) * pricePrecision
+
+	stopLossPrice = fmt.Sprintf("%.*f", symbol.PricePrecision, sl)
+	takeProfitPrice = fmt.Sprintf("%.*f", symbol.PricePrecision, tp)
+
+	return stopLossPrice, takeProfitPrice, nil
+}
+
+func (bc *BinanceClient) TryPlaceOrderForTrade(t *models.Trade) (*futures.CreateOrderResponse, error) {
+	quantity, err := bc.GetQuantity(t)
+	if err != nil {
+		return nil, err
+	}
+	kline, err := bc.GetKlineBeforeLast(t.Pair, t.Candle)
+	if err != nil {
+		return nil, err
+	}
+	stopPrice, err := bc.GetStopPrice(t, kline)
+	if err != nil {
+		return nil, err
+	}
+	var side futures.SideType
+	if t.Side == types.SIDE_L {
+		side = futures.SideTypeBuy
+	} else {
+		side = futures.SideTypeSell
+	}
+	bc.l.Printf("Placing order with quantity %s and stop price %s", quantity, stopPrice)
+
+	order := bc.client.NewCreateOrderService().
+		Symbol(t.Pair).
+		Side(side).
+		Quantity(quantity).
+		StopPrice(stopPrice).
+		Type(futures.OrderTypeStopMarket).
+		WorkingType(futures.WorkingTypeMarkPrice)
+
+	res, err := order.Do(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (bc *BinanceClient) TryPlaceStopLossAndTakeProfitTrade(t *models.Trade, orderUpdate *futures.WsOrderTradeUpdate) (*futures.CreateOrderResponse, *futures.CreateOrderResponse, error, error) {
+	stopLossPrice, takeProfitPrice, err := bc.GetStopLossTakeProfitPrice(t, orderUpdate.StopPrice)
+	if err != nil {
+		return nil, nil, err, err
+	}
+	var side futures.SideType
+	if t.Side == types.SIDE_L {
+		side = futures.SideTypeSell
+	} else {
+		side = futures.SideTypeBuy
+	}
+	orgOrder := bc.client.NewCreateOrderService().Symbol(t.Pair).Side(side).Quantity(orderUpdate.OriginalQty).WorkingType(futures.WorkingTypeMarkPrice)
+	slOrder := orgOrder.Type(futures.OrderTypeStopMarket).StopPrice(stopLossPrice)
+	tpOrder := orgOrder.Type(futures.OrderTypeTakeProfitMarket).StopPrice(takeProfitPrice)
+	// execute slOrder
+	res1, err1 := slOrder.Do(context.Background())
+	// execute tpOrder
+	res2, err2 := tpOrder.Do(context.Background())
+	if err1 != nil || err2 != nil {
+		return nil, nil, err1, err2
+	}
+	return res1, res2, err1, err2
+
 }
 
 func (b *BinanceClient) UpdateListenKey() error {

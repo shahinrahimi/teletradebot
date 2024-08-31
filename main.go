@@ -39,7 +39,7 @@ func main() {
 	bc := exchange.NewBinanceClient(logger, apiKey, apiSec, true)
 
 	// start polling for binance
-	go bc.StartPolling()
+	bc.StartPolling()
 
 	// create bitmex client
 	mc := exchange.NewBitmexClient(logger)
