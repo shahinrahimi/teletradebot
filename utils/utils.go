@@ -77,11 +77,11 @@ func ParseTrade(tradeArgs []string) (*models.Trade, error) {
 	}
 	// offset
 	part5 := strings.TrimSpace(tradeArgs[4])
-	offset, err := strconv.ParseFloat(part5, 64)
+	offset, err := strconv.ParseFloat(part5, 10)
 	if err != nil {
 		return nil, fmt.Errorf("the valid value for offset_entry should be amount (float or integer)")
 	} else {
-		t.Offset = float32(offset)
+		t.Offset = offset
 	}
 	// size percent
 	part6 := strings.TrimSpace(tradeArgs[5])

@@ -10,12 +10,6 @@ import (
 )
 
 func (b *Bot) StartBinanceService() error {
-	if err := b.bc.UpdateTickers(); err != nil {
-		b.l.Printf("error updating tickers for binance : %v", err)
-		return err
-	}
-	b.l.Printf("Total pairs found for binance: %d", len(b.bc.Symbols))
-
 	if err := b.bc.UpdateListenKey(); err != nil {
 		b.l.Printf("error updating listenKey for binance : %v", err)
 		return err

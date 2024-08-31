@@ -72,7 +72,6 @@ func (b *Bot) HandleDescribe(u *tgbotapi.Update, ctx context.Context) error {
 	// 	return err
 	// }
 	//b.bc.TrackOrder()
-	b.bc.UpdateExchangeInfo()
 	return nil
 }
 
@@ -82,7 +81,7 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 		b.SendMessage(u.Message.From.ID, "the trade could not be executed since it is executed once")
 		return nil
 	}
-	res, err := b.bc.PlaceOrder(&t)
+	res, err := b.bc.TryPlaceOrderForTrade(&t)
 	if err != nil {
 		b.l.Printf("error in placing trade: %v", err)
 		return err

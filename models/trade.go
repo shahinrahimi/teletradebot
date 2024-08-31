@@ -13,11 +13,11 @@ type Trade struct {
 	Account           string
 	Side              string
 	Pair              string
-	Candle            string
-	Offset            float32
-	SizePercent       int
-	SLPercent         int
-	TPPercent         int
+	Candle            string  // 1h 4h 15m etc
+	Offset            float64 // offset for placing the order defines in usdt amount 1 is 1$ 0.1 is 0.1$ etc
+	SizePercent       int     // like 1, 2, 3 or 5
+	SLPercent         int     // like 101, 105 => calculate base on kline the candle before last (e.g 100 means 100% (range) range = high - low before last candle)
+	TPPercent         int     // like 101, 105 => calculate base on kline the candle before last (e.g 104 means 105% (range) range = high - low before last candle)
 	ReverseMultiplier int
 	CreatedAt         time.Time
 	UpdatedAt         time.Time

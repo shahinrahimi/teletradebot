@@ -75,11 +75,10 @@ func (b *Bot) ProvideAddTrade(next Handler) Handler {
 		switch o.Account {
 		case types.ACCOUNT_B:
 			// check pair for binance
-			for _, s := range b.bc.Symbols {
-				if s.Symbol == strings.ToUpper(o.Pair) {
-					isAvailable = true
-					break
-				}
+			if _, err := b.bc.GetSymbol(o.Pair); err == nil {
+				isAvailable = true
+			} else {
+				b.l.Printf("error checking pair availability pair: %v", err)
 			}
 		case types.ACCOUNT_M:
 			// check pair for bitmex

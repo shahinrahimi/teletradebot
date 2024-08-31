@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"strconv"
 	"time"
 
@@ -15,13 +16,29 @@ import (
 type BinanceClient struct {
 	l                  *log.Logger
 	client             *futures.Client
-	Symbols            []*futures.SymbolPrice
 	SymbolPriceChan    chan []*futures.SymbolPrice
 	ExchangeInfoChan   chan *futures.ExchangeInfo
 	AccountChan        chan *futures.Account
 	accountTriggerChan chan struct{} // Channel to trigger immediate balance refresh
 	ListenKey          string
 	UseTestnet         bool
+
+	// Fields to store the latest values
+	LastSymbolPrices []*futures.SymbolPrice
+	LastExchangeInfo *futures.ExchangeInfo
+	LastAccount      *futures.Account
+}
+
+func (bc *BinanceClient) GetLatestSymbolPrices() []*futures.SymbolPrice {
+	return bc.LastSymbolPrices
+}
+
+func (bc *BinanceClient) GetLatestExchangeInfo() *futures.ExchangeInfo {
+	return bc.LastExchangeInfo
+}
+
+func (bc *BinanceClient) GetLatestAccount() *futures.Account {
+	return bc.LastAccount
 }
 
 func NewBinanceClient(l *log.Logger, apiKey string, secretKey string, useTestnet bool) *BinanceClient {
@@ -37,6 +54,15 @@ func NewBinanceClient(l *log.Logger, apiKey string, secretKey string, useTestnet
 	}
 }
 
+func (bc *BinanceClient) StartPolling() {
+	// Weight: 5
+	go bc.PollAccount(time.Minute)
+	// Weight: 1
+	go bc.PollExchangeInfo(time.Minute)
+	// Weight: 2
+	go bc.PollSymbolPrice(time.Minute)
+}
+
 func (bc *BinanceClient) PollSymbolPrice(interval time.Duration) {
 	for {
 		res, err := bc.client.NewListPricesService().Do(context.Background())
@@ -44,6 +70,7 @@ func (bc *BinanceClient) PollSymbolPrice(interval time.Duration) {
 			bc.l.Printf("Error fetching prices: %v", err)
 			continue
 		}
+		bc.LastSymbolPrices = res
 		bc.SymbolPriceChan <- res
 		time.Sleep(interval)
 	}
@@ -56,6 +83,7 @@ func (bc *BinanceClient) PollExchangeInfo(interval time.Duration) {
 			bc.l.Printf("Error fetching exchange info: %v", err)
 			continue
 		}
+		bc.LastExchangeInfo = res
 		bc.ExchangeInfoChan <- res
 		time.Sleep(interval)
 	}
@@ -64,6 +92,9 @@ func (bc *BinanceClient) PollExchangeInfo(interval time.Duration) {
 func (bc *BinanceClient) PollAccount(interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
+
+	// Immediate run before entering the loop
+	bc.fetchAndSendAccount()
 
 	for {
 		select {
@@ -75,21 +106,13 @@ func (bc *BinanceClient) PollAccount(interval time.Duration) {
 	}
 }
 
-func (bc *BinanceClient) StartPolling() {
-	// Weight: 5
-	go bc.PollAccount(time.Minute)
-	// Weight: 1
-	go bc.PollExchangeInfo(time.Minute)
-	// Weight: 2
-	go bc.PollSymbolPrice(time.Minute)
-}
-
 func (bc *BinanceClient) fetchAndSendAccount() {
 	res, err := bc.client.NewGetAccountService().Do(context.Background())
 	if err != nil {
 		bc.l.Printf("Error fetching account: %v", err)
 		return
 	}
+	bc.LastAccount = res
 	bc.AccountChan <- res
 }
 
@@ -102,6 +125,142 @@ func (bc *BinanceClient) ForceAccountRefresh() {
 	}
 }
 
+func (bc *BinanceClient) TryPlaceOrderForTrade(t *models.Trade) (*futures.CreateOrderResponse, error) {
+	quantity, err := bc.GetQuantity(t)
+	if err != nil {
+		return nil, err
+	}
+	kline, err := bc.GetKlineBeforeLast(t.Pair, t.Candle)
+	if err != nil {
+		return nil, err
+	}
+	stopPrice, err := bc.GetStopPrice(t, kline)
+	if err != nil {
+		return nil, err
+	}
+	var side futures.SideType
+	if t.Side == types.SIDE_L {
+		side = futures.SideTypeBuy
+	} else {
+		side = futures.SideTypeSell
+	}
+	bc.l.Printf("Placing order with quantity %s and stop price %s", quantity, stopPrice)
+
+	order := bc.client.NewCreateOrderService().
+		Symbol(t.Pair).
+		Side(side).
+		Quantity(quantity).
+		StopPrice(stopPrice).
+		Type(futures.OrderTypeStopMarket).
+		WorkingType(futures.WorkingTypeMarkPrice)
+
+	res, err := order.Do(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (bc *BinanceClient) GetLatestPrice(symbol string) (float64, error) {
+	sps := bc.GetLatestSymbolPrices()
+	for _, sp := range sps {
+		if sp.Symbol == symbol {
+			return strconv.ParseFloat(sp.Price, 64)
+		}
+	}
+	return 0, fmt.Errorf("latest price not available for symbol %s", symbol)
+}
+func (bc *BinanceClient) GetSymbol(symbol string) (*futures.Symbol, error) {
+	ei := bc.GetLatestExchangeInfo()
+	for _, s := range ei.Symbols {
+		if s.Symbol == symbol {
+			return &s, nil
+		}
+	}
+	return nil, fmt.Errorf("symbol %s not found", symbol)
+}
+func (bc *BinanceClient) GetAvailableBalance() (float64, error) {
+	account := bc.GetLatestAccount()
+	if account == nil {
+		return 0, fmt.Errorf("acount is nil")
+	}
+	for _, balance := range account.Assets {
+		if balance.Asset == "USDT" {
+			return strconv.ParseFloat(balance.AvailableBalance, 64)
+		}
+	}
+	return 0, fmt.Errorf("no account information available")
+}
+func (bc *BinanceClient) GetQuantity(t *models.Trade) (string, error) {
+	symbol, err := bc.GetSymbol(t.Pair)
+	if err != nil {
+		return "", err
+	}
+	balance, err := bc.GetAvailableBalance()
+	if err != nil {
+		return "", err
+	}
+	price, err := bc.GetLatestPrice(t.Pair)
+	if err != nil {
+		return "", err
+	}
+
+	size := balance * float64(t.SizePercent) / 100
+	quantity := size / price
+
+	// adjust quantity based on symbol precision
+	quantityPrecision := math.Pow10(int(-symbol.QuantityPrecision))
+	quantity = math.Floor(quantity/quantityPrecision) * quantityPrecision
+
+	return fmt.Sprintf("%.*f", symbol.QuantityPrecision, quantity), nil
+}
+func (bc *BinanceClient) GetKlineBeforeLast(symbol string, candle string) (*futures.Kline, error) {
+	klines, err := bc.client.NewKlinesService().
+		Limit(100).
+		Interval(candle).
+		Symbol(symbol).
+		Do(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return klines[len(klines)-2], nil
+}
+func (bc *BinanceClient) GetStopPrice(t *models.Trade, kline *futures.Kline) (string, error) {
+	h, err := strconv.ParseFloat(kline.High, 64)
+	if err != nil {
+		return "", err
+	}
+	l, err := strconv.ParseFloat(kline.Low, 64)
+	if err != nil {
+		return "", err
+	}
+	var stopPrice float64
+
+	if t.Side == types.SIDE_L {
+		stopPrice = h + t.Offset
+	} else {
+		stopPrice = l - t.Offset
+	}
+	fmt.Println(h, l, stopPrice)
+
+	// Ensure stop price is positive
+	if stopPrice <= 0 {
+		return "", fmt.Errorf("price cannot be zero or negative")
+	}
+
+	// Adjust the stop price according to price precision
+	symbol, err := bc.GetSymbol(t.Pair)
+	if err != nil {
+		return "", err
+	}
+
+	pricePrecision := math.Pow10(int(-symbol.PricePrecision))
+	stopPrice = math.Floor(stopPrice/pricePrecision) * pricePrecision
+
+	return fmt.Sprintf("%.*f", symbol.PricePrecision, stopPrice), nil
+}
+
 func (b *BinanceClient) UpdateListenKey() error {
 	listenKey, err := b.client.NewStartUserStreamService().Do(context.Background())
 	if err != nil {
@@ -110,27 +269,7 @@ func (b *BinanceClient) UpdateListenKey() error {
 	b.ListenKey = listenKey
 	return nil
 }
-func (b *BinanceClient) UpdateTickers() error {
-	symbols, err := b.client.NewListPricesService().Do(context.Background())
-	if err != nil {
-		b.l.Printf("error listing tickers: %v", err)
-		return err
-	}
-	b.Symbols = symbols
-	return nil
-}
 
-func (b *BinanceClient) UpdateExchangeInfo() error {
-	res, err := b.client.NewExchangeInfoService().Do(context.Background())
-	if err != nil {
-		b.l.Printf("error exchange info service: %v", err)
-		return err
-	}
-	for _, s := range res.Symbols {
-		fmt.Printf("Symbol: %s, Status: %s, Price precision: %d, Quantity precision: %d\n", s.Symbol, s.Status, s.PricePrecision, s.QuantityPrecision)
-	}
-	return nil
-}
 func (b *BinanceClient) TrackOrder() error {
 	orders, err := b.client.NewListOrdersService().Do(context.Background())
 	if err != nil {
@@ -140,112 +279,6 @@ func (b *BinanceClient) TrackOrder() error {
 		b.l.Println(order.OrderID, order.Status, order.Symbol, order.StopPrice)
 	}
 	return nil
-}
-func (b *BinanceClient) GetSymbol(pair string) (*futures.SymbolPrice, error) {
-	for _, symbol := range b.Symbols {
-		if symbol.Symbol == pair {
-			return symbol, nil
-		}
-	}
-	return nil, fmt.Errorf("symbol not found")
-}
-func (b *BinanceClient) GetQuantity(t *models.Trade) (string, error) {
-	if err := b.UpdateTickers(); err != nil {
-		return "", err
-	}
-	symbol, err := b.GetSymbol(t.Pair)
-	if err != nil {
-		return "", err
-	}
-	balanceStr, err := b.GetBalance()
-	if err != nil {
-		return "", err
-	}
-	balance, err := strconv.ParseFloat(balanceStr, 64)
-	if err != nil {
-		return "", err
-	}
-	price, err := strconv.ParseFloat(symbol.Price, 64)
-	if err != nil {
-		return "", err
-	}
-	size := balance * float64(t.SizePercent) / 100
-	quantity := size / price
-	b.l.Printf("the balance is %.2f, the size of trade will be %.2f and the quantity will be %0.3f %s", balance, size, quantity, symbol.Symbol)
-	return fmt.Sprintf("%.3f", quantity), nil
-}
-func (b *BinanceClient) GetBalance() (string, error) {
-	balances, err := b.client.NewGetBalanceService().Do(context.Background())
-	if err != nil {
-		b.l.Printf("error getting account balance: %v", err)
-		return "", err
-	}
-	for _, b := range balances {
-		if b.Asset == "USDT" {
-			return b.AvailableBalance, nil
-		}
-	}
-	return "", fmt.Errorf("there is no balance found")
-}
-func (b *BinanceClient) GetKline(t *models.Trade) (*futures.Kline, error) {
-	// TODO check if interval works for other intervals (1h and 4h works)
-	klines, err := b.client.NewKlinesService().Limit(100).Interval(t.Candle).Symbol(t.Pair).Do(context.Background())
-	if err != nil {
-		return nil, err
-	}
-	// return before last element
-	return klines[len(klines)-2], nil
-}
-
-func (b *BinanceClient) PlaceOrder(t *models.Trade) (*futures.CreateOrderResponse, error) {
-
-	quantity, err := b.GetQuantity(t)
-	if err != nil {
-		return nil, err
-	}
-	kline, err := b.GetKline(t)
-	if err != nil {
-		return nil, err
-	}
-	h, err := strconv.ParseFloat(kline.High, 64)
-	if err != nil {
-		return nil, err
-	}
-	l, err := strconv.ParseFloat(kline.Low, 64)
-	if err != nil {
-		return nil, err
-	}
-	// for target
-	// r := h-l
-	//
-	var side futures.SideType
-	var stopPrice float64
-	if t.Side == types.SIDE_L {
-		side = futures.SideTypeBuy
-		stopPrice = h + float64(t.Offset)
-	} else {
-		side = futures.SideTypeSell
-		stopPrice = l - float64(t.Offset)
-	}
-	// should never happen
-	if stopPrice <= 0 {
-		return nil, fmt.Errorf("price could not be zero or negative")
-	}
-	b.l.Printf("the quantity calculated for trade is %s", quantity)
-	var order *futures.CreateOrderService
-	order = b.client.NewCreateOrderService()
-	order = order.Symbol(t.Pair).Side(side).Quantity(quantity)
-	order = order.StopPrice(fmt.Sprintf("%.2f", stopPrice))
-	order = order.Type(futures.OrderTypeStopMarket)
-	order = order.WorkingType(futures.WorkingTypeMarkPrice)
-	res, err := order.Do(context.Background())
-	//res.OrderID
-	if err != nil {
-		// TODO add error handler if order type is not good for current price
-		return nil, err
-	}
-	// TODO implement a function to cancel the order after desired duration
-	return res, nil
 }
 
 func (b *BinanceClient) PlaceTradeStopLoss(t *models.Trade) error {
