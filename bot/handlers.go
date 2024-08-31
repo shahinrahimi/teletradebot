@@ -71,7 +71,8 @@ func (b *Bot) HandleDescribe(u *tgbotapi.Update, ctx context.Context) error {
 	// if _, err := b.bc.GetKline(&o); err != nil {
 	// 	return err
 	// }
-	b.bc.TrackOrder()
+	//b.bc.TrackOrder()
+	b.bc.UpdateExchangeInfo()
 	return nil
 }
 

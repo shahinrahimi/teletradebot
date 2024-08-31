@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
 	"gihub.com/shahinrahimi/teletradebot/models"
 	"gihub.com/shahinrahimi/teletradebot/types"
@@ -12,17 +13,48 @@ import (
 )
 
 type BinanceClient struct {
-	l          *log.Logger
-	client     *futures.Client
-	Symbols    []*futures.SymbolPrice
-	ListenKey  string
-	UseTestnet bool
+	l                *log.Logger
+	client           *futures.Client
+	Symbols          []*futures.SymbolPrice
+	SymbolPriceChan  chan []*futures.SymbolPrice
+	ExchangeInfoChan chan *futures.ExchangeInfo
+	ListenKey        string
+	UseTestnet       bool
 }
 
 func NewBinanceClient(l *log.Logger, apiKey string, secretKey string, useTestnet bool) *BinanceClient {
 	futures.UseTestnet = useTestnet
 	client := futures.NewClient(apiKey, secretKey)
-	return &BinanceClient{l: l, client: client, UseTestnet: useTestnet}
+	return &BinanceClient{
+		l:                l,
+		client:           client,
+		SymbolPriceChan:  make(chan []*futures.SymbolPrice),
+		ExchangeInfoChan: make(chan *futures.ExchangeInfo),
+	}
+}
+
+func (bc *BinanceClient) PollSymbolPrice(interval time.Duration) {
+	for {
+		res, err := bc.client.NewListPricesService().Do(context.Background())
+		if err != nil {
+			bc.l.Printf("Error fetching prices: %v", err)
+			continue
+		}
+		bc.SymbolPriceChan <- res
+		time.Sleep(interval)
+	}
+}
+
+func (bc *BinanceClient) PollExchangeInfo(interval time.Duration) {
+	for {
+		res, err := bc.client.NewExchangeInfoService().Do(context.Background())
+		if err != nil {
+			bc.l.Printf("Error fetching exchange info: %v", err)
+			continue
+		}
+		bc.ExchangeInfoChan <- res
+		time.Sleep(interval)
+	}
 }
 func (b *BinanceClient) UpdateListenKey() error {
 	listenKey, err := b.client.NewStartUserStreamService().Do(context.Background())
@@ -39,6 +71,18 @@ func (b *BinanceClient) UpdateTickers() error {
 		return err
 	}
 	b.Symbols = symbols
+	return nil
+}
+
+func (b *BinanceClient) UpdateExchangeInfo() error {
+	res, err := b.client.NewExchangeInfoService().Do(context.Background())
+	if err != nil {
+		b.l.Printf("error exchange info service: %v", err)
+		return err
+	}
+	for _, s := range res.Symbols {
+		fmt.Printf("Symbol: %s, Status: %s, Price precision: %d, Quantity precision: %d\n", s.Symbol, s.Status, s.PricePrecision, s.QuantityPrecision)
+	}
 	return nil
 }
 func (b *BinanceClient) TrackOrder() error {
@@ -106,6 +150,7 @@ func (b *BinanceClient) GetKline(t *models.Trade) (*futures.Kline, error) {
 	// return before last element
 	return klines[len(klines)-2], nil
 }
+
 func (b *BinanceClient) PlaceOrder(t *models.Trade) (*futures.CreateOrderResponse, error) {
 
 	quantity, err := b.GetQuantity(t)
@@ -155,6 +200,15 @@ func (b *BinanceClient) PlaceOrder(t *models.Trade) (*futures.CreateOrderRespons
 	}
 	// TODO implement a function to cancel the order after desired duration
 	return res, nil
+}
+
+func (b *BinanceClient) PlaceTradeStopLoss(t *models.Trade) error {
+	b.client.NewCreateOrderService()
+	return nil
+}
+
+func (b *BinanceClient) PlaceTradeTakeProfit(t *models.Trade) error {
+	return nil
 }
 
 func (b *BinanceClient) CancelOrder(orderID int64, symbol string) error {
