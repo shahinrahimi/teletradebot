@@ -79,6 +79,7 @@ func main() {
 	// list route
 	r0 := b.NewRouter("route-0")
 	r0.Handle(bot.LIST, b.MakeHandlerBotFunc(b.HandleList))
+	r0.Handle(bot.ALIAS, b.MakeHandlerBotFunc(b.HandleAlias))
 	r0.Use(b.RequiredAuth)
 
 	// new route

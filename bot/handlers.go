@@ -64,8 +64,8 @@ func (b *Bot) HandleList(u *tgbotapi.Update, ctx context.Context) error {
 
 func (b *Bot) HandleAlias(u *tgbotapi.Update, ctx context.Context) error {
 	var msg string = "aliases: \n"
-	for _, s := range config.Shortcuts {
-		msg = msg + s + "\n"
+	for key, value := range config.Shortcuts {
+		msg = msg + "'" + key + "' => " + value + "\n"
 	}
 	b.SendMessage(u.Message.From.ID, msg)
 	return nil
