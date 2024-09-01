@@ -8,6 +8,7 @@ const (
 	START    string = "start"
 	HELP     string = "help"
 	INFO     string = "info"
+	ALIAS    string = "alias"
 	ADD      string = "add"
 	LIST     string = "list"
 	CANCEL   string = "cancel"
@@ -24,6 +25,7 @@ func GetGeneralCommands() []string {
 		HELP,
 		INFO,
 		LIST,
+		ALIAS,
 	}
 	return commands
 }
@@ -48,6 +50,7 @@ func GetAllCommands() []string {
 		INFO,
 		ADD,
 		LIST,
+		ALIAS,
 		CANCEL,
 		EXECUTE,
 		CHECK,

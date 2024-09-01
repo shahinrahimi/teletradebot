@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"gihub.com/shahinrahimi/teletradebot/utils"
 	"github.com/adshao/go-binance/v2/futures"
 )
 
@@ -44,7 +43,7 @@ func (b *Bot) errHandler(err error) {
 }
 
 func (b *Bot) handleOrderTradeUpdate(f futures.WsOrderTradeUpdate) {
-	utils.PrintStructFields(f)
+	//utils.PrintStructFields(f)
 	switch f.Status {
 	case futures.OrderStatusTypeCanceled:
 		b.l.Println("handle canceled")

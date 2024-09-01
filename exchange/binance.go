@@ -10,6 +10,7 @@ import (
 
 	"gihub.com/shahinrahimi/teletradebot/models"
 	"gihub.com/shahinrahimi/teletradebot/types"
+	"gihub.com/shahinrahimi/teletradebot/utils"
 	"github.com/adshao/go-binance/v2/futures"
 )
 
@@ -72,7 +73,7 @@ func (bc *BinanceClient) PollSymbolPrice(interval time.Duration) {
 			continue
 		}
 		bc.LastSymbolPrices = res
-		bc.SymbolPriceChan <- res
+		//bc.SymbolPriceChan <- res
 		time.Sleep(interval)
 	}
 }
@@ -85,7 +86,7 @@ func (bc *BinanceClient) PollExchangeInfo(interval time.Duration) {
 			continue
 		}
 		bc.LastExchangeInfo = res
-		bc.ExchangeInfoChan <- res
+		//bc.l.Printf("server time %s", utils.FormatTimestamp(bc.LastExchangeInfo.ServerTime))
 		time.Sleep(interval)
 	}
 }
@@ -114,7 +115,7 @@ func (bc *BinanceClient) fetchAndSendAccount() {
 		return
 	}
 	bc.LastAccount = res
-	bc.AccountChan <- res
+	//bc.AccountChan <- res
 }
 
 func (bc *BinanceClient) ForceAccountRefresh() {
@@ -180,7 +181,7 @@ func (bc *BinanceClient) GetQuantity(t *models.Trade) (string, error) {
 	return fmt.Sprintf("%.*f", symbol.QuantityPrecision, quantity), nil
 }
 func (bc *BinanceClient) GetKlineBeforeLast(symbol string, candle string) (*futures.Kline, error) {
-	klines, err := bc.client.NewKlinesService().
+	klines, err := bc.client.NewMarkPriceKlinesService().
 		Limit(100).
 		Interval(candle).
 		Symbol(symbol).
@@ -288,7 +289,23 @@ func (bc *BinanceClient) TryPlaceOrderForTrade(t *models.Trade) (*futures.Create
 	} else {
 		side = futures.SideTypeSell
 	}
-	bc.l.Printf("Placing order with quantity %s and stop price %s", quantity, stopPrice)
+
+	// Determine the remaining time until the candle closes
+	candleDuration, err := types.GetDuration(t.Candle)
+	if err != nil {
+		return nil, err
+	}
+
+	candleCloseTime := kline.CloseTime
+	remainingTime := candleDuration + time.Until(utils.ConvertTime(candleCloseTime))
+	bc.l.Printf("candle duration: %s", utils.FriendlyDuration(candleDuration))
+	bc.l.Printf("candle open time: %s", utils.ConvertTime(kline.OpenTime))
+	bc.l.Printf("candle close time: %s", utils.ConvertTime(kline.CloseTime))
+	bc.l.Printf("remaining duration: %s", utils.FriendlyDuration(remainingTime))
+	bc.l.Printf("Placing %s order with quantity %s and stop price %s expires in: %s", side, quantity, stopPrice, utils.FriendlyDuration(remainingTime))
+	if remainingTime < 0 {
+		return nil, fmt.Errorf("remaining time should not be negative number: %d", remainingTime)
+	}
 
 	order := bc.client.NewCreateOrderService().
 		Symbol(t.Pair).
@@ -302,6 +319,9 @@ func (bc *BinanceClient) TryPlaceOrderForTrade(t *models.Trade) (*futures.Create
 	if err != nil {
 		return nil, err
 	}
+
+	// Start a timer to cancel the order if not filled in the remaining time
+	go bc.scheduleOrderCancellation(res.OrderID, res.Symbol, remainingTime)
 
 	return res, nil
 }
@@ -328,7 +348,26 @@ func (bc *BinanceClient) TryPlaceStopLossAndTakeProfitTrade(t *models.Trade, ord
 		return nil, nil, err1, err2
 	}
 	return res1, res2, err1, err2
+}
 
+func (bc *BinanceClient) CancelOrder(orderID int64, symbol string) (*futures.CancelOrderResponse, error) {
+	cancelOrder := bc.client.NewCancelOrderService().OrderID(orderID).Symbol(symbol)
+	res, err := cancelOrder.Do(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+func (bc *BinanceClient) scheduleOrderCancellation(orderID int64, symbol string, delay time.Duration) {
+	time.AfterFunc(delay, func() {
+		_, err := bc.CancelOrder(orderID, symbol)
+		if err != nil {
+			bc.l.Printf("Failed to cancel order %d: %v", orderID, err)
+		} else {
+			bc.l.Printf("order %d canceled after %v", orderID, delay)
+		}
+	})
 }
 
 func (b *BinanceClient) UpdateListenKey() error {
@@ -349,28 +388,6 @@ func (b *BinanceClient) TrackOrder() error {
 		b.l.Println(order.OrderID, order.Status, order.Symbol, order.StopPrice)
 	}
 	return nil
-}
-
-func (b *BinanceClient) PlaceTradeStopLoss(t *models.Trade) error {
-	b.client.NewCreateOrderService()
-	return nil
-}
-
-func (b *BinanceClient) PlaceTradeTakeProfit(t *models.Trade) error {
-	return nil
-}
-
-func (b *BinanceClient) CancelOrder(orderID int64, symbol string) error {
-	var order *futures.CancelOrderService
-	order = b.client.NewCancelOrderService()
-	order = order.OrderID(orderID).Symbol(symbol)
-	_, err := order.Do(context.Background())
-	if err != nil {
-		b.l.Printf("error in canceling the order: %v", err)
-		return err
-	}
-	return nil
-
 }
 
 func (b *BinanceClient) GetOrder(orderID int64, symbol string) (*futures.Order, error) {

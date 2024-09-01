@@ -20,6 +20,39 @@ func ConvertTime(timestamp int64) time.Time {
 	return time.Unix(seconds, nanoseconds)
 }
 
+func FormatTimestamp(timestamp int64) string {
+	t := time.Unix(0, timestamp*int64(time.Millisecond))
+
+	formattedTime := t.Format("2000-01-01 15:04:05")
+
+	return formattedTime
+}
+
+func FriendlyDuration(duration time.Duration) string {
+	// Convert to hours, minutes, seconds, etc.
+	hours := int(duration.Hours())
+	minutes := int(duration.Minutes()) % 60
+	seconds := int(duration.Seconds()) % 60
+	milliseconds := int(duration.Milliseconds()) % 1000
+
+	// Build a friendly string representation
+	var friendlyDuration string
+	if hours > 0 {
+		friendlyDuration += fmt.Sprintf("%dh ", hours)
+	}
+	if minutes > 0 {
+		friendlyDuration += fmt.Sprintf("%dm ", minutes)
+	}
+	if seconds > 0 {
+		friendlyDuration += fmt.Sprintf("%ds ", seconds)
+	}
+	if milliseconds > 0 {
+		friendlyDuration += fmt.Sprintf("%dms", milliseconds)
+	}
+
+	return friendlyDuration
+}
+
 func PrintStructFields(s interface{}) {
 	val := reflect.ValueOf(s)
 	typ := reflect.TypeOf(s)

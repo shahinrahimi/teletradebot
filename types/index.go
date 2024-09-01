@@ -52,7 +52,7 @@ var ExpireDuration = map[string]time.Duration{
 	CANDLE_1M:    time.Hour * 24 * 30, // Approximation, as months vary in length
 }
 
-func GetExpirationDuration(candle string) (time.Duration, error) {
+func GetDuration(candle string) (time.Duration, error) {
 	if duration, exists := ExpireDuration[candle]; exists {
 		return duration, nil
 	} else {
