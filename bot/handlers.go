@@ -36,10 +36,10 @@ func (b *Bot) HandleAdd(u *tgbotapi.Update, ctx context.Context) error {
 	t := ctx.Value(models.KeyTrade{}).(models.Trade)
 	if err := b.s.CreateTrade(&t); err != nil {
 		b.l.Printf("error creating a new trade: %v", err)
-		b.SendMessage(u.Message.From.ID, "internal error creating a new trade")
+		b.SendMessage(u.Message.From.ID, "Internal error while creating a new trade.")
 		return err
 	}
-	b.SendMessage(u.Message.From.ID, "Successfully trade created!")
+	b.SendMessage(u.Message.From.ID, "Trade created successfully!")
 	return nil
 }
 
@@ -47,7 +47,7 @@ func (b *Bot) HandleList(u *tgbotapi.Update, ctx context.Context) error {
 	os, err := b.s.GetTrades()
 	if err != nil {
 		b.l.Printf("error getting trades: %v", err)
-		b.SendMessage(u.Message.From.ID, "internal error listing trades")
+		b.SendMessage(u.Message.From.ID, "Internal error while listing trades.")
 		return err
 	}
 	msg := ""
@@ -55,7 +55,7 @@ func (b *Bot) HandleList(u *tgbotapi.Update, ctx context.Context) error {
 		msg = msg + o.ToListString() + "\n"
 	}
 	if len(os) == 0 {
-		b.SendMessage(u.Message.From.ID, "There is no trade found")
+		b.SendMessage(u.Message.From.ID, "No trades found.")
 		return nil
 	}
 	b.SendMessage(u.Message.From.ID, "list of trades\n"+msg)
@@ -87,7 +87,7 @@ func (b *Bot) HandleDescribe(u *tgbotapi.Update, ctx context.Context) error {
 func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 	t := ctx.Value(models.KeyTrade{}).(models.Trade)
 	if t.State != types.STATE_IDLE {
-		b.SendMessage(u.Message.From.ID, "the trade could not be executed since it is executed once")
+		b.SendMessage(u.Message.From.ID, "The trade could not be executed as it has already been executed once.")
 		return nil
 	}
 	res, err := b.bc.TryPlaceOrderForTrade(&t)
@@ -96,7 +96,7 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 		return err
 	}
 	orderID := strconv.FormatInt(res.OrderID, 10)
-	msg := fmt.Sprintf("order placed successfully order_id: %s", orderID)
+	msg := fmt.Sprintf("Order placed successfully. Order ID: %s", orderID)
 	b.SendMessage(u.Message.From.ID, msg)
 
 	// update trade for order_id
@@ -104,7 +104,7 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 	t.State = types.STATE_PLACED
 	t.UpdatedAt = time.Now().UTC()
 	if err := b.s.UpdateTrade(&t); err != nil {
-		msg := fmt.Sprintf("important error happened, the trade with id '%d' can not be updated, so it could be miss-tracked, the order_id: %s", t.ID, t.OrderID)
+		msg := fmt.Sprintf("An important error occurred. The trade with ID '%d' could not be updated, which might cause tracking issues. Order ID: %s", t.ID, t.OrderID)
 		b.SendMessage(u.Message.From.ID, msg)
 		return err
 	}

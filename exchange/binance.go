@@ -189,7 +189,16 @@ func (bc *BinanceClient) GetKlineBeforeLast(symbol string, candle string) (*futu
 	if err != nil {
 		return nil, err
 	}
-	return klines[len(klines)-2], nil
+	// loop through klines and return the most recent completely closed candle
+	for i := len(klines) - 1; i >= 0; i-- {
+		candleCloseTime := utils.ConvertTime(klines[i].CloseTime)
+		// check if close time in the past
+		if (time.Until(candleCloseTime)) < 0 {
+			return klines[i], nil
+		}
+	}
+
+	return nil, fmt.Errorf("failed to locate before last candle")
 }
 func (bc *BinanceClient) GetStopPrice(t *models.Trade, kline *futures.Kline) (string, error) {
 	h, err := strconv.ParseFloat(kline.High, 64)
@@ -296,8 +305,8 @@ func (bc *BinanceClient) TryPlaceOrderForTrade(t *models.Trade) (*futures.Create
 		return nil, err
 	}
 
-	candleCloseTime := kline.CloseTime
-	remainingTime := candleDuration + time.Until(utils.ConvertTime(candleCloseTime))
+	candleCloseTime := utils.ConvertTime(kline.CloseTime)
+	remainingTime := candleDuration + time.Until(candleCloseTime)
 	bc.l.Printf("candle duration: %s", utils.FriendlyDuration(candleDuration))
 	bc.l.Printf("candle open time: %s", utils.ConvertTime(kline.OpenTime))
 	bc.l.Printf("candle close time: %s", utils.ConvertTime(kline.CloseTime))
@@ -337,9 +346,13 @@ func (bc *BinanceClient) TryPlaceStopLossAndTakeProfitTrade(t *models.Trade, ord
 	} else {
 		side = futures.SideTypeBuy
 	}
-	orgOrder := bc.client.NewCreateOrderService().Symbol(t.Pair).Side(side).Quantity(orderUpdate.OriginalQty).WorkingType(futures.WorkingTypeMarkPrice)
-	slOrder := orgOrder.Type(futures.OrderTypeStopMarket).StopPrice(stopLossPrice)
-	tpOrder := orgOrder.Type(futures.OrderTypeTakeProfitMarket).StopPrice(takeProfitPrice)
+	slOrder := bc.client.NewCreateOrderService().Symbol(t.Pair).Side(side).Quantity(orderUpdate.OriginalQty).WorkingType(futures.WorkingTypeMarkPrice)
+	slOrder = slOrder.Type(futures.OrderTypeStopMarket).StopPrice(stopLossPrice)
+	tpOrder := bc.client.NewCreateOrderService().Symbol(t.Pair).Side(side).Quantity(orderUpdate.OriginalQty).WorkingType(futures.WorkingTypeMarkPrice)
+	tpOrder = tpOrder.Type(futures.OrderTypeTakeProfitMarket).StopPrice(takeProfitPrice)
+	bc.l.Printf("Placing stoploss %s order with quantity %s and stop price %s.", side, orderUpdate.OriginalQty, stopLossPrice)
+	bc.l.Printf("Placing takeprofit %s order with quantity %s and stop price %s.", side, orderUpdate.OriginalQty, takeProfitPrice)
+
 	// execute slOrder
 	res1, err1 := slOrder.Do(context.Background())
 	// execute tpOrder
