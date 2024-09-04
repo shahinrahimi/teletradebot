@@ -9,8 +9,18 @@ import (
 	"gihub.com/shahinrahimi/teletradebot/config"
 	"gihub.com/shahinrahimi/teletradebot/models"
 	"gihub.com/shahinrahimi/teletradebot/types"
+	"gihub.com/shahinrahimi/teletradebot/utils"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
+
+type BinanceApiError struct {
+	code int
+	msg  string
+}
+
+func (b *BinanceApiError) Error() string {
+	return b.msg
+}
 
 func (b *Bot) HandleHelp(u *tgbotapi.Update, ctx context.Context) error {
 	var userID int64 = u.Message.From.ID
@@ -72,6 +82,15 @@ func (b *Bot) HandleAlias(u *tgbotapi.Update, ctx context.Context) error {
 }
 
 func (b *Bot) HandleRemove(u *tgbotapi.Update, ctx context.Context) error {
+	t := ctx.Value(models.KeyTrade{}).(models.Trade)
+	if t.State != types.STATE_IDLE {
+		b.SendMessage(u.Message.From.ID, "The trade could not be removed to it has not state of Idle")
+		return nil
+	}
+	if err := b.s.DeleteTrade(t.ID); err != nil {
+		return err
+	}
+	b.SendMessage(u.Message.From.ID, "Trade removed successfully!")
 	return nil
 }
 
@@ -84,23 +103,89 @@ func (b *Bot) HandleDescribe(u *tgbotapi.Update, ctx context.Context) error {
 	return nil
 }
 
+func (b *Bot) HandleCancel(u *tgbotapi.Update, ctx context.Context) error {
+	t := ctx.Value(models.KeyTrade{}).(models.Trade)
+	if t.State == types.STATE_IDLE {
+		b.SendMessage(u.Message.From.ID, "The trade already has state of idle, the trade not have not any order_id associate with to cancel")
+		return nil
+	}
+	if t.State != types.STATE_PLACED {
+		b.SendMessage(u.Message.From.ID, "The trade could not be canceled as it has filled order.")
+		return nil
+	}
+
+	if t.OrderID == "" {
+		b.l.Printf("error the trade has state of placed but does not have any order_id associate with")
+		b.SendMessage(u.Message.From.ID, "Internal error")
+		return nil
+	}
+	orderID, err := strconv.ParseInt(t.OrderID, 10, 64)
+	if err != nil {
+		b.l.Printf("error converting order_id string it int 64: %v", err)
+		b.SendMessage(u.Message.From.ID, "Internal error")
+		return nil
+	}
+	if _, err := b.bc.CancelOrder(orderID, t.Pair); err != nil {
+		if apiErr, ok := (err).(*BinanceApiError); ok {
+			msg := fmt.Sprintf("could not cancel a order \ncode:%d\n message: %s", apiErr.code, apiErr.msg)
+			b.l.Println(msg)
+			b.SendMessage(t.UserID, msg)
+			return nil
+		}
+		b.l.Printf("error canceling order_id: %d", orderID)
+		return nil
+	}
+	msg := fmt.Sprintf("Placed order successfully canceled, trade: %d, Order ID: %s", t.ID, t.OrderID)
+	b.SendMessage(u.Message.From.ID, msg)
+
+	t.OrderID = ""
+	t.State = types.STATE_IDLE
+	if err := b.s.UpdateTrade(&t); err != nil {
+		b.l.Printf("error updating trade: %v", err)
+		return err
+	}
+	return nil
+}
+
+func (b *Bot) HandleCheck(u *tgbotapi.Update, ctx context.Context) error {
+
+	return nil
+}
+
 func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 	t := ctx.Value(models.KeyTrade{}).(models.Trade)
 	if t.State != types.STATE_IDLE {
 		b.SendMessage(u.Message.From.ID, "The trade could not be executed as it has already been executed once.")
 		return nil
 	}
-	res, err := b.bc.TryPlaceOrderForTrade(&t)
+
+	// prepared trade for order
+
+	po, err := b.bc.PrepareTradeForOrder(&t)
 	if err != nil {
-		b.l.Printf("error in placing trade: %v", err)
+		b.l.Printf("trade could not be executed, error in preparing state: %v", err)
+		return nil
+	}
+
+	b.l.Printf("Placing %s order with quantity %s and stop price %s expires in: %s", po.Side, po.Quantity, po.StopPrice, utils.FriendlyDuration(po.Expiration))
+
+	res, err := b.bc.PlacePreparedOrder(po)
+	if err != nil {
+		if apiErr, ok := err.(*BinanceApiError); ok {
+			msg := fmt.Sprintf("could not place a order for trade\ncode:%d\n message: %s", apiErr.code, apiErr.msg)
+			b.l.Panicln(msg)
+			b.SendMessage(t.UserID, msg)
+		}
 		return err
 	}
-	orderID := strconv.FormatInt(res.OrderID, 10)
-	msg := fmt.Sprintf("Order placed successfully. Order ID: %s", orderID)
+	msg := fmt.Sprintf("Order placed successfully for trade: %d, Order ID: %s", t.ID, t.OrderID)
 	b.SendMessage(u.Message.From.ID, msg)
+	// schedule order cancellation (it will raise error if currently filled)
+	// if cancel successfully it will change trade state to replacing
+	go b.scheduleOrderCancellation(res.OrderID, res.Symbol, po.Expiration, &t)
 
-	// update trade for order_id
-	t.OrderID = orderID
+	// update trade state
+	t.OrderID = strconv.FormatInt(res.OrderID, 10)
 	t.State = types.STATE_PLACED
 	t.UpdatedAt = time.Now().UTC()
 	if err := b.s.UpdateTrade(&t); err != nil {
@@ -108,15 +193,6 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 		b.SendMessage(u.Message.From.ID, msg)
 		return err
 	}
-
-	return nil
-}
-
-func (b *Bot) HandleCancel(u *tgbotapi.Update, ctx context.Context) error {
-	return nil
-}
-
-func (b *Bot) HandleCheck(u *tgbotapi.Update, ctx context.Context) error {
 	return nil
 }
 

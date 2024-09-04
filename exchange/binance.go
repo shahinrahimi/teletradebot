@@ -216,7 +216,6 @@ func (bc *BinanceClient) GetStopPrice(t *models.Trade, kline *futures.Kline) (st
 	} else {
 		stopPrice = l - t.Offset
 	}
-	fmt.Println(h, l, stopPrice)
 
 	// Ensure stop price is positive
 	if stopPrice <= 0 {
@@ -279,6 +278,66 @@ func (bc *BinanceClient) GetStopLossTakeProfitPrice(t *models.Trade, stopPrice s
 	return stopLossPrice, takeProfitPrice, nil
 }
 
+type PreparedOrder struct {
+	Symbol     string
+	Quantity   string
+	StopPrice  string
+	Side       futures.SideType
+	Expiration time.Duration
+}
+
+func (bc *BinanceClient) PrepareTradeForOrder(t *models.Trade) (*PreparedOrder, error) {
+	var po PreparedOrder
+	quantity, err := bc.GetQuantity(t)
+	if err != nil {
+		return nil, err
+	}
+	kline, err := bc.GetKlineBeforeLast(t.Pair, t.Candle)
+	if err != nil {
+		return nil, err
+	}
+	stopPrice, err := bc.GetStopPrice(t, kline)
+	if err != nil {
+		return nil, err
+	}
+	var side futures.SideType
+	if t.Side == types.SIDE_L {
+		side = futures.SideTypeBuy
+	} else {
+		side = futures.SideTypeSell
+	}
+	candleDuration, err := types.GetDuration(t.Candle)
+	if err != nil {
+		return nil, err
+	}
+
+	candleCloseTime := utils.ConvertTime(kline.CloseTime)
+	remainingTime := candleDuration + time.Until(candleCloseTime)
+	if remainingTime < 0 {
+		return nil, fmt.Errorf("remaining time should not be negative number: %d", remainingTime)
+	}
+
+	po.Symbol = t.Pair
+	po.Quantity = quantity
+	po.Side = side
+	po.StopPrice = stopPrice
+	po.Expiration = remainingTime
+
+	return &po, nil
+}
+
+func (bc *BinanceClient) PlacePreparedOrder(po *PreparedOrder) (*futures.CreateOrderResponse, error) {
+	order := bc.client.NewCreateOrderService().
+		Symbol(po.Symbol).
+		Side(po.Side).
+		Quantity(po.Quantity).
+		StopPrice(po.StopPrice).
+		Type(futures.OrderTypeStopMarket).
+		WorkingType(futures.WorkingTypeMarkPrice)
+
+	return order.Do(context.Background())
+}
+
 func (bc *BinanceClient) TryPlaceOrderForTrade(t *models.Trade) (*futures.CreateOrderResponse, error) {
 	quantity, err := bc.GetQuantity(t)
 	if err != nil {
@@ -307,10 +366,6 @@ func (bc *BinanceClient) TryPlaceOrderForTrade(t *models.Trade) (*futures.Create
 
 	candleCloseTime := utils.ConvertTime(kline.CloseTime)
 	remainingTime := candleDuration + time.Until(candleCloseTime)
-	bc.l.Printf("candle duration: %s", utils.FriendlyDuration(candleDuration))
-	bc.l.Printf("candle open time: %s", utils.ConvertTime(kline.OpenTime))
-	bc.l.Printf("candle close time: %s", utils.ConvertTime(kline.CloseTime))
-	bc.l.Printf("remaining duration: %s", utils.FriendlyDuration(remainingTime))
 	bc.l.Printf("Placing %s order with quantity %s and stop price %s expires in: %s", side, quantity, stopPrice, utils.FriendlyDuration(remainingTime))
 	if remainingTime < 0 {
 		return nil, fmt.Errorf("remaining time should not be negative number: %d", remainingTime)
@@ -335,7 +390,7 @@ func (bc *BinanceClient) TryPlaceOrderForTrade(t *models.Trade) (*futures.Create
 	return res, nil
 }
 
-func (bc *BinanceClient) TryPlaceStopLossAndTakeProfitTrade(t *models.Trade, orderUpdate *futures.WsOrderTradeUpdate) (*futures.CreateOrderResponse, *futures.CreateOrderResponse, error, error) {
+func (bc *BinanceClient) TryPlaceStopLossAndTakeProfitTrade(t *models.Trade, orderUpdate *futures.WsOrderTradeUpdate) (slRes *futures.CreateOrderResponse, tpRes *futures.CreateOrderResponse, slErr error, tpErr error) {
 	stopLossPrice, takeProfitPrice, err := bc.GetStopLossTakeProfitPrice(t, orderUpdate.StopPrice)
 	if err != nil {
 		return nil, nil, err, err
@@ -346,30 +401,42 @@ func (bc *BinanceClient) TryPlaceStopLossAndTakeProfitTrade(t *models.Trade, ord
 	} else {
 		side = futures.SideTypeBuy
 	}
-	slOrder := bc.client.NewCreateOrderService().Symbol(t.Pair).Side(side).Quantity(orderUpdate.OriginalQty).WorkingType(futures.WorkingTypeMarkPrice)
-	slOrder = slOrder.Type(futures.OrderTypeStopMarket).StopPrice(stopLossPrice)
-	tpOrder := bc.client.NewCreateOrderService().Symbol(t.Pair).Side(side).Quantity(orderUpdate.OriginalQty).WorkingType(futures.WorkingTypeMarkPrice)
-	tpOrder = tpOrder.Type(futures.OrderTypeTakeProfitMarket).StopPrice(takeProfitPrice)
-	bc.l.Printf("Placing stoploss %s order with quantity %s and stop price %s.", side, orderUpdate.OriginalQty, stopLossPrice)
-	bc.l.Printf("Placing takeprofit %s order with quantity %s and stop price %s.", side, orderUpdate.OriginalQty, takeProfitPrice)
+	bc.l.Printf("Placing %s %s STOP-LOSS %s order with price %s.", side, t.Pair, orderUpdate.OriginalQty, stopLossPrice)
+	bc.l.Printf("Placing %s %s TAKE-PROFIT %s order with price %s.", side, t.Pair, orderUpdate.OriginalQty, takeProfitPrice)
+	slOrder := bc.client.NewCreateOrderService().
+		Symbol(t.Pair).
+		Side(side).
+		Quantity(orderUpdate.OriginalQty).
+		WorkingType(futures.WorkingTypeMarkPrice).
+		Type(futures.OrderTypeStopMarket).
+		StopPrice(stopLossPrice)
+
+	tpOrder := bc.client.NewCreateOrderService().
+		Symbol(t.Pair).
+		Side(side).
+		Quantity(orderUpdate.OriginalQty).
+		WorkingType(futures.WorkingTypeMarkPrice).
+		Type(futures.OrderTypeTakeProfitMarket).
+		StopPrice(takeProfitPrice)
 
 	// execute slOrder
-	res1, err1 := slOrder.Do(context.Background())
+	slRes, err1 := slOrder.Do(context.Background())
 	// execute tpOrder
-	res2, err2 := tpOrder.Do(context.Background())
-	if err1 != nil || err2 != nil {
-		return nil, nil, err1, err2
+	tpRes, err2 := tpOrder.Do(context.Background())
+	if err1 != nil {
+		slErr = err1
 	}
-	return res1, res2, err1, err2
+	if err2 != nil {
+		tpErr = err2
+	}
+	return slRes, tpRes, slErr, tpErr
 }
 
 func (bc *BinanceClient) CancelOrder(orderID int64, symbol string) (*futures.CancelOrderResponse, error) {
-	cancelOrder := bc.client.NewCancelOrderService().OrderID(orderID).Symbol(symbol)
-	res, err := cancelOrder.Do(context.Background())
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
+	cancelOrder := bc.client.NewCancelOrderService().
+		OrderID(orderID).
+		Symbol(symbol)
+	return cancelOrder.Do(context.Background())
 }
 
 func (bc *BinanceClient) scheduleOrderCancellation(orderID int64, symbol string, delay time.Duration) {

@@ -4,9 +4,10 @@ import (
 	"database/sql"
 	"fmt"
 	"strconv"
+	"time"
 
+	"gihub.com/shahinrahimi/teletradebot/models"
 	"gihub.com/shahinrahimi/teletradebot/types"
-	"gihub.com/shahinrahimi/teletradebot/utils"
 	"github.com/adshao/go-binance/v2/futures"
 )
 
@@ -36,7 +37,7 @@ func (b *Bot) startUserDataStream() {
 
 func (b *Bot) wsHandler(event *futures.WsUserDataEvent) {
 	// handle order trade events
-	fmt.Println("got an event")
+	// fmt.Println("got an event")
 	b.handleOrderTradeUpdate(event.OrderTradeUpdate)
 }
 
@@ -45,8 +46,8 @@ func (b *Bot) errHandler(err error) {
 }
 
 func (b *Bot) handleOrderTradeUpdate(f futures.WsOrderTradeUpdate) {
-	b.l.Printf("Start #######################(%s)########################", f.Status)
-	utils.PrintStructFields(f)
+	// b.l.Printf("Start #######################(%s)########################", f.Status)
+	// utils.PrintStructFields(f)
 	switch f.Status {
 	case futures.OrderStatusTypeCanceled:
 		b.l.Println("handle canceled")
@@ -65,7 +66,7 @@ func (b *Bot) handleOrderTradeUpdate(f futures.WsOrderTradeUpdate) {
 	default:
 		b.l.Println("handle unknown")
 	}
-	b.l.Printf("End #######################(%s)########################", f.Status)
+	// b.l.Printf("End #######################(%s)########################", f.Status)
 }
 
 func (b *Bot) HandleFilled(f futures.WsOrderTradeUpdate) {
@@ -107,18 +108,66 @@ func (b *Bot) HandleCanceled(f futures.WsOrderTradeUpdate) {
 		// probably the order created by another client
 		return
 	}
-	res, err := b.bc.TryPlaceOrderForTrade(t)
-	if err != nil {
-		b.l.Printf("the order canceled but can't to replace a another order :%v", err)
-		b.SendMessage(t.UserID, "Could not replace the order.")
-		return
-	}
-	t.OrderID = strconv.FormatInt(res.OrderID, 10)
-	if err := b.s.UpdateTrade(t); err != nil {
-		b.l.Printf("error updating a trade with new order_id: %v", err)
-		b.SendMessage(t.UserID, "Could not update the trade with the new order ID.")
-		return
-	}
-	b.SendMessage(t.UserID, "Order replaced with the new order ID.")
+	// check if canceled by bot schedule rather than the user manually cancel the order
+	if t.State == types.STATE_REPLACING {
+		po, err := b.bc.PrepareTradeForOrder(t)
+		if err != nil {
+			b.l.Printf("trade could not be executed, error in preparing state: %v", err)
+			// update trade state to idle
+			t.State = types.STATE_IDLE
+			if err := b.s.UpdateTrade(t); err != nil {
+				msg := fmt.Sprintf("An important error occurred. The trade with ID '%d' could not be updated, which might cause tracking issues. Order ID: %s", t.ID, t.OrderID)
+				b.SendMessage(t.UserID, msg)
+			}
+			return
+		}
 
+		res, err := b.bc.PlacePreparedOrder(po)
+		if err != nil {
+			// TODO Handle binance api error
+			// TODO send user a proper message base on binance API error
+			b.l.Printf("error in placing trade: %v", err)
+			return
+		}
+
+		b.SendMessage(t.UserID, "Order replaced with the new Order.")
+
+		// schedule order cancellation (it will raise error if currently filled)
+		// if cancel successfully it will change trade state to replacing
+		go b.scheduleOrderCancellation(res.OrderID, res.Symbol, po.Expiration, t)
+
+		// update trade state
+		t.OrderID = strconv.FormatInt(res.OrderID, 10)
+		t.State = types.STATE_PLACED
+		t.UpdatedAt = time.Now().UTC()
+		if err := b.s.UpdateTrade(t); err != nil {
+			msg := fmt.Sprintf("An important error occurred. The trade with ID '%d' could not be updated, which might cause tracking issues. Order ID: %s", t.ID, t.OrderID)
+			b.SendMessage(t.UserID, msg)
+		}
+		return
+	}
+
+}
+
+func (b *Bot) scheduleOrderCancellation(orderID int64, symbol string, delay time.Duration, t *models.Trade) {
+	time.AfterFunc(delay, func() {
+		// check if trade has state of placed
+		b.l.Println(t.State)
+		if t.State == types.STATE_PLACED {
+			// update trade state
+			t.State = types.STATE_REPLACING
+			if err := b.s.UpdateTrade(t); err != nil {
+				b.l.Printf("important error occurred, failed to updated trade status fo replacing, the trade can not replaced: %v", err)
+				return
+			}
+			// cancel order
+			_, err := b.bc.CancelOrder(orderID, symbol)
+			if err != nil {
+				b.l.Printf("Failed to cancel order %d: %v", orderID, err)
+				return
+			}
+
+		}
+
+	})
 }
