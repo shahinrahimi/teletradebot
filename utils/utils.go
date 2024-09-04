@@ -55,7 +55,13 @@ func FriendlyDuration(duration time.Duration) string {
 
 func PrintStructFields(s interface{}) {
 	val := reflect.ValueOf(s)
-	typ := reflect.TypeOf(s)
+	// check if the passed value is a pointer
+	if val.Kind() == reflect.Ptr {
+		// Dereference the pointer to get the underlying struct
+		val = val.Elem()
+	}
+
+	typ := val.Type()
 
 	for i := 0; i < val.NumField(); i++ {
 		// Get the field name

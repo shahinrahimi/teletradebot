@@ -32,17 +32,23 @@ func main() {
 	apiKey := os.Getenv("BINANCE_API_KEY_FUTURES_TESTNET")
 	apiSec := os.Getenv("BINANCE_API_SEC_FUTURES_TESTNET")
 	if apiKey == "" || apiSec == "" {
-		logger.Fatal("error wrong environmental variable")
+		logger.Fatal("error wrong environmental variable for binance client")
 	}
+
+	// check environmental variable for binance api
+	apiKey2 := os.Getenv("BITMEX_API_ID_TESTNET")
+	apiSec2 := os.Getenv("BITMEX_APY_KEY_TESTEST")
+	if apiKey2 == "" || apiSec2 == "" {
+		logger.Fatal("error wrong environmental variable for bitmex client")
+	}
+	// create bitmex client
+	mc := exchange.NewBitmexClient(logger, "https://testnet.bitmex.com", apiKey2, apiSec2)
 
 	// create binance client
 	bc := exchange.NewBinanceClient(logger, apiKey, apiSec, true)
 
 	// start polling for binance
 	bc.StartPolling()
-
-	// create bitmex client
-	mc := exchange.NewBitmexClient(logger)
 
 	// create a store
 	s, err := store.NewSqliteStore(logger)
@@ -93,7 +99,7 @@ func main() {
 	r2.Handle(bot.REMOVE, b.MakeHandlerBotFunc(b.HandleRemove))
 	r2.Handle(bot.CHECK, b.MakeHandlerBotFunc(b.HandleCheck))
 	r2.Handle(bot.CANCEL, b.MakeHandlerBotFunc(b.HandleCancel))
-	r2.Handle(bot.EXECUTE, b.MakeHandlerBotFunc(b.HandleExecute))
+	r2.Handle(bot.EXECUTE, b.MakeHandlerBotFunc(b.HandleExecute2))
 	r2.Handle(bot.VIEW, b.MakeHandlerBotFunc(b.HandleView))
 	r2.Handle(bot.DESCRIBE, b.MakeHandlerBotFunc(b.HandleDescribe))
 	r2.Use(b.RequiredAuth)

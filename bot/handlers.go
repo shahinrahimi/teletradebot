@@ -10,17 +10,9 @@ import (
 	"gihub.com/shahinrahimi/teletradebot/models"
 	"gihub.com/shahinrahimi/teletradebot/types"
 	"gihub.com/shahinrahimi/teletradebot/utils"
+	"github.com/adshao/go-binance/v2/common"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
-
-type BinanceApiError struct {
-	code int
-	msg  string
-}
-
-func (b *BinanceApiError) Error() string {
-	return b.msg
-}
 
 func (b *Bot) HandleHelp(u *tgbotapi.Update, ctx context.Context) error {
 	var userID int64 = u.Message.From.ID
@@ -126,8 +118,8 @@ func (b *Bot) HandleCancel(u *tgbotapi.Update, ctx context.Context) error {
 		return nil
 	}
 	if _, err := b.bc.CancelOrder(orderID, t.Pair); err != nil {
-		if apiErr, ok := (err).(*BinanceApiError); ok {
-			msg := fmt.Sprintf("could not cancel a order \ncode:%d\n message: %s", apiErr.code, apiErr.msg)
+		if apiErr, ok := (err).(*common.APIError); ok {
+			msg := fmt.Sprintf("Binance API:\ncould not cancel a order\ncode:%d\nmessage: %s", apiErr.Code, apiErr.Message)
 			b.l.Println(msg)
 			b.SendMessage(t.UserID, msg)
 			return nil
@@ -152,6 +144,15 @@ func (b *Bot) HandleCheck(u *tgbotapi.Update, ctx context.Context) error {
 	return nil
 }
 
+func (b *Bot) HandleExecute2(u *tgbotapi.Update, ctx context.Context) error {
+	t := ctx.Value(models.KeyTrade{}).(models.Trade)
+	if t.State != types.STATE_IDLE {
+		b.SendMessage(u.Message.From.ID, "The trade could not be executed as it has already been executed once.")
+		return nil
+	}
+	return b.mc.TryPlaceOrderForTrade(&t)
+}
+
 func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 	t := ctx.Value(models.KeyTrade{}).(models.Trade)
 	if t.State != types.STATE_IDLE {
@@ -168,12 +169,13 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 	}
 
 	b.l.Printf("Placing %s order with quantity %s and stop price %s expires in: %s", po.Side, po.Quantity, po.StopPrice, utils.FriendlyDuration(po.Expiration))
-
 	res, err := b.bc.PlacePreparedOrder(po)
 	if err != nil {
-		if apiErr, ok := err.(*BinanceApiError); ok {
-			msg := fmt.Sprintf("could not place a order for trade\ncode:%d\n message: %s", apiErr.code, apiErr.msg)
-			b.l.Panicln(msg)
+		utils.PrintStructFields(err)
+		fmt.Printf("Type of err: %T\n", err)
+		if apiErr, ok := err.(*common.APIError); ok {
+			msg := fmt.Sprintf("Binance API:\ncould not place a order for trade\ncode:%d\nmessage: %s", apiErr.Code, apiErr.Message)
+			b.l.Println(msg)
 			b.SendMessage(t.UserID, msg)
 		}
 		return err
