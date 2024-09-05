@@ -117,15 +117,9 @@ func (b *Bot) HandleCancel(u *tgbotapi.Update, ctx context.Context) error {
 		b.SendMessage(u.Message.From.ID, "Internal error")
 		return nil
 	}
-	if _, err := b.bc.CancelOrder(orderID, t.Pair); err != nil {
-		if apiErr, ok := (err).(*common.APIError); ok {
-			msg := fmt.Sprintf("Binance API:\ncould not cancel a order\ncode:%d\nmessage: %s", apiErr.Code, apiErr.Message)
-			b.l.Println(msg)
-			b.SendMessage(t.UserID, msg)
-			return nil
-		}
-		b.l.Printf("error canceling order_id: %d", orderID)
-		return nil
+	if _, err := b.bc.CancelOrder(ctx, orderID, t.Symbol); err != nil {
+		b.handleAPIError(err, t.UserID)
+		return err
 	}
 	msg := fmt.Sprintf("Placed order successfully canceled, trade: %d, Order ID: %s", t.ID, t.OrderID)
 	b.SendMessage(u.Message.From.ID, msg)
@@ -161,30 +155,23 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 	}
 
 	// prepared trade for order
-
-	po, err := b.bc.PrepareTradeForOrder(&t)
+	po, err := b.bc.PrepareOrder(ctx, &t)
 	if err != nil {
 		b.l.Printf("trade could not be executed, error in preparing state: %v", err)
 		return nil
 	}
 
 	b.l.Printf("Placing %s order with quantity %s and stop price %s expires in: %s", po.Side, po.Quantity, po.StopPrice, utils.FriendlyDuration(po.Expiration))
-	res, err := b.bc.PlacePreparedOrder(po)
+	res, err := b.bc.PlacePreparedOrder(ctx, po)
 	if err != nil {
-		utils.PrintStructFields(err)
-		fmt.Printf("Type of err: %T\n", err)
-		if apiErr, ok := err.(*common.APIError); ok {
-			msg := fmt.Sprintf("Binance API:\ncould not place a order for trade\ncode:%d\nmessage: %s", apiErr.Code, apiErr.Message)
-			b.l.Println(msg)
-			b.SendMessage(t.UserID, msg)
-		}
+		b.handleAPIError(err, t.UserID)
 		return err
 	}
-	msg := fmt.Sprintf("Order placed successfully for trade: %d, Order ID: %s", t.ID, t.OrderID)
+	msg := fmt.Sprintf("Order placed successfully\nTrade ID: %d\nOrder ID: %d", t.ID, res.OrderID)
 	b.SendMessage(u.Message.From.ID, msg)
 	// schedule order cancellation (it will raise error if currently filled)
 	// if cancel successfully it will change trade state to replacing
-	go b.scheduleOrderCancellation(res.OrderID, res.Symbol, po.Expiration, &t)
+	go b.scheduleOrderReplacement(ctx, po.Expiration, res.OrderID, &t)
 
 	// update trade state
 	t.OrderID = strconv.FormatInt(res.OrderID, 10)
@@ -196,6 +183,15 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 		return err
 	}
 	return nil
+}
+
+func (b *Bot) handleAPIError(err error, UserId int64) {
+	if apiErr, ok := err.(*common.APIError); ok {
+		msg := fmt.Sprintf("Binance API:\ncould not place a order for trade\ncode:%d\nmessage: %s", apiErr.Code, apiErr.Message)
+		b.SendMessage(UserId, msg)
+	} else {
+		b.l.Printf("error casting error to Api error type: %T", err)
+	}
 }
 
 func (b *Bot) MakeHandlerBotFunc(f ErrorHandler) Handler {

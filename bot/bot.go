@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"gihub.com/shahinrahimi/teletradebot/exchange"
+	"gihub.com/shahinrahimi/teletradebot/exchange/binance"
 	"gihub.com/shahinrahimi/teletradebot/store"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -15,11 +16,11 @@ type Bot struct {
 	api         *tgbotapi.BotAPI
 	routers     map[string]*Router
 	middlewares []Middleware
-	bc          *exchange.BinanceClient
+	bc          *binance.BinanceClient
 	mc          *exchange.BitmexClient
 }
 
-func NewBot(l *log.Logger, s store.Storage, bc *exchange.BinanceClient, mc *exchange.BitmexClient, token string) (*Bot, error) {
+func NewBot(l *log.Logger, s store.Storage, bc *binance.BinanceClient, mc *exchange.BitmexClient, token string) (*Bot, error) {
 	api, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		l.Printf("error creating a new bot api: %v", err)

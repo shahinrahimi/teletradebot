@@ -129,7 +129,7 @@ func (mc *BitmexClient) TryPlaceOrderForTrade(t *models.Trade) error {
 		OrdType:  optional.NewString("Stop"),
 		StopPx:   optional.NewFloat64(300000),
 	}
-	so, _, err := mc.client.OrderApi.OrderNew(mc.ctx, t.Pair, params)
+	so, _, err := mc.client.OrderApi.OrderNew(mc.ctx, t.Symbol, params)
 	// resp, orderId, err := orderApi.LimitBuy(t.Pair, 0.1, 30000.0, "4145153523413131314")
 	if err != nil {
 		utils.PrintStructFields(err)

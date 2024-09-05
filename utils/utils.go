@@ -99,7 +99,7 @@ func ParseTrade(tradeArgs []string) (*models.Trade, error) {
 	// pair
 	// TODO maybe add check if pair exist on the tickers
 	part2 := strings.TrimSpace(strings.ToUpper(tradeArgs[1]))
-	t.Pair = part2
+	t.Symbol = part2
 	// side
 	part3 := strings.TrimSpace(strings.ToUpper(tradeArgs[2]))
 	if part3 != types.SIDE_L && part3 != types.SIDE_S {

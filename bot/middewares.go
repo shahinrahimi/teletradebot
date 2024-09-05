@@ -65,45 +65,46 @@ func (b *Bot) ProvideAddTrade(next Handler) Handler {
 		} else {
 			tradeArgs = args
 		}
-		o, err := utils.ParseTrade(tradeArgs)
+		t, err := utils.ParseTrade(tradeArgs)
 		if err != nil {
 			b.SendMessage(userID, err.Error())
 			return
 		}
 
 		var isAvailable bool = false
-		switch o.Account {
+		switch t.Account {
 		case types.ACCOUNT_B:
 			// check pair for binance
-			if _, err := b.bc.GetSymbol(o.Pair); err == nil {
-				isAvailable = true
-			} else {
-				b.l.Printf("error checking pair availability pair: %v", err)
+			isAvailable = b.bc.CheckSymbol(t.Symbol)
+			if !isAvailable {
+				b.l.Printf("error checking symbol '%s' availability symbol", t.Symbol)
 			}
 		case types.ACCOUNT_M:
 			// check pair for bitmex
 			// TODO implement a method to check if pair is available in bitmex
 			c := http.Client{}
-			resp, err := c.Get(fmt.Sprintf("https://www.bitmex.com/api/udf/symbols?symbol=%s", o.Pair))
+			resp, err := c.Get(fmt.Sprintf("https://www.bitmex.com/api/udf/symbols?symbol=%s", t.Symbol))
 			if resp.StatusCode == 200 || err != nil {
 				isAvailable = true
+			} else {
+				b.l.Panicf("error checking symbol '%s' availability symbol", t.Symbol)
 			}
 		default:
 			// should never happen
 
-			b.l.Panicf("error checking pair availability pair: %s", o.Pair)
+			b.l.Panicf("error checking symbol '%s' availability symbol", t.Symbol)
 
 		}
 
 		if !isAvailable {
-			b.SendMessage(userID, fmt.Sprintf("the pair '%s' is not available", o.Pair))
+			b.SendMessage(userID, fmt.Sprintf("the symbol '%s' is not available for exchange '%s'.", t.Symbol, t.Account))
 			return
 		}
 
 		// add UserID
-		o.UserID = userID
+		t.UserID = userID
 
-		ctx = context.WithValue(ctx, models.KeyTrade{}, *o)
+		ctx = context.WithValue(ctx, models.KeyTrade{}, *t)
 		next(u, ctx)
 	}
 }
