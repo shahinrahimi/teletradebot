@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"net/http"
 	"strconv"
 	"strings"
 
@@ -82,12 +81,9 @@ func (b *Bot) ProvideAddTrade(next Handler) Handler {
 		case types.ACCOUNT_M:
 			// check pair for bitmex
 			// TODO implement a method to check if pair is available in bitmex
-			c := http.Client{}
-			resp, err := c.Get(fmt.Sprintf("https://www.bitmex.com/api/udf/symbols?symbol=%s", t.Symbol))
-			if resp.StatusCode == 200 || err != nil {
-				isAvailable = true
-			} else {
-				b.l.Panicf("error checking symbol '%s' availability symbol", t.Symbol)
+			isAvailable = b.mc.CheckSymbol(t.Symbol)
+			if !isAvailable {
+				b.l.Printf("error checking symbol '%s' availability symbol", t.Symbol)
 			}
 		default:
 			// should never happen

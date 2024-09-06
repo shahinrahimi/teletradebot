@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"gihub.com/shahinrahimi/teletradebot/bot"
-	"gihub.com/shahinrahimi/teletradebot/exchange"
 	"gihub.com/shahinrahimi/teletradebot/exchange/binance"
+	"gihub.com/shahinrahimi/teletradebot/exchange/bitmex"
 	"gihub.com/shahinrahimi/teletradebot/store"
 	"github.com/joho/godotenv"
 )
@@ -46,13 +46,16 @@ func main() {
 		logger.Fatal("error wrong environmental variable for bitmex client")
 	}
 	// create bitmex client
-	mc := exchange.NewBitmexClient(logger, "https://testnet.bitmex.com", apiKey2, apiSec2)
+	//mc := exchange.NewBitmexClient(logger, "https://testnet.bitmex.com", apiKey2, apiSec2)
 
-	// create binance client
+	// create binance and bitmex client
 	bc := binance.NewBinanceClient(logger, apiKey, apiSec, true)
+	mc := bitmex.NewBitmexClient(logger, apiKey2, apiSec2, true)
 
 	// start polling for binance
 	bc.StartPolling(ctx)
+	// start polling for bitmex
+	mc.StartPolling(ctx)
 
 	// create a store
 	s, err := store.NewSqliteStore(logger)
@@ -75,10 +78,10 @@ func main() {
 		logger.Fatalf("error starting binance service: %v", err)
 	}
 
-	go b.ScanningTrades(ctx)
+	//go b.ScanningTrades(ctx)
 
 	// global middleware
-	b.Use(b.BanBots)
+	// b.Use(b.BanBots)
 	b.Use(b.Logger)
 
 	// routes
@@ -105,7 +108,7 @@ func main() {
 	r2.Handle(bot.REMOVE, b.MakeHandlerBotFunc(b.HandleRemove))
 	r2.Handle(bot.CHECK, b.MakeHandlerBotFunc(b.HandleCheck))
 	r2.Handle(bot.CANCEL, b.MakeHandlerBotFunc(b.HandleCancel))
-	r2.Handle(bot.EXECUTE, b.MakeHandlerBotFunc(b.HandleExecute))
+	r2.Handle(bot.EXECUTE, b.MakeHandlerBotFunc(b.HandleExecute2))
 	r2.Handle(bot.VIEW, b.MakeHandlerBotFunc(b.HandleView))
 	r2.Handle(bot.DESCRIBE, b.MakeHandlerBotFunc(b.HandleDescribe))
 	r2.Use(b.RequiredAuth)

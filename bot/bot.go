@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 
-	"gihub.com/shahinrahimi/teletradebot/exchange"
 	"gihub.com/shahinrahimi/teletradebot/exchange/binance"
+	"gihub.com/shahinrahimi/teletradebot/exchange/bitmex"
 	"gihub.com/shahinrahimi/teletradebot/store"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -17,10 +17,10 @@ type Bot struct {
 	routers     map[string]*Router
 	middlewares []Middleware
 	bc          *binance.BinanceClient
-	mc          *exchange.BitmexClient
+	mc          *bitmex.BitmexClient
 }
 
-func NewBot(l *log.Logger, s store.Storage, bc *binance.BinanceClient, mc *exchange.BitmexClient, token string) (*Bot, error) {
+func NewBot(l *log.Logger, s store.Storage, bc *binance.BinanceClient, mc *bitmex.BitmexClient, token string) (*Bot, error) {
 	api, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		l.Printf("error creating a new bot api: %v", err)
@@ -62,8 +62,13 @@ func (b *Bot) receiveUpdates(ctx context.Context, us tgbotapi.UpdatesChannel) {
 	for {
 		select {
 		case <-ctx.Done():
+			b.l.Printf("recived a ctx.Done")
 			return
 		case u := <-us:
+			if u.EditedMessage != nil {
+				b.l.Printf("received an edited message, bypassing update")
+				continue
+			}
 			b.handleUpdate(u, ctx)
 		}
 	}

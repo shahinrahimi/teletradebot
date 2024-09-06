@@ -12,6 +12,7 @@ import (
 	"gihub.com/shahinrahimi/teletradebot/utils"
 	"github.com/adshao/go-binance/v2/common"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/qct/bitmex-go/swagger"
 )
 
 func (b *Bot) HandleHelp(u *tgbotapi.Update, ctx context.Context) error {
@@ -144,7 +145,10 @@ func (b *Bot) HandleExecute2(u *tgbotapi.Update, ctx context.Context) error {
 		b.SendMessage(u.Message.From.ID, "The trade could not be executed as it has already been executed once.")
 		return nil
 	}
-	return b.mc.TryPlaceOrderForTrade(&t)
+	if err := b.mc.PlaceOrder(&t); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
@@ -198,6 +202,14 @@ func (b *Bot) MakeHandlerBotFunc(f ErrorHandler) Handler {
 	return func(u *tgbotapi.Update, ctx context.Context) {
 		if err := f(u, ctx); err != nil {
 			b.l.Printf("we have error %v", err)
+			b.l.Printf("err type: %T", err)
+			if ApiErr, ok := (err).(swagger.GenericSwaggerError); ok {
+				b.l.Printf("error: %s , errof: %s", string(ApiErr.Body()), ApiErr.Error())
+			}
+			if apiErr, ok := err.(*common.APIError); ok {
+				msg := fmt.Sprintf("Binance API:\ncould not place a order for trade\ncode:%d\nmessage: %s", apiErr.Code, apiErr.Message)
+				b.l.Println(msg)
+			}
 		}
 	}
 }
