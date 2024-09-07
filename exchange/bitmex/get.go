@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
+	swagger "gihub.com/shahinrahimi/teletradebot/go-client"
 	"gihub.com/shahinrahimi/teletradebot/models"
 	"github.com/antihax/optional"
-	"github.com/qct/bitmex-go/swagger"
 )
 
 func (mc *BitmexClient) CheckSymbol(symbol string) bool {
@@ -25,37 +25,43 @@ func (mc *BitmexClient) CheckSymbol(symbol string) bool {
 	return false
 }
 
-func (mc *BitmexClient) GetBalance() (float64, error) {
-	margin, _, err := mc.client.UserApi.UserGetMargin(mc.auth, nil)
-	if err != nil {
-		return 0, fmt.Errorf("failed to retrieve margin: %v", err)
+func (mc *BitmexClient) GetMargins() ([]swagger.Margin, error) {
+	opts := swagger.UserApiUserGetMarginOpts{
+		Currency: optional.NewString("all"),
 	}
-	availableBalance := float64(margin.AvailableMargin) / 100000000 // Convert satoshis to BTC
-	return availableBalance, nil
+	margins, _, err := mc.client.UserApi.UserGetMargins(mc.auth, &opts)
+	if err != nil {
+		mc.l.Printf("failed to retrieve margins: %v", err)
+		return nil, err
+	}
+	return margins, nil
 }
 
-func (mc *BitmexClient) GetBalanceUSD() (float64, error) {
-	balance, err := mc.GetBalance()
+func (mc *BitmexClient) GetBalance(currency string) (float64, error) {
+	margins, err := mc.GetMargins()
 	if err != nil {
 		return 0, err
 	}
-	ticker, _, err := mc.client.InstrumentApi.InstrumentGetActive(mc.auth)
-	if err != nil {
-		return 0, err
-	}
-	for _, instrument := range ticker {
-		if instrument.Symbol == "XBTUSD" {
-			return balance * instrument.MarkPrice, nil
+	for _, m := range margins {
+		if m.Currency == currency {
+			return float64(m.AvailableMargin), nil
 		}
 	}
-	return 0, fmt.Errorf("error geting BTC market price")
+	return 0, fmt.Errorf("the currency '%s' not found", currency)
+}
+
+func (mc *BitmexClient) GetBalanceXBt() (float64, error) {
+	currency := "XBt"
+	return mc.GetBalance(currency)
+}
+
+func (mc *BitmexClient) GetBalanceUSDt() (float64, error) {
+	currency := "USDt"
+	return mc.GetBalance(currency)
 }
 
 func (mc *BitmexClient) GetInstrument(t *models.Trade) (*swagger.Instrument, error) {
-	opts := &swagger.InstrumentApiInstrumentGetOpts{
-		Symbol: optional.NewString(t.Symbol),
-	}
-	instruments, _, err := mc.client.InstrumentApi.InstrumentGetActive(mc.auth, opts)
+	instruments, _, err := mc.client.InstrumentApi.InstrumentGetActive(mc.auth)
 	if err != nil {
 		return nil, err
 	}

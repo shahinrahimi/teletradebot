@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/qct/bitmex-go/swagger"
+	swagger "gihub.com/shahinrahimi/teletradebot/go-client"
 )
 
 type BitmexClient struct {

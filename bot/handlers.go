@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"gihub.com/shahinrahimi/teletradebot/config"
+	swagger "gihub.com/shahinrahimi/teletradebot/go-client"
 	"gihub.com/shahinrahimi/teletradebot/models"
 	"gihub.com/shahinrahimi/teletradebot/types"
 	"gihub.com/shahinrahimi/teletradebot/utils"
 	"github.com/adshao/go-binance/v2/common"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/qct/bitmex-go/swagger"
 )
 
 func (b *Bot) HandleHelp(u *tgbotapi.Update, ctx context.Context) error {
@@ -135,7 +135,6 @@ func (b *Bot) HandleCancel(u *tgbotapi.Update, ctx context.Context) error {
 }
 
 func (b *Bot) HandleCheck(u *tgbotapi.Update, ctx context.Context) error {
-
 	return nil
 }
 
@@ -145,9 +144,20 @@ func (b *Bot) HandleExecute2(u *tgbotapi.Update, ctx context.Context) error {
 		b.SendMessage(u.Message.From.ID, "The trade could not be executed as it has already been executed once.")
 		return nil
 	}
-	if err := b.mc.PlaceOrder(&t); err != nil {
+	po, err := b.mc.PrepareOrder(ctx, &t)
+	if err != nil {
+		b.l.Printf("error preparing order: %v", err)
 		return err
 	}
+	order, err := b.mc.PlacePreparedOrder(po)
+	if err != nil {
+		b.l.Printf("error placing order: %v", err)
+		return err
+	}
+
+	msg := fmt.Sprintf("Order placed successfully\nTrade ID: %d\nOrder ID: %s", t.ID, order.OrderID)
+	b.SendMessage(u.Message.From.ID, msg)
+
 	return nil
 }
 
