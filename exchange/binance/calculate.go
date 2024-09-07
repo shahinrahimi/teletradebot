@@ -54,9 +54,9 @@ func (bc *BinanceClient) calculateStopLossPrice(t *models.Trade, k *futures.Klin
 	}
 	var sl float64
 	if t.Side == types.SIDE_L {
-		sl = sp - (r * (float64(t.SLPercent)) / 100)
+		sl = sp - (r * (float64(t.StopLoss)) / 100)
 	} else {
-		sl = sp + (r * (float64(t.SLPercent)) / 100)
+		sl = sp + (r * (float64(t.TakeProfit)) / 100)
 	}
 
 	pricePrecision := math.Pow10(int(-s.PricePrecision))
@@ -83,9 +83,9 @@ func (bc *BinanceClient) calculateTakeProfitPrice(t *models.Trade, k *futures.Kl
 	}
 	var tp float64
 	if t.Side == types.SIDE_L {
-		tp = sp + (r * (float64(t.TPPercent)) / 100)
+		tp = sp + (r * (float64(t.StopLoss)) / 100)
 	} else {
-		tp = sp - (r * (float64(t.TPPercent)) / 100)
+		tp = sp - (r * (float64(t.TakeProfit)) / 100)
 	}
 
 	pricePrecision := math.Pow10(int(-s.PricePrecision))

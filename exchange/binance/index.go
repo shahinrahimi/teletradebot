@@ -95,7 +95,7 @@ func (bc *BinanceClient) getQuantity(t *models.Trade) (string, error) {
 		return "", err
 	}
 
-	size := b * float64(t.SizePercent) / 100
+	size := b * float64(t.Size) / 100
 	quantity := size / p
 
 	// adjust quantity based on symbol precision
@@ -108,7 +108,7 @@ func (bc *BinanceClient) getQuantity(t *models.Trade) (string, error) {
 func (bc *BinanceClient) getLastClosedKline(ctx context.Context, t *models.Trade) (*futures.Kline, error) {
 	klines, err := bc.client.NewMarkPriceKlinesService().
 		Limit(100).
-		Interval(t.Candle).
+		Interval(t.Timeframe).
 		Symbol(t.Symbol).
 		Do(ctx)
 	if err != nil {

@@ -3,10 +3,15 @@ package store
 import (
 	"database/sql"
 
+	"time"
+
 	"gihub.com/shahinrahimi/teletradebot/models"
+	"gihub.com/shahinrahimi/teletradebot/types"
 )
 
 func (s *SqliteStore) CreateTrade(t *models.Trade) error {
+	t.UpdatedAt = time.Now().UTC()
+	t.CreatedAt = time.Now().UTC()
 	if _, err := s.db.Exec(models.INSERT_TRADE, t.ToArgs()...); err != nil {
 		s.l.Printf("error creating a new trade: %v", err)
 		return err
@@ -59,9 +64,34 @@ func (s *SqliteStore) DeleteTrade(id int) error {
 }
 
 func (s *SqliteStore) UpdateTrade(t *models.Trade) error {
+	t.UpdatedAt = time.Now().UTC()
 	if _, err := s.db.Exec(models.UPDATE_TRADE, t.ToUpdatedArgs()...); err != nil {
 		s.l.Printf("error updating trade to DB: %v", err)
 		return err
 	}
 	return nil
+}
+
+func (s *SqliteStore) UpdateTradeFilled(t *models.Trade) error {
+	t.State = types.STATE_FILLED
+	return s.UpdateTrade(t)
+}
+
+func (s *SqliteStore) UpdateTradeSLandTP(t *models.Trade, SLOrder string, TPOrder string) error {
+	t.SLOrderID = SLOrder
+	t.TPOrderID = TPOrder
+	return s.UpdateTrade(t)
+}
+
+func (s *SqliteStore) UpdateTradePlaced(t *models.Trade, orderID string) error {
+	t.OrderID = orderID
+	return s.UpdateTrade(t)
+}
+
+func (s *SqliteStore) UpdateTradeIdle(t *models.Trade) error {
+	t.State = types.STATE_IDLE
+	t.OrderID = ""
+	t.SLOrderID = ""
+	t.TPOrderID = ""
+	return s.UpdateTrade(t)
 }

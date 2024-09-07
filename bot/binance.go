@@ -12,9 +12,8 @@ import (
 	"github.com/adshao/go-binance/v2/futures"
 )
 
-func (b *Bot) StartBinanceService(ctx context.Context) error {
+func (b *Bot) StartBinanceService(ctx context.Context) {
 	go b.startUserDataStream(ctx)
-	return nil
 }
 
 func (b *Bot) startUserDataStream(ctx context.Context) {
@@ -99,7 +98,7 @@ func (b *Bot) HandleFilled(f futures.WsOrderTradeUpdate) {
 	} else {
 		b.l.Printf("error placing stop-loss order in preparing stage: %v", err)
 	}
-	if ptp, err := b.bc.PreparedTakeProfitOrder(context.Background(), t, &f); err == nil {
+	if ptp, err := b.bc.PrepareTakeProfitOrder(context.Background(), t, &f); err == nil {
 		_, err = b.bc.PlacePreparedTakeProfitOrder(context.Background(), ptp)
 		if err != nil {
 			b.SendMessage(t.UserID, "could not place take-profit order")

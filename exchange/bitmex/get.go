@@ -94,7 +94,7 @@ func (mc *BitmexClient) GetLastClosedCandle(t *models.Trade) (*swagger.TradeBin,
 	// TODO the available bin size 1m,5m,1h,1d
 	// it should flexible and convert this binSiz to for example 1m => 3m or 5m or 5m to 15min
 	params := swagger.TradeApiTradeGetBucketedOpts{
-		BinSize: optional.NewString(t.Candle),
+		BinSize: optional.NewString(t.Timeframe),
 		Symbol:  optional.NewString(t.Symbol),
 		Count:   optional.NewFloat32(1),
 		// Partial: optional.NewBool(true),

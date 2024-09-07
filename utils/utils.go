@@ -110,9 +110,9 @@ func ParseTrade(tradeArgs []string) (*models.Trade, error) {
 	// candle
 	part4 := strings.TrimSpace(tradeArgs[3])
 	if !types.IsValidCandle(part4) {
-		return nil, fmt.Errorf("the valid value for candle should be %s", types.GetValidCandlesString())
+		return nil, fmt.Errorf("the valid value for timeframe should be %s", types.GetValidCandlesString())
 	} else {
-		t.Candle = part4
+		t.Timeframe = part4
 	}
 	// offset
 	part5 := strings.TrimSpace(tradeArgs[4])
@@ -130,7 +130,7 @@ func ParseTrade(tradeArgs []string) (*models.Trade, error) {
 	} else if size_percent <= 0 || size_percent > 50 {
 		return nil, fmt.Errorf("the valid value for size should be a non-zero none-negative number (max: 50)")
 	} else {
-		t.SizePercent = size_percent
+		t.Size = size_percent
 	}
 
 	// stop-loss percent
@@ -141,7 +141,7 @@ func ParseTrade(tradeArgs []string) (*models.Trade, error) {
 	} else if stop_percent < 100 {
 		return nil, fmt.Errorf("the valid value for stop-loss percent should be a non-zero none-negative number (min: 100)")
 	} else {
-		t.SLPercent = stop_percent
+		t.StopLoss = stop_percent
 	}
 
 	// target-point percent
@@ -152,7 +152,7 @@ func ParseTrade(tradeArgs []string) (*models.Trade, error) {
 	} else if target_percent < 100 {
 		return nil, fmt.Errorf("the valid value for target-point percent should be a non-zero none-negative number (min: 100)")
 	} else {
-		t.TPPercent = target_percent
+		t.TakeProfit = target_percent
 	}
 
 	// reverse-multiplier

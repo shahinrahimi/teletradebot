@@ -52,7 +52,7 @@ func (mc *BitmexClient) PrepareOrder(ctx context.Context, t *models.Trade) (*Pre
 	}
 
 	lotSize := instrument.LotSize
-	quantity := (balance * (float64(t.SizePercent) / 100000.0)) / instrument.MarkPrice
+	quantity := (balance * (float64(t.Size) / 100000.0)) / instrument.MarkPrice
 	if quantity < float64(lotSize) {
 		return nil, fmt.Errorf("the calculated quantity (%.2f) less than the lotsize (%.1f)", quantity, lotSize)
 	}

@@ -52,6 +52,7 @@ func (b *Bot) ProvideAddTrade(next Handler) Handler {
 	return func(u *tgbotapi.Update, ctx context.Context) {
 		var tradeArgs []string
 		var userID int64 = u.Message.From.ID
+		var chatID int64 = u.Message.Chat.ID
 		args := strings.Split(u.Message.CommandArguments(), " ")
 		// check shortcuts
 		if len(args) == 1 {
@@ -97,8 +98,9 @@ func (b *Bot) ProvideAddTrade(next Handler) Handler {
 			return
 		}
 
-		// add UserID
+		// add UserID and ChatID
 		t.UserID = userID
+		t.ChatID = chatID
 
 		ctx = context.WithValue(ctx, models.KeyTrade{}, *t)
 		next(u, ctx)

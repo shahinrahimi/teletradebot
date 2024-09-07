@@ -74,9 +74,7 @@ func main() {
 		logger.Fatalf("error creating instance of bot: %v", err)
 	}
 
-	if err := b.StartBinanceService(ctx); err != nil {
-		logger.Fatalf("error starting binance service: %v", err)
-	}
+	b.StartBinanceService(ctx)
 
 	//go b.ScanningTrades(ctx)
 

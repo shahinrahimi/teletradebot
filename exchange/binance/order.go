@@ -40,7 +40,7 @@ func (bc *BinanceClient) PrepareOrder(ctx context.Context, t *models.Trade) (*Pr
 	} else {
 		side = futures.SideTypeSell
 	}
-	candleDuration, err := types.GetDuration(t.Candle)
+	candleDuration, err := types.GetDuration(t.Timeframe)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func (bc *BinanceClient) PrepareStopLossOrder(ctx context.Context, t *models.Tra
 	return &po, nil
 }
 
-func (bc *BinanceClient) PreparedTakeProfitOrder(ctx context.Context, t *models.Trade, ou *futures.WsOrderTradeUpdate) (*PreparedOrder, error) {
+func (bc *BinanceClient) PrepareTakeProfitOrder(ctx context.Context, t *models.Trade, ou *futures.WsOrderTradeUpdate) (*PreparedOrder, error) {
 	var po PreparedOrder
 	k, err := bc.getLastClosedKline(ctx, t)
 	if err != nil {
