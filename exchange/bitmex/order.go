@@ -6,10 +6,10 @@ import (
 	"math"
 	"time"
 
-	swagger "gihub.com/shahinrahimi/teletradebot/go-client"
-	"gihub.com/shahinrahimi/teletradebot/models"
-	"gihub.com/shahinrahimi/teletradebot/types"
 	"github.com/antihax/optional"
+	"github.com/shahinrahimi/teletradebot/models"
+	swagger "github.com/shahinrahimi/teletradebot/swagger"
+	"github.com/shahinrahimi/teletradebot/types"
 )
 
 type PreparedOrder struct {

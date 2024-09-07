@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"gihub.com/shahinrahimi/teletradebot/models"
-	"gihub.com/shahinrahimi/teletradebot/types"
-	"gihub.com/shahinrahimi/teletradebot/utils"
 	"github.com/adshao/go-binance/v2/futures"
+	"github.com/shahinrahimi/teletradebot/models"
+	"github.com/shahinrahimi/teletradebot/types"
+	"github.com/shahinrahimi/teletradebot/utils"
 )
 
 type PreparedOrder struct {

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"gihub.com/shahinrahimi/teletradebot/models"
-	"gihub.com/shahinrahimi/teletradebot/types"
+	"github.com/shahinrahimi/teletradebot/models"
+	"github.com/shahinrahimi/teletradebot/types"
 )
 
 func ConvertTime(timestamp int64) time.Time {

@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"gihub.com/shahinrahimi/teletradebot/models"
-	"gihub.com/shahinrahimi/teletradebot/types"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/shahinrahimi/teletradebot/models"
+	"github.com/shahinrahimi/teletradebot/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

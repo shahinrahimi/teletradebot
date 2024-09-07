@@ -1,4 +1,4 @@
-module gihub.com/shahinrahimi/teletradebot
+module github.com/shahinrahimi/teletradebot
 
 go 1.23.0
 

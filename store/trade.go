@@ -5,8 +5,8 @@ import (
 
 	"time"
 
-	"gihub.com/shahinrahimi/teletradebot/models"
-	"gihub.com/shahinrahimi/teletradebot/types"
+	"github.com/shahinrahimi/teletradebot/models"
+	"github.com/shahinrahimi/teletradebot/types"
 )
 
 func (s *SqliteStore) CreateTrade(t *models.Trade) error {

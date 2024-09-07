@@ -7,11 +7,11 @@ import (
 	"os/signal"
 	"time"
 
-	"gihub.com/shahinrahimi/teletradebot/bot"
-	"gihub.com/shahinrahimi/teletradebot/exchange/binance"
-	"gihub.com/shahinrahimi/teletradebot/exchange/bitmex"
-	"gihub.com/shahinrahimi/teletradebot/store"
 	"github.com/joho/godotenv"
+	"github.com/shahinrahimi/teletradebot/bot"
+	"github.com/shahinrahimi/teletradebot/exchange/binance"
+	"github.com/shahinrahimi/teletradebot/exchange/bitmex"
+	"github.com/shahinrahimi/teletradebot/store"
 )
 
 func main() {

@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
-	"gihub.com/shahinrahimi/teletradebot/models"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/shahinrahimi/teletradebot/models"
 )
 
 type SqliteStore struct {

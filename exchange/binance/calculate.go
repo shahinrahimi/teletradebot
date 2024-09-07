@@ -5,9 +5,9 @@ import (
 	"math"
 	"strconv"
 
-	"gihub.com/shahinrahimi/teletradebot/models"
-	"gihub.com/shahinrahimi/teletradebot/types"
 	"github.com/adshao/go-binance/v2/futures"
+	"github.com/shahinrahimi/teletradebot/models"
+	"github.com/shahinrahimi/teletradebot/types"
 )
 
 func (bc *BinanceClient) calculateStopPrice(t *models.Trade, k *futures.Kline, s *futures.Symbol) (string, error) {

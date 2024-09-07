@@ -4,10 +4,10 @@ import (
 	"context"
 	"log"
 
-	"gihub.com/shahinrahimi/teletradebot/exchange/binance"
-	"gihub.com/shahinrahimi/teletradebot/exchange/bitmex"
-	"gihub.com/shahinrahimi/teletradebot/store"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/shahinrahimi/teletradebot/exchange/binance"
+	"github.com/shahinrahimi/teletradebot/exchange/bitmex"
+	"github.com/shahinrahimi/teletradebot/store"
 )
 
 type Bot struct {

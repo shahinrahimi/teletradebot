@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	swagger "gihub.com/shahinrahimi/teletradebot/go-client"
-	"gihub.com/shahinrahimi/teletradebot/models"
 	"github.com/antihax/optional"
+	"github.com/shahinrahimi/teletradebot/models"
+	swagger "github.com/shahinrahimi/teletradebot/swagger"
 )
 
 func (mc *BitmexClient) CheckSymbol(symbol string) bool {

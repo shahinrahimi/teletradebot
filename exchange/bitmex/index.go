@@ -4,15 +4,13 @@ import (
 	"context"
 	"log"
 
-	swagger "gihub.com/shahinrahimi/teletradebot/go-client"
+	swagger "github.com/shahinrahimi/teletradebot/swagger"
 )
 
 type BitmexClient struct {
-	l           *log.Logger
-	client      *swagger.APIClient
-	auth        context.Context
-	margin      *swagger.Margin
-	instruments []swagger.Instrument
+	l      *log.Logger
+	client *swagger.APIClient
+	auth   context.Context
 }
 
 func NewBitmexClient(l *log.Logger, apiKey string, apiSec string, UseTestnet bool) *BitmexClient {

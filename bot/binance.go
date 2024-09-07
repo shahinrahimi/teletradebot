@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"time"
 
-	"gihub.com/shahinrahimi/teletradebot/models"
-	"gihub.com/shahinrahimi/teletradebot/types"
 	"github.com/adshao/go-binance/v2/futures"
+	"github.com/shahinrahimi/teletradebot/models"
+	"github.com/shahinrahimi/teletradebot/types"
 )
 
 func (b *Bot) StartBinanceService(ctx context.Context) {
