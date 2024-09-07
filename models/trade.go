@@ -85,5 +85,5 @@ func (t *Trade) ToListString() string {
 }
 
 func (t *Trade) ToViewString() string {
-	return fmt.Sprintf("id: %d\nAccount: %s\nSymbol: %s\nSide: %s\nTimeframe: %s\nOffset: %f\nSize: %d%\nSL: %d%\nTP: %d%\nRM: %d", t.ID, t.Account, t.Symbol, t.Side, t.Timeframe, t.Offset, t.Size, t.StopLoss, t.TakeProfit, t.ReverseMultiplier)
+	return fmt.Sprintf("id: %d\nAccount: %s\nSymbol: %s\nSide: %s\nTimeframe: %s\nOffset: $%0.2f\nSize: %d\nSL: %d\nTP: %d\nRM: %d", t.ID, t.Account, t.Symbol, t.Side, t.Timeframe, t.Offset, t.Size, t.StopLoss, t.TakeProfit, t.ReverseMultiplier)
 }

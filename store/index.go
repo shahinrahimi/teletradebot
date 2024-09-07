@@ -22,7 +22,7 @@ type Storage interface {
 	DeleteTrade(id int) error
 	UpdateTrade(t *models.Trade) error
 	UpdateTradeFilled(t *models.Trade) error
-	UpdateTradeSLandTP(t *models.Trade, SLOrder string, TPOrder string)
+	UpdateTradeSLandTP(t *models.Trade, SLOrder string, TPOrder string) error
 	UpdateTradePlaced(t *models.Trade, orderID string) error
 	UpdateTradeIdle(t *models.Trade) error
 }
