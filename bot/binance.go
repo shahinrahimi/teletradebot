@@ -10,6 +10,7 @@ import (
 	"github.com/adshao/go-binance/v2/futures"
 	"github.com/shahinrahimi/teletradebot/models"
 	"github.com/shahinrahimi/teletradebot/types"
+	"github.com/shahinrahimi/teletradebot/utils"
 )
 
 func (b *Bot) StartBinanceService(ctx context.Context) {
@@ -54,6 +55,10 @@ func (b *Bot) handleOrderTradeUpdate(f futures.WsOrderTradeUpdate) {
 		// b.HandleCanceled(f)
 	case futures.OrderStatusTypeFilled:
 		b.l.Println("handle filled")
+		b.l.Println(f.ExecutionType) // for take profit is Trade
+		b.l.Println(f.OriginalType)  // for take profit TAKE_PROFIT_MARKET
+		b.l.Println(f.PositionSide)  // for take profit BOTH
+		b.l.Println(f.ClientOrderID)
 		b.HandleFilled(f)
 	case futures.OrderStatusTypeRejected:
 		b.l.Println("handle rejected")
@@ -70,126 +75,54 @@ func (b *Bot) handleOrderTradeUpdate(f futures.WsOrderTradeUpdate) {
 }
 
 func (b *Bot) HandleFilled(f futures.WsOrderTradeUpdate) {
-	orderID := strconv.FormatInt(f.ID, 10)
+	orderID := utils.ConvertBinanceOrderID(f.ID)
 	// check if order related to a trade
 	t, err := b.s.GetTradeByOrderID(orderID)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			b.l.Printf("internal error for getting trade by OrderID")
 		}
+		utils.PrintStructFields(f)
 		// probably the order created by another client
 		return
 	}
-	// update trade status
-	t.State = types.STATE_FILLED
-	if err := b.s.UpdateTrade(t); err != nil {
+	if err := b.s.UpdateTradeFilled(t); err != nil {
 		b.l.Printf("error updating a trade with new state: %s", types.STATE_FILLED)
-		b.SendMessage(t.UserID, "Could not update the trade with the new state.")
 		return
 	}
 
-	if psl, err := b.bc.PrepareStopLossOrder(context.Background(), t, &f); err == nil {
-		_, err = b.bc.PlacePreparedTakeProfitOrder(context.Background(), psl)
-		if err != nil {
-			b.SendMessage(t.UserID, "could not place stop-loss order")
-		} else {
-			b.SendMessage(t.UserID, "stop-loss order placed successfully")
-		}
+	_, err1 := b.HandlePlaceStopLossOrder(t, &f)
+	_, err2 := b.HandlePlaceTakeProfitOrder(t, &f)
+	if err1 != nil {
+		b.l.Printf("error placing stop loss : %v", err1)
+		b.SendMessage(t.UserID, "could not place stop-loss order")
 	} else {
-		b.l.Printf("error placing stop-loss order in preparing stage: %v", err)
+		b.SendMessage(t.UserID, "stop-loss order placed successfully")
 	}
-	if ptp, err := b.bc.PrepareTakeProfitOrder(context.Background(), t, &f); err == nil {
-		_, err = b.bc.PlacePreparedTakeProfitOrder(context.Background(), ptp)
-		if err != nil {
-			b.SendMessage(t.UserID, "could not place take-profit order")
-		} else {
-			b.SendMessage(t.UserID, "take-profit order placed successfully")
-		}
+	if err2 != nil {
+		b.l.Printf("error placing take profit : %v", err2)
+		b.SendMessage(t.UserID, "could not place take-profit order")
 	} else {
-		b.l.Printf("error placing take-profit order in preparing stage: %v", err)
+		b.SendMessage(t.UserID, "take-profit order placed successfully")
 	}
+
+	// update trade
 }
 
-func (b *Bot) HandleCanceled(f futures.WsOrderTradeUpdate) {
-	orderID := strconv.FormatInt(f.ID, 10)
-	// check if order related to a trade
-	t, err := b.s.GetTradeByOrderID(orderID)
+func (b *Bot) HandlePlaceStopLossOrder(t *models.Trade, f *futures.WsOrderTradeUpdate) (*futures.CreateOrderResponse, error) {
+	psl, err := b.bc.PrepareStopLossOrder(context.Background(), t, f)
 	if err != nil {
-		if err != sql.ErrNoRows {
-			b.l.Printf("internal error for getting trade by OrderID")
-		}
-		// probably the order created by another client
-		return
+		return nil, fmt.Errorf("error placing stop-loss order in preparing stage: %v", err)
 	}
-	// check if canceled by bot schedule rather than the user manually cancel the order
-	if t.State == types.STATE_REPLACING {
-		fmt.Println("replacing")
-		// first prepare new order
-		po, err := b.bc.PrepareOrder(context.Background(), t)
-		if err != nil {
-			b.l.Printf("error replacing order in preparing stage: %v", err)
-			t.State = types.STATE_IDLE
-			t.UpdatedAt = time.Now().UTC()
-			t.OrderID = ""
-			if err := b.s.UpdateTrade(t); err != nil {
-				b.l.Printf("error updating trade state: %v", err)
-			}
-			return
-		}
-		// place order
-		res, err := b.bc.PlacePreparedOrder(context.Background(), po)
-		if err != nil {
-			b.l.Printf("error replacing order in placing stage: %v", err)
-			t.State = types.STATE_IDLE
-			t.UpdatedAt = time.Now().UTC()
-			t.OrderID = ""
-			if err := b.s.UpdateTrade(t); err != nil {
-				b.l.Printf("error updating trade state: %v", err)
-			}
-			return
-		}
-
-		b.SendMessage(t.UserID, "Order replaced with the new Order.")
-
-		// schedule order cancellation (it will raise error if currently filled)
-		// if cancel successfully it will change trade state to replacing
-		go b.scheduleOrderCancellation(res.OrderID, po.Expiration, t)
-
-		// update trade state
-		t.OrderID = strconv.FormatInt(res.OrderID, 10)
-		t.State = types.STATE_PLACED
-		t.UpdatedAt = time.Now().UTC()
-		if err := b.s.UpdateTrade(t); err != nil {
-			msg := fmt.Sprintf("An important error occurred. The trade with ID '%d' could not be updated, which might cause tracking issues. Order ID: %s", t.ID, t.OrderID)
-			b.SendMessage(t.UserID, msg)
-		}
-		return
-	}
-
+	return b.bc.PlacePreparedStopLossOrder(context.Background(), psl)
 }
 
-func (b *Bot) scheduleOrderCancellation(orderID int64, delay time.Duration, t *models.Trade) {
-	time.AfterFunc(delay, func() {
-		// check if trade has state of placed
-		if t.State == types.STATE_PLACED {
-			// update trade state
-			t.State = types.STATE_REPLACING
-			t.UpdatedAt = time.Now().UTC()
-			t.OrderID = ""
-			if err := b.s.UpdateTrade(t); err != nil {
-				b.l.Printf("important error occurred, failed to updated trade status fo replacing, the trade can not replaced: %v", err)
-				return
-			}
-			// cancel order
-			_, err := b.bc.CancelOrder(context.Background(), orderID, t.Symbol)
-			if err != nil {
-				b.l.Printf("Failed to cancel order %d: %v", orderID, err)
-				return
-			}
-
-		}
-
-	})
+func (b *Bot) HandlePlaceTakeProfitOrder(t *models.Trade, f *futures.WsOrderTradeUpdate) (*futures.CreateOrderResponse, error) {
+	ptp, err := b.bc.PrepareTakeProfitOrder(context.Background(), t, f)
+	if err != nil {
+		return nil, fmt.Errorf("error placing take-profit order in preparing stage: %v", err)
+	}
+	return b.bc.PlacePreparedTakeProfitOrder(context.Background(), ptp)
 }
 
 func (b *Bot) scheduleOrderReplacement(ctx context.Context, delay time.Duration, orderId int64, t *models.Trade) {
@@ -221,23 +154,19 @@ func (b *Bot) scheduleOrderReplacement(ctx context.Context, delay time.Duration,
 			cp, err := b.bc.PlacePreparedOrder(ctx, p)
 			if err != nil {
 				b.handleAPIError(err, t.UserID)
-				t.OrderID = ""
-				t.UpdatedAt = time.Now().UTC()
-				t.State = types.STATE_IDLE
-				if err := b.s.UpdateTrade(t); err != nil {
+				if err := b.s.UpdateTradeIdle(t); err != nil {
 					b.l.Printf("error updating error: %v", err)
 					return
 				}
 				return
+
 			}
-			b.SendMessage(t.UserID, fmt.Sprintf("Order replaced successfully\nTrade ID: %d\n NewOrder ID: %d", t.ID, cp.OrderID))
-			// update trade
-			t.OrderID = strconv.FormatInt(cp.OrderID, 10)
-			t.UpdatedAt = time.Now().UTC()
-			if err := b.s.UpdateTrade(t); err != nil {
-				b.l.Printf("error updating error: %v", err)
-				return
+			NewOrderID := utils.ConvertBinanceOrderID(cp.OrderID)
+			if err := b.s.UpdateTradePlaced(t, NewOrderID); err != nil {
+				b.l.Printf("error updating trade: %v", err)
 			}
+			b.SendMessage(t.UserID, fmt.Sprintf("Order replaced successfully\nTrade ID: %d\nNewOrder ID: %d", t.ID, cp.OrderID))
+			// schedule for replacement
 			go b.scheduleOrderReplacement(ctx, p.Expiration, cp.OrderID, t)
 		}
 	})

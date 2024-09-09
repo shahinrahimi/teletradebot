@@ -41,15 +41,18 @@ func (bc *BinanceClient) calculateStopPrice(t *models.Trade, k *futures.Kline, s
 func (bc *BinanceClient) calculateStopLossPrice(t *models.Trade, k *futures.Kline, s *futures.Symbol, basePrice string) (string, error) {
 	h, err := strconv.ParseFloat(k.High, 64)
 	if err != nil {
+		bc.l.Printf("error parse float high")
 		return "", err
 	}
 	l, err := strconv.ParseFloat(k.Low, 64)
 	if err != nil {
+		bc.l.Printf("error parse float low")
 		return "", err
 	}
 	r := h - l
 	sp, err := strconv.ParseFloat(basePrice, 64)
 	if err != nil {
+		bc.l.Printf("error parse float base price: %s", basePrice)
 		return "", err
 	}
 	var sl float64

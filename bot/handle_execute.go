@@ -3,8 +3,6 @@ package bot
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/shahinrahimi/teletradebot/models"
@@ -41,33 +39,53 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 		b.SendMessage(u.Message.From.ID, "The trade could not be executed as it has already been executed once.")
 		return nil
 	}
+	var orderID string
+	if t.Account == types.ACCOUNT_B {
+		// prepared trade for order
+		po, err := b.bc.PrepareOrder(ctx, &t)
+		if err != nil {
+			b.l.Printf("trade could not be executed, error in preparing state: %v", err)
+			return nil
+		}
 
-	// prepared trade for order
-	po, err := b.bc.PrepareOrder(ctx, &t)
-	if err != nil {
-		b.l.Printf("trade could not be executed, error in preparing state: %v", err)
-		return nil
+		b.l.Printf("Placing %s order with quantity %s and stop price %s expires in: %s", po.Side, po.Quantity, po.StopPrice, utils.FriendlyDuration(po.Expiration))
+		res, err := b.bc.PlacePreparedOrder(ctx, po)
+		if err != nil {
+			b.handleAPIError(err, t.UserID)
+			return err
+		}
+
+		// schedule order cancellation (it will raise error if currently filled)
+		// if cancel successfully it will change trade state to replacing
+		go b.scheduleOrderReplacement(ctx, po.Expiration, res.OrderID, &t)
+
+		orderID = utils.ConvertBinanceOrderID(res.OrderID)
+
+	} else {
+
+		po, err := b.mc.PrepareOrder(ctx, &t)
+		if err != nil {
+			b.l.Printf("error preparing order: %v", err)
+			return err
+		}
+		order, err := b.mc.PlacePreparedOrder(po)
+		if err != nil {
+			b.l.Printf("error placing order: %v", err)
+			return err
+		}
+		//TODO schedule order cancellation
+
+		orderID = order.OrderID
 	}
 
-	b.l.Printf("Placing %s order with quantity %s and stop price %s expires in: %s", po.Side, po.Quantity, po.StopPrice, utils.FriendlyDuration(po.Expiration))
-	res, err := b.bc.PlacePreparedOrder(ctx, po)
-	if err != nil {
-		b.handleAPIError(err, t.UserID)
-		return err
-	}
-	msg := fmt.Sprintf("Order placed successfully\nTrade ID: %d\nOrder ID: %d", t.ID, res.OrderID)
+	msg := fmt.Sprintf("Order placed successfully\nTrade ID: %d\nOrder ID: %s", t.ID, orderID)
+
 	b.SendMessage(u.Message.From.ID, msg)
-	// schedule order cancellation (it will raise error if currently filled)
-	// if cancel successfully it will change trade state to replacing
-	go b.scheduleOrderReplacement(ctx, po.Expiration, res.OrderID, &t)
 
 	// update trade state
-	t.OrderID = strconv.FormatInt(res.OrderID, 10)
-	t.State = types.STATE_PLACED
-	t.UpdatedAt = time.Now().UTC()
-	if err := b.s.UpdateTrade(&t); err != nil {
-		msg := fmt.Sprintf("An important error occurred. The trade with ID '%d' could not be updated, which might cause tracking issues. Order ID: %s", t.ID, t.OrderID)
-		b.SendMessage(u.Message.From.ID, msg)
+	b.l.Printf("try to update trade DB: %s", orderID)
+	if err := b.s.UpdateTradePlaced(&t, orderID); err != nil {
+		b.l.Printf("error updating trade to DB")
 		return err
 	}
 	return nil

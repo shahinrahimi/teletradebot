@@ -53,13 +53,13 @@ const (
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)	
 	`
-	SELECT_COUNT_TRADES     string = `SELECT COUNT(*) FROM trades`
-	SELECT_TRADES           string = `SELECT * FROM trades`
-	SELECT_TRADE            string = `SELECT * FROM trades WHERE id = ?`
-	SELECT_TRADE_BY_OrderID string = `SELECT * FROM trades WHERE order_id = ?`
-	INSERT_TRADE            string = `INSERT INTO trades (user_id, chat_id, state, account, symbol, side, timeframe, offset, size, stop_loss, take_profit, reverse_multiplier) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?)`
-	DELETE_TRADE            string = `DELETE FROM trades WHERE id = ?`
-	UPDATE_TRADE            string = `UPDATE trades SET order_id = ?, sl_order_id, tp_order_id, state = ?, updated_at = ? WHERE id = ?`
+	SELECT_COUNT_TRADES      string = `SELECT COUNT(*) FROM trades`
+	SELECT_TRADES            string = `SELECT * FROM trades`
+	SELECT_TRADE             string = `SELECT * FROM trades WHERE id = ?`
+	SELECT_TRADE_BY_ORDER_ID string = `SELECT * FROM trades WHERE order_id = ?`
+	INSERT_TRADE             string = `INSERT INTO trades (user_id, chat_id, state, account, symbol, side, timeframe, offset, size, stop_loss, take_profit, reverse_multiplier) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?)`
+	DELETE_TRADE             string = `DELETE FROM trades WHERE id = ?`
+	UPDATE_TRADE             string = `UPDATE trades SET order_id = ?, sl_order_id = ?, tp_order_id = ?, state = ?, updated_at = ? WHERE id = ?`
 )
 
 // ToArgs returns user_id, chat_id, state, account, symbol, side, timeframe, offset, size, stop_loss, take_profit and reverse_multiplier as value

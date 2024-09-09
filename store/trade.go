@@ -32,7 +32,7 @@ func (s *SqliteStore) GetTrade(id int) (*models.Trade, error) {
 
 func (s *SqliteStore) GetTradeByOrderID(order_id string) (*models.Trade, error) {
 	var t models.Trade
-	if err := s.db.QueryRow(models.SELECT_TRADE_BY_OrderID, order_id).Scan(t.ToFelids()...); err != nil {
+	if err := s.db.QueryRow(models.SELECT_TRADE_BY_ORDER_ID, order_id).Scan(t.ToFelids()...); err != nil {
 		if err != sql.ErrNoRows {
 			s.l.Printf("trade not found with desired order_id: %s", order_id)
 		}
@@ -85,6 +85,7 @@ func (s *SqliteStore) UpdateTradeSLandTP(t *models.Trade, SLOrder string, TPOrde
 
 func (s *SqliteStore) UpdateTradePlaced(t *models.Trade, orderID string) error {
 	t.OrderID = orderID
+	t.State = types.STATE_PLACED
 	return s.UpdateTrade(t)
 }
 

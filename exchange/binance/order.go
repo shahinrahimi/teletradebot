@@ -97,7 +97,7 @@ func (bc *BinanceClient) PrepareStopLossOrder(ctx context.Context, t *models.Tra
 		return nil, err
 	}
 	// TODO check if activation Price is true, or need to change it to other price like average price
-	stopPrice, err := bc.calculateStopLossPrice(t, k, s, ou.ActivationPrice)
+	stopPrice, err := bc.calculateStopLossPrice(t, k, s, ou.StopPrice)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +128,7 @@ func (bc *BinanceClient) PrepareTakeProfitOrder(ctx context.Context, t *models.T
 		return nil, err
 	}
 	// TODO check if activation Price is true, or need to change it to other price like average price
-	stopPrice, err := bc.calculateTakeProfitPrice(t, k, s, ou.ActivationPrice)
+	stopPrice, err := bc.calculateTakeProfitPrice(t, k, s, ou.StopPrice)
 	if err != nil {
 		return nil, err
 	}

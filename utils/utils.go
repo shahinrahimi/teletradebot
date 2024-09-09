@@ -11,6 +11,10 @@ import (
 	"github.com/shahinrahimi/teletradebot/types"
 )
 
+func ConvertBinanceOrderID(orderID int64) string {
+	return strconv.FormatInt(orderID, 10)
+}
+
 func ConvertTime(timestamp int64) time.Time {
 	// Convert milliseconds to seconds and nanoseconds
 	seconds := timestamp / 1000
