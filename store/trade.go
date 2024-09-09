@@ -99,6 +99,16 @@ func (s *SqliteStore) UpdateTradeFilled(t *models.Trade) error {
 	return s.UpdateTrade(t)
 }
 
+func (s *SqliteStore) UpdateTradeStopped(t *models.Trade) error {
+	t.State = types.STATE_STOPPED
+	return s.UpdateTrade(t)
+}
+
+func (s *SqliteStore) UpdateTradeProfited(t *models.Trade) error {
+	t.State = types.STATE_PROFITED
+	return s.UpdateTrade(t)
+}
+
 func (s *SqliteStore) UpdateTradeSLandTP(t *models.Trade, SLOrder string, TPOrder string) error {
 	t.SLOrderID = SLOrder
 	t.TPOrderID = TPOrder

@@ -290,3 +290,41 @@ func TestUpdateTradeIdle(t *testing.T) {
 	assert.Empty(t, updatedTrade.SLOrderID)
 	assert.Empty(t, updatedTrade.TPOrderID)
 }
+
+func TestUpdateTradeStopped(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	store := SqliteStore{db: db}
+
+	trade := createTestTrade()
+	trade.ID = 1
+	err := store.CreateTrade(trade)
+	require.NoError(t, err)
+
+	err = store.UpdateTradeStopped(trade)
+	require.NoError(t, err)
+
+	updatedTrade, err := store.GetTrade(trade.ID)
+	require.NoError(t, err)
+	assert.Equal(t, types.STATE_STOPPED, updatedTrade.State)
+}
+
+func TestUpdateTradeProfited(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	store := SqliteStore{db: db}
+
+	trade := createTestTrade()
+	trade.ID = 1
+	err := store.CreateTrade(trade)
+	require.NoError(t, err)
+
+	err = store.UpdateTradeProfited(trade)
+	require.NoError(t, err)
+
+	updatedTrade, err := store.GetTrade(trade.ID)
+	require.NoError(t, err)
+	assert.Equal(t, types.STATE_PROFITED, updatedTrade.State)
+}

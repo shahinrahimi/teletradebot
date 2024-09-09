@@ -30,9 +30,10 @@ const (
 
 	STATE_IDLE      string = `idle`
 	STATE_PLACED    string = `placed`
-	STATE_REPLACING string = `replacing`
 	STATE_FILLED    string = `filled`
 	STATE_REVERTING string = `reverting`
+	STATE_STOPPED   string = `stopped`
+	STATE_PROFITED  string = `profited`
 )
 
 var ExpireDuration = map[string]time.Duration{
