@@ -103,6 +103,50 @@ func TestGetTradeByOrderID(t *testing.T) {
 	assert.Equal(t, trade.OrderID, retrievedTrade.OrderID)
 }
 
+func TestGetTradeBySLOrderID(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	store := SqliteStore{db: db}
+
+	trade := createTestTrade()
+	trade.ID = 1
+
+	err := store.CreateTrade(trade)
+	require.NoError(t, err)
+
+	trade.SLOrderID = "order123"
+	err = store.UpdateTrade(trade)
+	require.NoError(t, err)
+
+	retrievedTrade, err := store.GetTradeBySLOrderID(trade.SLOrderID)
+	require.NoError(t, err)
+	assert.NotNil(t, retrievedTrade)
+	assert.Equal(t, trade.SLOrderID, retrievedTrade.SLOrderID)
+}
+
+func TestGetTradeByTPOrderID(t *testing.T) {
+	db, cleanup := setupTestDB(t)
+	defer cleanup()
+
+	store := SqliteStore{db: db}
+
+	trade := createTestTrade()
+	trade.ID = 1
+
+	err := store.CreateTrade(trade)
+	require.NoError(t, err)
+
+	trade.TPOrderID = "order123"
+	err = store.UpdateTrade(trade)
+	require.NoError(t, err)
+
+	retrievedTrade, err := store.GetTradeByTPOrderID(trade.TPOrderID)
+	require.NoError(t, err)
+	assert.NotNil(t, retrievedTrade)
+	assert.Equal(t, trade.TPOrderID, retrievedTrade.TPOrderID)
+}
+
 func TestGetTrades(t *testing.T) {
 	db, cleanup := setupTestDB(t)
 	defer cleanup()

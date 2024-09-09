@@ -41,6 +41,28 @@ func (s *SqliteStore) GetTradeByOrderID(order_id string) (*models.Trade, error) 
 	return &t, nil
 }
 
+func (s *SqliteStore) GetTradeBySLOrderID(order_id string) (*models.Trade, error) {
+	var t models.Trade
+	if err := s.db.QueryRow(models.SELECT_TRADE_BY_SL_ORDER_ID, order_id).Scan(t.ToFelids()...); err != nil {
+		if err != sql.ErrNoRows {
+			s.l.Printf("trade not found with desired sl_order_id: %s", order_id)
+		}
+		return nil, err
+	}
+	return &t, nil
+}
+
+func (s *SqliteStore) GetTradeByTPOrderID(order_id string) (*models.Trade, error) {
+	var t models.Trade
+	if err := s.db.QueryRow(models.SELECT_TRADE_BY_TP_ORDER_ID, order_id).Scan(t.ToFelids()...); err != nil {
+		if err != sql.ErrNoRows {
+			s.l.Printf("trade not found with desired tp_order_id: %s", order_id)
+		}
+		return nil, err
+	}
+	return &t, nil
+}
+
 func (s *SqliteStore) GetTrades() ([]*models.Trade, error) {
 	rows, err := s.db.Query(models.SELECT_TRADES)
 	var os []*models.Trade

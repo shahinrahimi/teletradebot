@@ -19,6 +19,8 @@ type Storage interface {
 	GetTrade(id int) (*models.Trade, error)
 	GetTrades() ([]*models.Trade, error)
 	GetTradeByOrderID(order_id string) (*models.Trade, error)
+	GetTradeBySLOrderID(order_id string) (*models.Trade, error)
+	GetTradeByTPOrderID(order_id string) (*models.Trade, error)
 	DeleteTrade(id int) error
 	UpdateTrade(t *models.Trade) error
 	UpdateTradeFilled(t *models.Trade) error
