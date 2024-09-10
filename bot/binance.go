@@ -76,23 +76,60 @@ func (b *Bot) handleOrderTradeUpdate(f futures.WsOrderTradeUpdate) {
 
 func (b *Bot) HandleFilled(f futures.WsOrderTradeUpdate) {
 	orderID := utils.ConvertBinanceOrderID(f.ID)
+	var t *models.Trade
+	var err error
 	// check if order related to a trade
-	t, err := b.s.GetTradeByOrderID(orderID)
+	t, err = b.s.GetTradeByOrderID(orderID)
 	if err != nil {
 		if err != sql.ErrNoRows {
-			b.l.Printf("internal error for getting trade by OrderID")
+			b.l.Panic("internal error", err)
 		}
-		utils.PrintStructFields(f)
-		// probably the order created by another client
+	}
+	// handle new filled order
+	if t != nil {
+		if err := b.s.UpdateTradeFilled(t); err != nil {
+			b.l.Printf("error updating a trade with new state: %s", types.STATE_FILLED)
+			return
+		}
+		b.HandleNewFilled(t, &f)
 		return
 	}
-	if err := b.s.UpdateTradeFilled(t); err != nil {
-		b.l.Printf("error updating a trade with new state: %s", types.STATE_FILLED)
+	// check if order is for stop loss
+	t, err = b.s.GetTradeBySLOrderID(orderID)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			b.l.Panic("internal error", err)
+		}
+	}
+	if t != nil {
+		if err := b.s.UpdateTradeStopped(t); err != nil {
+			b.l.Printf("error updating a trade with new state: %s", types.STATE_STOPPED)
+			return
+		}
+		b.HandleSLFilled(t, &f)
+		return
+	}
+	// check if order is for take profit
+	t, err = b.s.GetTradeByTPOrderID(orderID)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			b.l.Panic("internal error", err)
+		}
+	}
+	if t != nil {
+		if err := b.s.UpdateTradeProfited(t); err != nil {
+			b.l.Printf("error updating a trade with new state: %s", types.STATE_PROFITED)
+			return
+		}
+		b.HandleTPFilled(t, &f)
 		return
 	}
 
-	_, err1 := b.HandlePlaceStopLossOrder(t, &f)
-	_, err2 := b.HandlePlaceTakeProfitOrder(t, &f)
+	// update trade
+}
+func (b *Bot) HandleNewFilled(t *models.Trade, f *futures.WsOrderTradeUpdate) {
+	osl, err1 := b.HandlePlaceStopLossOrder(t, f)
+	otp, err2 := b.HandlePlaceTakeProfitOrder(t, f)
 	if err1 != nil {
 		b.l.Printf("error placing stop loss : %v", err1)
 		b.SendMessage(t.UserID, "could not place stop-loss order")
@@ -106,7 +143,30 @@ func (b *Bot) HandleFilled(f futures.WsOrderTradeUpdate) {
 		b.SendMessage(t.UserID, "take-profit order placed successfully")
 	}
 
-	// update trade
+	slOrderID := utils.ConvertBinanceOrderID(osl.OrderID)
+	tpOrderID := utils.ConvertBinanceOrderID(otp.OrderID)
+
+	b.s.UpdateTradeSLandTP(t, slOrderID, tpOrderID)
+}
+
+func (b *Bot) HandleSLFilled(t *models.Trade, f *futures.WsOrderTradeUpdate) {
+	orderID, err := utils.ConvertOrderIDtoBinanceOrderID(t.TPOrderID)
+	if err != nil {
+		b.l.Panicf("error converting orderID: %v", err)
+	}
+	if _, err := b.bc.CancelOrder(context.Background(), orderID, f.Symbol); err != nil {
+		b.l.Printf("error cancelling take-profit order")
+	}
+}
+
+func (b *Bot) HandleTPFilled(t *models.Trade, f *futures.WsOrderTradeUpdate) {
+	orderID, err := utils.ConvertOrderIDtoBinanceOrderID(t.SLOrderID)
+	if err != nil {
+		b.l.Panicf("error converting orderID: %v", err)
+	}
+	if _, err := b.bc.CancelOrder(context.Background(), orderID, f.Symbol); err != nil {
+		b.l.Printf("error cancelling stop-loss order")
+	}
 }
 
 func (b *Bot) HandlePlaceStopLossOrder(t *models.Trade, f *futures.WsOrderTradeUpdate) (*futures.CreateOrderResponse, error) {

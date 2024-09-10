@@ -27,6 +27,8 @@ func (bc *BinanceClient) calculateStopPrice(t *models.Trade, k *futures.Kline, s
 		stopPrice = l - t.Offset
 	}
 
+	bc.l.Printf("symbol: %s, high : %0.2f, low: %0.2f, price calculated stop price: %0.2f", t.Symbol, h, l, stopPrice)
+
 	// Ensure stop price is positive
 	if stopPrice <= 0 {
 		return "", fmt.Errorf("price cannot be zero or negative")
@@ -79,6 +81,7 @@ func (bc *BinanceClient) calculateTakeProfitPrice(t *models.Trade, k *futures.Kl
 	if err != nil {
 		return "", err
 	}
+
 	r := h - l
 	sp, err := strconv.ParseFloat(basePrice, 64)
 	if err != nil {

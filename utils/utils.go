@@ -15,6 +15,10 @@ func ConvertBinanceOrderID(orderID int64) string {
 	return strconv.FormatInt(orderID, 10)
 }
 
+func ConvertOrderIDtoBinanceOrderID(orderID string) (int64, error) {
+	return strconv.ParseInt(orderID, 10, 64)
+}
+
 func ConvertTime(timestamp int64) time.Time {
 	// Convert milliseconds to seconds and nanoseconds
 	seconds := timestamp / 1000

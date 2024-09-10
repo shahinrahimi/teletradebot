@@ -109,9 +109,9 @@ func (s *SqliteStore) UpdateTradeProfited(t *models.Trade) error {
 	return s.UpdateTrade(t)
 }
 
-func (s *SqliteStore) UpdateTradeSLandTP(t *models.Trade, SLOrder string, TPOrder string) error {
-	t.SLOrderID = SLOrder
-	t.TPOrderID = TPOrder
+func (s *SqliteStore) UpdateTradeSLandTP(t *models.Trade, SLOrderID string, TPOrderID string) error {
+	t.SLOrderID = SLOrderID
+	t.TPOrderID = TPOrderID
 	return s.UpdateTrade(t)
 }
 
