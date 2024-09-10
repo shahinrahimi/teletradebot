@@ -14,7 +14,7 @@ func (b *Bot) HandleReset(u *tgbotapi.Update, ctx context.Context) error {
 		b.l.Printf("Error updating the trade status: %v", err)
 		return err
 	}
-	msg := fmt.Sprintf("The trade has been successfully reset.\nTrade: %d", t.ID)
+	msg := fmt.Sprintf("The trade has been successfully reset.\n\nTrade ID: %d", t.ID)
 	b.SendMessage(u.Message.From.ID, msg)
 
 	return nil

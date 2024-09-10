@@ -27,7 +27,7 @@ func (b *Bot) HandleExecute2(u *tgbotapi.Update, ctx context.Context) error {
 		return err
 	}
 
-	msg := fmt.Sprintf("Order placed successfully\nTrade ID: %d\nOrder ID: %s", t.ID, order.OrderID)
+	msg := fmt.Sprintf("Order placed successfully\n\nOrder ID: %s\nTrade ID: %d", order.OrderID, t.ID)
 	b.SendMessage(u.Message.From.ID, msg)
 
 	return nil
@@ -78,7 +78,7 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 		orderID = order.OrderID
 	}
 
-	msg := fmt.Sprintf("Order placed successfully\nTrade ID: %d\nOrder ID: %s", t.ID, orderID)
+	msg := fmt.Sprintf("Order placed successfully\n\nOrder ID: %s\nTrade ID: %d", orderID, t.ID)
 
 	b.SendMessage(u.Message.From.ID, msg)
 

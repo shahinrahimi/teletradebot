@@ -40,7 +40,7 @@ func (b *Bot) HandleCancel(u *tgbotapi.Update, ctx context.Context) error {
 		return nil
 	}
 
-	msg := fmt.Sprintf("The order has been successfully canceled.\nTrade: %d\nOrder ID: %s", t.ID, t.OrderID)
+	msg := fmt.Sprintf("The order has been successfully canceled.\n\nOrder ID: %s\nTrade ID: %d\n", t.OrderID, t.ID)
 	b.SendMessage(u.Message.From.ID, msg)
 
 	if err := b.s.UpdateTradeCancelled(&t); err != nil {

@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -83,9 +84,9 @@ func (t *Trade) ToFelids() []interface{} {
 }
 
 func (t *Trade) ToListString() string {
-	return fmt.Sprintf("id: %d [%s] %s %s %s %s", t.ID, t.Account, t.Symbol, t.Side, t.Timeframe, t.State)
+	return fmt.Sprintf("ID: %d [%s] %s %s %s %s", t.ID, t.Account, t.Symbol, t.Side, t.Timeframe, strings.ToUpper(t.State))
 }
 
 func (t *Trade) ToViewString() string {
-	return fmt.Sprintf("id: %d\nAccount: %s\nSymbol: %s\nSide: %s\nTimeframe: %s\nOffset: $%0.2f\nSize: %d\nSL: %d\nTP: %d\nRM: %d", t.ID, t.Account, t.Symbol, t.Side, t.Timeframe, t.Offset, t.Size, t.StopLoss, t.TakeProfit, t.ReverseMultiplier)
+	return fmt.Sprintf("Trade ID: %d\n\nAccount: %s\nSymbol: %s\nSide: %s\nTimeframe: %s\nOffset: $%0.2f\nSize: %d\nSL: %d\nTP: %d\nRM: %d", t.ID, t.Account, t.Symbol, t.Side, t.Timeframe, t.Offset, t.Size, t.StopLoss, t.TakeProfit, t.ReverseMultiplier)
 }

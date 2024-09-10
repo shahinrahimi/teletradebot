@@ -21,18 +21,18 @@ func (b *Bot) startUserDataStream(ctx context.Context) {
 	futures.UseTestnet = b.bc.UseTestnet
 	listenKey, err := b.bc.GetListenKey(ctx)
 	if err != nil {
-		b.l.Printf("error getting listen key: %v", err)
+		b.l.Printf("Error retrieving listen key: %v", err)
 		return
 	}
 
 	doneC, stopC, err := futures.WsUserDataServe(listenKey, b.wsHandler, b.errHandler)
 	if err != nil {
-		b.l.Printf("error startUserDataStream: %v", err)
+		b.l.Printf("Error starting user data stream: %v", err)
 		return
 	}
 	defer close(stopC)
 
-	b.l.Println("WebSocket connection established. Listening for events...")
+	b.l.Println("WebSocket connection established. Awaiting events...")
 	<-doneC
 }
 
@@ -43,52 +43,48 @@ func (b *Bot) wsHandler(event *futures.WsUserDataEvent) {
 }
 
 func (b *Bot) errHandler(err error) {
-	b.l.Printf("handling ws error: %v", err)
+	b.l.Printf("WebSocket error: %v", err)
 }
 
 func (b *Bot) handleOrderTradeUpdate(f futures.WsOrderTradeUpdate) {
-	// b.l.Printf("Start #######################(%s)########################", f.Status)
-	// utils.PrintStructFields(f)
 	switch f.Status {
 	case futures.OrderStatusTypeCanceled:
-		b.l.Println("handle canceled")
+		b.l.Println("Order was canceled.")
 		// b.HandleCanceled(f)
 	case futures.OrderStatusTypeFilled:
-		b.l.Println("handle filled")
-		b.l.Println(f.ExecutionType) // for take profit is Trade
-		b.l.Println(f.OriginalType)  // for take profit TAKE_PROFIT_MARKET
-		b.l.Println(f.PositionSide)  // for take profit BOTH
-		b.l.Println(f.ClientOrderID)
-		b.HandleFilled(f)
+		b.l.Println("Order filled successfully.")
+		go b.HandleFilled(f)
 	case futures.OrderStatusTypeRejected:
-		b.l.Println("handle rejected")
+		b.l.Println("Order was rejected.")
 	case futures.OrderStatusTypeNew:
-		b.l.Println("handle new order")
+		b.l.Println("New order received.")
 	case futures.OrderStatusTypeExpired:
-		b.l.Println("handle expiration")
+		b.l.Println("Order has expired.")
 	case futures.OrderStatusTypePartiallyFilled:
-		b.l.Println("handle partially filled")
+		b.l.Println("Order partially filled.")
 	default:
-		b.l.Println("handle unknown")
+		b.l.Println("Unknown order status received.")
 	}
-	// b.l.Printf("End #######################(%s)########################", f.Status)
 }
 
 func (b *Bot) HandleFilled(f futures.WsOrderTradeUpdate) {
 	orderID := utils.ConvertBinanceOrderID(f.ID)
 	var t *models.Trade
 	var err error
+	// sleep a little bit to make sure the store is updated for early filled orders
+	// TODO maybe change the logic in future for better handling
+	time.Sleep(time.Second)
 	// check if order related to a trade
 	t, err = b.s.GetTradeByOrderID(orderID)
 	if err != nil {
 		if err != sql.ErrNoRows {
-			b.l.Panic("internal error", err)
+			b.l.Panic("Internal error while retrieving trade:", err)
 		}
 	}
 	// handle new filled order
 	if t != nil {
 		if err := b.s.UpdateTradeFilled(t); err != nil {
-			b.l.Printf("error updating a trade with new state: %s", types.STATE_FILLED)
+			b.l.Printf("Error updating trade state to FILLED: %v", types.STATE_FILLED)
 			return
 		}
 		b.HandleNewFilled(t, &f)
@@ -98,12 +94,12 @@ func (b *Bot) HandleFilled(f futures.WsOrderTradeUpdate) {
 	t, err = b.s.GetTradeBySLOrderID(orderID)
 	if err != nil {
 		if err != sql.ErrNoRows {
-			b.l.Panic("internal error", err)
+			b.l.Panic("Internal error while retrieving stop-loss trade:", err)
 		}
 	}
 	if t != nil {
 		if err := b.s.UpdateTradeStopped(t); err != nil {
-			b.l.Printf("error updating a trade with new state: %s", types.STATE_STOPPED)
+			b.l.Printf("Error updating trade state to STOPPED: %v", types.STATE_STOPPED)
 			return
 		}
 		b.HandleSLFilled(t, &f)
@@ -113,12 +109,12 @@ func (b *Bot) HandleFilled(f futures.WsOrderTradeUpdate) {
 	t, err = b.s.GetTradeByTPOrderID(orderID)
 	if err != nil {
 		if err != sql.ErrNoRows {
-			b.l.Panic("internal error", err)
+			b.l.Panic("Internal error while retrieving take-profit trade:", err)
 		}
 	}
 	if t != nil {
 		if err := b.s.UpdateTradeProfited(t); err != nil {
-			b.l.Printf("error updating a trade with new state: %s", types.STATE_PROFITED)
+			b.l.Printf("Error updating trade state to PROFITED: %v", types.STATE_PROFITED)
 			return
 		}
 		b.HandleTPFilled(t, &f)
@@ -131,16 +127,20 @@ func (b *Bot) HandleNewFilled(t *models.Trade, f *futures.WsOrderTradeUpdate) {
 	osl, err1 := b.HandlePlaceStopLossOrder(t, f)
 	otp, err2 := b.HandlePlaceTakeProfitOrder(t, f)
 	if err1 != nil {
-		b.l.Printf("error placing stop loss : %v", err1)
-		b.SendMessage(t.UserID, "could not place stop-loss order")
+		b.l.Printf("Error placing stop-loss order: %v", err1)
+		msg := fmt.Sprintf("Failed to place stop-loss order.\nTrade ID: %d", t.ID)
+		b.SendMessage(t.UserID, msg)
 	} else {
-		b.SendMessage(t.UserID, "stop-loss order placed successfully")
+		msg := fmt.Sprintf("Stop-loss order placed successfully.\nTrade ID: %d", t.ID)
+		b.SendMessage(t.UserID, msg)
 	}
 	if err2 != nil {
-		b.l.Printf("error placing take profit : %v", err2)
-		b.SendMessage(t.UserID, "could not place take-profit order")
+		b.l.Printf("Error placing take-profit order: %v", err2)
+		msg := fmt.Sprintf("Failed to place take-profit order.\nTrade ID: %d", t.ID)
+		b.SendMessage(t.UserID, msg)
 	} else {
-		b.SendMessage(t.UserID, "take-profit order placed successfully")
+		msg := fmt.Sprintf("Take-profit order placed successfully.\nTrade ID: %d", t.ID)
+		b.SendMessage(t.UserID, msg)
 	}
 
 	slOrderID := utils.ConvertBinanceOrderID(osl.OrderID)
@@ -152,27 +152,39 @@ func (b *Bot) HandleNewFilled(t *models.Trade, f *futures.WsOrderTradeUpdate) {
 func (b *Bot) HandleSLFilled(t *models.Trade, f *futures.WsOrderTradeUpdate) {
 	orderID, err := utils.ConvertOrderIDtoBinanceOrderID(t.TPOrderID)
 	if err != nil {
-		b.l.Panicf("error converting orderID: %v", err)
+		b.l.Panicf("Error converting take-profit order ID: %v", err)
+		return
 	}
+	msg := fmt.Sprintf("🛑 Stop-loss order executed successfully.\n\nTrade ID: %d", t.ID)
+	b.SendMessage(t.UserID, msg)
 	if _, err := b.bc.CancelOrder(context.Background(), orderID, f.Symbol); err != nil {
-		b.l.Printf("error cancelling take-profit order")
+		b.l.Printf("Error canceling take-profit order.")
+		return
 	}
+	msg = fmt.Sprintf("Take-profit order has been canceled.\n\nTrade ID: %d", t.ID)
+	b.SendMessage(t.UserID, msg)
 }
 
 func (b *Bot) HandleTPFilled(t *models.Trade, f *futures.WsOrderTradeUpdate) {
 	orderID, err := utils.ConvertOrderIDtoBinanceOrderID(t.SLOrderID)
 	if err != nil {
-		b.l.Panicf("error converting orderID: %v", err)
+		b.l.Panicf("Error converting stop-loss order ID: %v", err)
+		return
 	}
+	msg := fmt.Sprintf("✅ Take-profit order executed successfully.\n\nTrade ID: %d", t.ID)
+	b.SendMessage(t.UserID, msg)
 	if _, err := b.bc.CancelOrder(context.Background(), orderID, f.Symbol); err != nil {
-		b.l.Printf("error cancelling stop-loss order")
+		b.l.Printf("Error canceling stop-loss order.: %v", err)
+		return
 	}
+	msg = fmt.Sprintf("Stop-loss order has been canceled.\n\nTrade ID: %d", t.ID)
+	b.SendMessage(t.UserID, msg)
 }
 
 func (b *Bot) HandlePlaceStopLossOrder(t *models.Trade, f *futures.WsOrderTradeUpdate) (*futures.CreateOrderResponse, error) {
 	psl, err := b.bc.PrepareStopLossOrder(context.Background(), t, f)
 	if err != nil {
-		return nil, fmt.Errorf("error placing stop-loss order in preparing stage: %v", err)
+		return nil, fmt.Errorf("error during stop-loss order preparation: %v", err)
 	}
 	return b.bc.PlacePreparedStopLossOrder(context.Background(), psl)
 }
@@ -180,7 +192,7 @@ func (b *Bot) HandlePlaceStopLossOrder(t *models.Trade, f *futures.WsOrderTradeU
 func (b *Bot) HandlePlaceTakeProfitOrder(t *models.Trade, f *futures.WsOrderTradeUpdate) (*futures.CreateOrderResponse, error) {
 	ptp, err := b.bc.PrepareTakeProfitOrder(context.Background(), t, f)
 	if err != nil {
-		return nil, fmt.Errorf("error placing take-profit order in preparing stage: %v", err)
+		return nil, fmt.Errorf("error during take-profit order preparation: %v", err)
 	}
 	return b.bc.PlacePreparedTakeProfitOrder(context.Background(), ptp)
 }
@@ -189,10 +201,10 @@ func (b *Bot) scheduleOrderReplacement(ctx context.Context, delay time.Duration,
 	time.AfterFunc(delay, func() {
 		order, err := b.bc.GetOrder(ctx, orderId, t.Symbol)
 		if err != nil {
-			b.l.Printf("error getting order: %v", err)
+			b.l.Printf("Error retrieving order: %v", err)
 			return
 		}
-		b.l.Printf("order_id: %d trade_id %d order_status %s", orderId, t.ID, order.Status)
+		//b.l.Printf("Order ID: %d | Trade ID: %d | Order Status: %s", orderId, t.ID, order.Status)
 		if order.Status == futures.OrderStatusTypeFilled {
 			return
 		}
@@ -200,30 +212,34 @@ func (b *Bot) scheduleOrderReplacement(ctx context.Context, delay time.Duration,
 		if order.Status == futures.OrderStatusTypeNew {
 			// cancel order
 			if _, err := b.bc.CancelOrder(ctx, orderId, t.Symbol); err != nil {
-				b.l.Printf("error canceling order: %v", err)
+				b.l.Printf("Error canceling order: %v", err)
 				b.handleAPIError(err, t.UserID)
 				return
 			}
+			// update trade state to cancelled
+			if err := b.s.UpdateTradeCancelled(t); err != nil {
+				b.l.Printf("Error updating trade to CANCELED state: %v", err)
+				return
+			}
+			// sleep a second to make sure the kline data is updated
+			// TODO maybe need to change the logic
+			time.Sleep(time.Second)
 			// prepare new order
 			p, err := b.bc.PrepareOrder(ctx, t)
 			if err != nil {
-				b.l.Printf("error preparing order: %v", err)
+				b.l.Printf("Error preparing new order: %v", err)
 				return
 			}
 			// place new order
 			cp, err := b.bc.PlacePreparedOrder(ctx, p)
 			if err != nil {
 				b.handleAPIError(err, t.UserID)
-				if err := b.s.UpdateTradeIdle(t); err != nil {
-					b.l.Printf("error updating error: %v", err)
-					return
-				}
 				return
-
 			}
 			NewOrderID := utils.ConvertBinanceOrderID(cp.OrderID)
+			// update trade to placed
 			if err := b.s.UpdateTradePlaced(t, NewOrderID); err != nil {
-				b.l.Printf("error updating trade: %v", err)
+				b.l.Printf("Error updating trade to PLACED state: %v", err)
 			}
 			b.SendMessage(t.UserID, fmt.Sprintf("Order replaced successfully\nTrade ID: %d\nNewOrder ID: %d", t.ID, cp.OrderID))
 			// schedule for replacement

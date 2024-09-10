@@ -14,7 +14,7 @@ func (b *Bot) HandleRemove(u *tgbotapi.Update, ctx context.Context) error {
 		b.l.Printf("error deleting a trade: %v", err)
 		return err
 	}
-	msg := fmt.Sprintf("The trade has been successfully removed.\nTrade: %d", t.ID)
+	msg := fmt.Sprintf("The trade has been successfully removed.\n\nTrade ID: %d", t.ID)
 	b.SendMessage(u.Message.From.ID, msg)
 	return nil
 }
