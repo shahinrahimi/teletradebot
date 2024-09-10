@@ -12,6 +12,7 @@ const (
 	ADD      string = "add"
 	LIST     string = "list"
 	CANCEL   string = "cancel"
+	RESET    string = "reset"
 	EXECUTE  string = "execute"
 	CHECK    string = "check"
 	REMOVE   string = "remove"
@@ -34,6 +35,7 @@ func GetSpecifiedCommands() []string {
 	commands := []string{
 		ADD,
 		CANCEL,
+		RESET,
 		EXECUTE,
 		CHECK,
 		REMOVE,
@@ -52,6 +54,7 @@ func GetAllCommands() []string {
 		LIST,
 		ALIAS,
 		CANCEL,
+		RESET,
 		EXECUTE,
 		CHECK,
 		REMOVE,

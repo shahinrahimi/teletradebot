@@ -94,6 +94,11 @@ func (s *SqliteStore) UpdateTrade(t *models.Trade) error {
 	return nil
 }
 
+func (s *SqliteStore) UpdateTradeCancelled(t *models.Trade) error {
+	t.State = types.STATE_CANCELED
+	return s.UpdateTrade(t)
+}
+
 func (s *SqliteStore) UpdateTradeFilled(t *models.Trade) error {
 	t.State = types.STATE_FILLED
 	return s.UpdateTrade(t)

@@ -19,6 +19,68 @@ type PreparedOrder struct {
 	Expiration time.Duration
 }
 
+type TradeDescriber struct {
+	From  string
+	Till  string
+	Open  string
+	High  string
+	Low   string
+	Close string
+	Side  string
+	SP    string // strop price or entry
+	TP    string // take-profit price
+	SL    string // take-loss price
+}
+
+// TODO check the problem with Till and FROM
+func (bc *BinanceClient) GetTradeDescriber(ctx context.Context, t *models.Trade) (*TradeDescriber, error) {
+	k, err := bc.getLastClosedKline(ctx, t)
+	if err != nil {
+		return nil, err
+	}
+	s, err := bc.getSymbol(t)
+	if err != nil {
+		return nil, err
+	}
+	sp, err := bc.calculateStopPrice(t, k, s)
+	if err != nil {
+		return nil, err
+	}
+	sl, err := bc.calculateStopLossPrice(t, k, s, sp)
+	if err != nil {
+		return nil, err
+	}
+	tp, err := bc.calculateTakeProfitPrice(t, k, s, sp)
+	if err != nil {
+		return nil, err
+	}
+	var side futures.SideType
+	if t.Side == types.SIDE_L {
+		side = futures.SideTypeBuy
+	} else {
+		side = futures.SideTypeSell
+	}
+	from := utils.FormatTime(utils.ConvertTime(k.CloseTime))
+	timeframeDur, err := types.GetDuration(t.Timeframe)
+	if err != nil {
+		return nil, err
+	}
+	till := utils.FormatTime(utils.ConvertTime(k.CloseTime).Add(timeframeDur))
+
+	return &TradeDescriber{
+		From:  from,
+		Till:  till,
+		Open:  k.Open,
+		Close: k.Close,
+		High:  k.High,
+		Low:   k.Low,
+		Side:  string(side),
+		SP:    sp,
+		TP:    tp,
+		SL:    sl,
+	}, nil
+}
+
 func (bc *BinanceClient) PrepareOrder(ctx context.Context, t *models.Trade) (*PreparedOrder, error) {
 	var po PreparedOrder
 	q, err := bc.getQuantity(t)
@@ -30,6 +92,9 @@ func (bc *BinanceClient) PrepareOrder(ctx context.Context, t *models.Trade) (*Pr
 		return nil, err
 	}
 	s, err := bc.getSymbol(t)
+	if err != nil {
+		return nil, err
+	}
 	stopPrice, err := bc.calculateStopPrice(t, k, s)
 	if err != nil {
 		return nil, err

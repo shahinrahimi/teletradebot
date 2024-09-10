@@ -16,17 +16,17 @@ func (b *Bot) ProvideTradeByID(next Handler) Handler {
 		args := strings.Split(u.Message.CommandArguments(), " ")
 		id, err := strconv.Atoi(args[0])
 		if err != nil {
-			b.SendMessage(u.Message.From.ID, fmt.Sprintf("the id is not valid: %s", args[0]))
+			b.SendMessage(u.Message.From.ID, fmt.Sprintf("Invalid trade ID: '%s'. Please provide a numeric ID.", args[0]))
 			return
 		}
 		o, err := b.s.GetTrade(id)
 		if err != nil {
 			if err == sql.ErrNoRows {
-				b.SendMessage(u.Message.From.ID, fmt.Sprintf("the trade not found with id: %d", id))
+				b.SendMessage(u.Message.From.ID, fmt.Sprintf("No trade found with ID: %d.", id))
 				return
 			}
-			b.l.Printf("internal error getting the trade from DB")
-			b.SendMessage(u.Message.From.ID, fmt.Sprintf("the id is not valid: %d", id))
+			b.l.Printf("Error retrieving trade from database: %v", err)
+			b.SendMessage(u.Message.From.ID, "An internal error occurred while fetching the trade. Please try again later.")
 			return
 		}
 		ctx = context.WithValue(ctx, models.KeyTrade{}, *o)
