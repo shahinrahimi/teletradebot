@@ -17,5 +17,5 @@ var Shortcuts = map[string]string{
 
 var UserIDs = []int64{
 	104196468,
-	// 539168576,
+	539168576,
 }
