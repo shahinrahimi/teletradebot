@@ -13,6 +13,8 @@ var Shortcuts = map[string]string{
 	"a": "b BTCUSDT short 15m 0.1 1 105 105 1",
 	"b": "b BTCUSDT long 30m 0.1 1 105 105 1",
 	"c": "b BTCUSDT short 30m 0.1 1 105 105 1",
+	"s": "b BTCUSDT short 15m 0.1 1 50 50 1",
+	"l": "b BTCUSDT long 15m 0.1 1 50 50 1",
 }
 
 var UserIDs = []int64{

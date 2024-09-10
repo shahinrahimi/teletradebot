@@ -149,8 +149,8 @@ func ParseTrade(tradeArgs []string) (*models.Trade, error) {
 	stop_percent, err := strconv.Atoi(part7)
 	if err != nil {
 		return nil, fmt.Errorf("invalid stop-loss percent; please provide a numeric value (e.g., 105)")
-	} else if stop_percent < 100 {
-		return nil, fmt.Errorf("invalid stop-loss percent; must be 100 or greater")
+	} else if stop_percent < 10 {
+		return nil, fmt.Errorf("invalid stop-loss percent; must be 10 or greater")
 	} else {
 		t.StopLoss = stop_percent
 	}
@@ -160,8 +160,8 @@ func ParseTrade(tradeArgs []string) (*models.Trade, error) {
 	target_percent, err := strconv.Atoi(part8)
 	if err != nil {
 		return nil, fmt.Errorf("invalid target-point percent; please provide a numeric value (e.g., 105)")
-	} else if target_percent < 100 {
-		return nil, fmt.Errorf("invalid target-point percent; must be 100 or greater")
+	} else if target_percent < 10 {
+		return nil, fmt.Errorf("invalid target-point percent; must be 10 or greater")
 	} else {
 		t.TakeProfit = target_percent
 	}
