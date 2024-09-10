@@ -29,6 +29,7 @@ const (
 	CANDLE_1M    string = `1M`
 
 	STATE_IDLE      string = `idle`
+	STATE_CANCELED  string = `canceled`
 	STATE_PLACED    string = `placed`
 	STATE_FILLED    string = `filled`
 	STATE_REVERTING string = `reverting`

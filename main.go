@@ -109,6 +109,7 @@ func main() {
 	r2.Handle(bot.EXECUTE, b.MakeHandlerBotFunc(b.HandleExecute))
 	r2.Handle(bot.VIEW, b.MakeHandlerBotFunc(b.HandleView))
 	r2.Handle(bot.DESCRIBE, b.MakeHandlerBotFunc(b.HandleDescribe))
+	r2.Handle(bot.RESET, b.MakeHandlerBotFunc(b.HandleReset))
 	r2.Use(b.RequiredAuth)
 	r2.Use(b.ProvideTradeByID)
 

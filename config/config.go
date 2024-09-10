@@ -1,16 +1,18 @@
 package config
 
 var Shortcuts = map[string]string{
-	"1": "m XBTUSD long 1h 0.1 1 105 101 1",
-	"2": "b BTCUSDT long 4h 0.2 1 105 101 1",
-	"3": "b BTCUSDT long 15m 0.2 5 105 101 1",
-	"4": "b BTCUSDT short 15m 0.2 5 105 101 1",
-	"5": "b BTCUSDT short 5m 0.1 10 103 101 1",
-	"6": "b BTCUSDT long 5m 0.1 10 103 101 1",
-	"7": "b BTCUSDT long 3m 0.1 10 103 101 1",
-	"8": "b BTCUSDT long 3m 0.1 10 103 101 1",
-	"h": "m XBTUSD long 1h 0.1 1 105 101 1",
-	"b": "b BNBUSDT long 1h 0.1 1 105 101 1",
+	"1": "b BNBUSDT long 5m 0.1 1 105 105 1",
+	"2": "b BNBUSDT short 5m 0.1 1 105 105 1",
+	"3": "b BNBUSDT long 15m 0.1 1 105 105 1",
+	"4": "b BNBUSDT short 15m 0.1 1 105 105 1",
+	"5": "b BNBUSDT long 30m 0.1 1 105 105 1",
+	"6": "b BNBUSDT short 30m 0.1 1 105 105 1",
+	"7": "b BTCUSDT long 5m 0.1 1 105 105 1",
+	"8": "b BTCUSDT short 5m 0.1 1 105 105 1",
+	"9": "b BTCUSDT long 15m 0.1 1 105 105 1",
+	"a": "b BTCUSDT short 15m 0.1 1 105 105 1",
+	"b": "b BTCUSDT long 30m 0.1 1 105 105 1",
+	"c": "b BTCUSDT short 30m 0.1 1 105 105 1",
 }
 
 var UserIDs = []int64{
