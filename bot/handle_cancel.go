@@ -36,8 +36,7 @@ func (b *Bot) HandleCancel(u *tgbotapi.Update, ctx context.Context) error {
 		}
 	} else {
 		// the bitmex logic
-		b.HandleUnderDevelopment(u, ctx)
-		return nil
+		return b.HandleUnderDevelopment(u, ctx)
 	}
 
 	msg := fmt.Sprintf("The order has been successfully canceled.\n\nOrder ID: %s\nTrade ID: %d\n", t.OrderID, t.ID)

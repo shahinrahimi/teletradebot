@@ -63,19 +63,21 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 
 	} else {
 
-		po, err := b.mc.PrepareOrder(ctx, &t)
-		if err != nil {
-			b.l.Printf("error preparing order: %v", err)
-			return err
-		}
-		order, err := b.mc.PlacePreparedOrder(po)
-		if err != nil {
-			b.l.Printf("error placing order: %v", err)
-			return err
-		}
+		return b.HandleUnderDevelopment(u, ctx)
+
+		// po, err := b.mc.PrepareOrder(ctx, &t)
+		// if err != nil {
+		// 	b.l.Printf("error preparing order: %v", err)
+		// 	return err
+		// }
+		// order, err := b.mc.PlacePreparedOrder(po)
+		// if err != nil {
+		// 	b.l.Printf("error placing order: %v", err)
+		// 	return err
+		// }
 		//TODO schedule order cancellation
 
-		orderID = order.OrderID
+		//orderID = order.OrderID
 	}
 
 	msg := fmt.Sprintf("Order placed successfully\n\nOrder ID: %s\nTrade ID: %d", orderID, t.ID)
