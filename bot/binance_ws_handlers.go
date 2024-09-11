@@ -120,7 +120,7 @@ func (b *Bot) handleNewFilled(t *models.Trade, f *futures.WsOrderTradeUpdate) {
 	if td != nil {
 		binance.TradeDescribers[t.ID] = &binance.TradeDescriber{
 			From:  td.From,
-			Till:  td.Close,
+			Till:  td.Till,
 			Open:  td.Open,
 			Close: td.Close,
 			High:  td.High,
