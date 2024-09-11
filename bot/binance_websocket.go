@@ -24,6 +24,7 @@ func (b *Bot) startUserDataStream(ctx context.Context) {
 	if err != nil {
 		log.Fatalf("Error establishing WebSocket connection: %v", err)
 	}
+	b.l.Println("WebSocket connection established. Awaiting events...")
 
 	// Keep the connection alive by sending a ping every 30 miutes
 	ticker := time.NewTicker(30 * time.Minute)
