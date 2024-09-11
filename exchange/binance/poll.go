@@ -18,7 +18,7 @@ func (bc *BinanceClient) StartPolling(ctx context.Context) {
 
 func (bc *BinanceClient) pollSymbolPrices(ctx context.Context, interval time.Duration) {
 	for {
-		res, err := bc.client.NewListPricesService().Do(ctx)
+		res, err := bc.Client.NewListPricesService().Do(ctx)
 		if err != nil {
 			bc.l.Printf("error fetching symbol prices: %v", err)
 			continue
@@ -30,7 +30,7 @@ func (bc *BinanceClient) pollSymbolPrices(ctx context.Context, interval time.Dur
 
 func (bc *BinanceClient) pollExchangeInfo(ctx context.Context, interval time.Duration) {
 	for {
-		res, err := bc.client.NewExchangeInfoService().Do(ctx)
+		res, err := bc.Client.NewExchangeInfoService().Do(ctx)
 		if err != nil {
 			bc.l.Printf("Error fetching exchange info: %v", err)
 			continue
@@ -42,7 +42,7 @@ func (bc *BinanceClient) pollExchangeInfo(ctx context.Context, interval time.Dur
 
 func (bc *BinanceClient) pollAccount(ctx context.Context, interval time.Duration) {
 	for {
-		res, err := bc.client.NewGetAccountService().Do(ctx)
+		res, err := bc.Client.NewGetAccountService().Do(ctx)
 		if err != nil {
 			bc.l.Printf("Error fetching exchange info: %v", err)
 			continue
@@ -54,7 +54,7 @@ func (bc *BinanceClient) pollAccount(ctx context.Context, interval time.Duration
 
 func (bc *BinanceClient) pollListenKey(ctx context.Context, interval time.Duration) {
 	for {
-		listenKey, err := bc.client.NewStartUserStreamService().Do(ctx)
+		listenKey, err := bc.Client.NewStartUserStreamService().Do(ctx)
 		if err != nil {
 			bc.l.Printf("Error fetching listen key: %v", err)
 			continue

@@ -15,7 +15,7 @@ import (
 
 type BinanceClient struct {
 	l                *log.Logger
-	client           *futures.Client
+	Client           *futures.Client
 	ListenKey        string
 	UseTestnet       bool
 	lastSymbolPrices []*futures.SymbolPrice
@@ -28,7 +28,7 @@ func NewBinanceClient(l *log.Logger, apiKey string, secretKey string, useTestnet
 	client := futures.NewClient(apiKey, secretKey)
 	return &BinanceClient{
 		l:          l,
-		client:     client,
+		Client:     client,
 		UseTestnet: useTestnet,
 	}
 }
@@ -106,7 +106,7 @@ func (bc *BinanceClient) getQuantity(t *models.Trade) (string, error) {
 }
 
 func (bc *BinanceClient) getLastClosedKline(ctx context.Context, t *models.Trade) (*futures.Kline, error) {
-	klines, err := bc.client.NewMarkPriceKlinesService().
+	klines, err := bc.Client.NewMarkPriceKlinesService().
 		Limit(100).
 		Interval(t.Timeframe).
 		Symbol(t.Symbol).

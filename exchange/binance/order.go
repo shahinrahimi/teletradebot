@@ -126,7 +126,7 @@ func (bc *BinanceClient) PrepareOrder(ctx context.Context, t *models.Trade) (*Pr
 }
 
 func (bc *BinanceClient) PlacePreparedOrder(ctx context.Context, p *PreparedOrder) (*futures.CreateOrderResponse, error) {
-	order := bc.client.NewCreateOrderService().
+	order := bc.Client.NewCreateOrderService().
 		Symbol(p.Symbol).
 		Side(p.Side).
 		Quantity(p.Quantity).
@@ -138,14 +138,14 @@ func (bc *BinanceClient) PlacePreparedOrder(ctx context.Context, p *PreparedOrde
 }
 
 func (bc *BinanceClient) CancelOrder(ctx context.Context, orderID int64, symbol string) (*futures.CancelOrderResponse, error) {
-	order := bc.client.NewCancelOrderService().
+	order := bc.Client.NewCancelOrderService().
 		OrderID(orderID).
 		Symbol(symbol)
 	return order.Do(ctx)
 }
 
 func (bc *BinanceClient) GetOrder(ctx context.Context, orderID int64, symbol string) (*futures.Order, error) {
-	order := bc.client.NewGetOrderService().
+	order := bc.Client.NewGetOrderService().
 		OrderID(orderID).
 		Symbol(symbol)
 	return order.Do(ctx)
@@ -214,7 +214,7 @@ func (bc *BinanceClient) PrepareTakeProfitOrder(ctx context.Context, t *models.T
 }
 
 func (bc *BinanceClient) PlacePreparedStopLossOrder(ctx context.Context, p *PreparedOrder) (*futures.CreateOrderResponse, error) {
-	order := bc.client.NewCreateOrderService().
+	order := bc.Client.NewCreateOrderService().
 		Symbol(p.Symbol).
 		Side(p.Side).
 		Quantity(p.Quantity).
@@ -225,7 +225,7 @@ func (bc *BinanceClient) PlacePreparedStopLossOrder(ctx context.Context, p *Prep
 }
 
 func (bc *BinanceClient) PlacePreparedTakeProfitOrder(ctx context.Context, p *PreparedOrder) (*futures.CreateOrderResponse, error) {
-	order := bc.client.NewCreateOrderService().
+	order := bc.Client.NewCreateOrderService().
 		Symbol(p.Symbol).
 		Side(p.Side).
 		Quantity(p.Quantity).

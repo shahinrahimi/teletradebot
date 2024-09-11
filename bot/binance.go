@@ -13,38 +13,28 @@ import (
 	"github.com/shahinrahimi/teletradebot/utils"
 )
 
-func (b *Bot) StartBinanceService(ctx context.Context) {
-	go b.startUserDataStream(ctx)
-}
+// func (b *Bot) StartBinanceService(ctx context.Context) {
+// 	go b.startUserDataStream(ctx)
+// }
 
-func (b *Bot) startUserDataStream(ctx context.Context) {
-	futures.UseTestnet = b.bc.UseTestnet
-	listenKey, err := b.bc.GetListenKey(ctx)
-	if err != nil {
-		b.l.Printf("Error retrieving listen key: %v", err)
-		return
-	}
+// func (b *Bot) startUserDataStream(ctx context.Context) {
+// 	futures.UseTestnet = b.bc.UseTestnet
+// 	listenKey, err := b.bc.GetListenKey(ctx)
+// 	if err != nil {
+// 		b.l.Printf("Error retrieving listen key: %v", err)
+// 		return
+// 	}
 
-	doneC, stopC, err := futures.WsUserDataServe(listenKey, b.wsHandler, b.errHandler)
-	if err != nil {
-		b.l.Printf("Error starting user data stream: %v", err)
-		return
-	}
-	defer close(stopC)
+// 	doneC, stopC, err := futures.WsUserDataServe(listenKey, b.wsHandler, b.errHandler)
+// 	if err != nil {
+// 		b.l.Printf("Error starting user data stream: %v", err)
+// 		return
+// 	}
+// 	defer close(stopC)
 
-	b.l.Println("WebSocket connection established. Awaiting events...")
-	<-doneC
-}
-
-func (b *Bot) wsHandler(event *futures.WsUserDataEvent) {
-	// handle order trade events
-	// fmt.Println("got an event")
-	b.handleOrderTradeUpdate(event.OrderTradeUpdate)
-}
-
-func (b *Bot) errHandler(err error) {
-	b.l.Printf("WebSocket error: %v", err)
-}
+// 	b.l.Println("WebSocket connection established. Awaiting events...")
+// 	<-doneC
+// }
 
 func (b *Bot) handleOrderTradeUpdate(f futures.WsOrderTradeUpdate) {
 	switch f.Status {
@@ -128,18 +118,18 @@ func (b *Bot) HandleNewFilled(t *models.Trade, f *futures.WsOrderTradeUpdate) {
 	otp, err2 := b.HandlePlaceTakeProfitOrder(t, f)
 	if err1 != nil {
 		b.l.Printf("Error placing stop-loss order: %v", err1)
-		msg := fmt.Sprintf("Failed to place stop-loss order.\nTrade ID: %d", t.ID)
+		msg := fmt.Sprintf("Failed to place stop-loss order.\n\nTrade ID: %d", t.ID)
 		b.SendMessage(t.UserID, msg)
 	} else {
-		msg := fmt.Sprintf("Stop-loss order placed successfully.\nTrade ID: %d", t.ID)
+		msg := fmt.Sprintf("Stop-loss order placed successfully.\n\nTrade ID: %d", t.ID)
 		b.SendMessage(t.UserID, msg)
 	}
 	if err2 != nil {
 		b.l.Printf("Error placing take-profit order: %v", err2)
-		msg := fmt.Sprintf("Failed to place take-profit order.\nTrade ID: %d", t.ID)
+		msg := fmt.Sprintf("Failed to place take-profit order.\n\nTrade ID: %d", t.ID)
 		b.SendMessage(t.UserID, msg)
 	} else {
-		msg := fmt.Sprintf("Take-profit order placed successfully.\nTrade ID: %d", t.ID)
+		msg := fmt.Sprintf("Take-profit order placed successfully.\n\nTrade ID: %d", t.ID)
 		b.SendMessage(t.UserID, msg)
 	}
 
@@ -241,7 +231,7 @@ func (b *Bot) scheduleOrderReplacement(ctx context.Context, delay time.Duration,
 			if err := b.s.UpdateTradePlaced(t, NewOrderID); err != nil {
 				b.l.Printf("Error updating trade to PLACED state: %v", err)
 			}
-			b.SendMessage(t.UserID, fmt.Sprintf("Order replaced successfully\nTrade ID: %d\nNewOrder ID: %d", t.ID, cp.OrderID))
+			b.SendMessage(t.UserID, fmt.Sprintf("Order replaced successfully\n\nNewOrder ID: %d\nTrade ID: %d", cp.OrderID, t.ID))
 			// schedule for replacement
 			go b.scheduleOrderReplacement(ctx, p.Expiration, cp.OrderID, t)
 		}
