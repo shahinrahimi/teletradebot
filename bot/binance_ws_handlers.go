@@ -13,29 +13,6 @@ import (
 	"github.com/shahinrahimi/teletradebot/utils"
 )
 
-// func (b *Bot) StartBinanceService(ctx context.Context) {
-// 	go b.startUserDataStream(ctx)
-// }
-
-// func (b *Bot) startUserDataStream(ctx context.Context) {
-// 	futures.UseTestnet = b.bc.UseTestnet
-// 	listenKey, err := b.bc.GetListenKey(ctx)
-// 	if err != nil {
-// 		b.l.Printf("Error retrieving listen key: %v", err)
-// 		return
-// 	}
-
-// 	doneC, stopC, err := futures.WsUserDataServe(listenKey, b.wsHandler, b.errHandler)
-// 	if err != nil {
-// 		b.l.Printf("Error starting user data stream: %v", err)
-// 		return
-// 	}
-// 	defer close(stopC)
-
-// 	b.l.Println("WebSocket connection established. Awaiting events...")
-// 	<-doneC
-// }
-
 func (b *Bot) handleOrderTradeUpdate(f futures.WsOrderTradeUpdate) {
 	switch f.Status {
 	case futures.OrderStatusTypeCanceled:
@@ -43,7 +20,7 @@ func (b *Bot) handleOrderTradeUpdate(f futures.WsOrderTradeUpdate) {
 		// b.HandleCanceled(f)
 	case futures.OrderStatusTypeFilled:
 		b.l.Println("Order filled successfully.")
-		go b.HandleFilled(f)
+		go b.handleFilled(f)
 	case futures.OrderStatusTypeRejected:
 		b.l.Println("Order was rejected.")
 	case futures.OrderStatusTypeNew:
@@ -57,7 +34,7 @@ func (b *Bot) handleOrderTradeUpdate(f futures.WsOrderTradeUpdate) {
 	}
 }
 
-func (b *Bot) HandleFilled(f futures.WsOrderTradeUpdate) {
+func (b *Bot) handleFilled(f futures.WsOrderTradeUpdate) {
 	orderID := utils.ConvertBinanceOrderID(f.ID)
 	var t *models.Trade
 	var err error
@@ -77,7 +54,9 @@ func (b *Bot) HandleFilled(f futures.WsOrderTradeUpdate) {
 			b.l.Printf("Error updating trade state to FILLED: %v", types.STATE_FILLED)
 			return
 		}
-		b.HandleNewFilled(t, &f)
+		msg := fmt.Sprintf("Order filled successfully.\n\nTrade ID: %d", t.ID)
+		b.SendMessage(t.UserID, msg)
+		b.handleNewFilled(t, &f)
 		return
 	}
 	// check if order is for stop loss
@@ -92,7 +71,7 @@ func (b *Bot) HandleFilled(f futures.WsOrderTradeUpdate) {
 			b.l.Printf("Error updating trade state to STOPPED: %v", types.STATE_STOPPED)
 			return
 		}
-		b.HandleSLFilled(t, &f)
+		b.handleSLFilled(t, &f)
 		return
 	}
 	// check if order is for take profit
@@ -107,15 +86,15 @@ func (b *Bot) HandleFilled(f futures.WsOrderTradeUpdate) {
 			b.l.Printf("Error updating trade state to PROFITED: %v", types.STATE_PROFITED)
 			return
 		}
-		b.HandleTPFilled(t, &f)
+		b.handleTPFilled(t, &f)
 		return
 	}
 
 	// update trade
 }
-func (b *Bot) HandleNewFilled(t *models.Trade, f *futures.WsOrderTradeUpdate) {
-	osl, err1 := b.HandlePlaceStopLossOrder(t, f)
-	otp, err2 := b.HandlePlaceTakeProfitOrder(t, f)
+func (b *Bot) handleNewFilled(t *models.Trade, f *futures.WsOrderTradeUpdate) {
+	osl, err1 := b.handlePlaceStopLossOrder(t, f)
+	otp, err2 := b.handlePlaceTakeProfitOrder(t, f)
 	if err1 != nil {
 		b.l.Printf("Error placing stop-loss order: %v", err1)
 		msg := fmt.Sprintf("Failed to place stop-loss order.\n\nTrade ID: %d", t.ID)
@@ -139,7 +118,7 @@ func (b *Bot) HandleNewFilled(t *models.Trade, f *futures.WsOrderTradeUpdate) {
 	b.s.UpdateTradeSLandTP(t, slOrderID, tpOrderID)
 }
 
-func (b *Bot) HandleSLFilled(t *models.Trade, f *futures.WsOrderTradeUpdate) {
+func (b *Bot) handleSLFilled(t *models.Trade, f *futures.WsOrderTradeUpdate) {
 	orderID, err := utils.ConvertOrderIDtoBinanceOrderID(t.TPOrderID)
 	if err != nil {
 		b.l.Panicf("Error converting take-profit order ID: %v", err)
@@ -155,7 +134,7 @@ func (b *Bot) HandleSLFilled(t *models.Trade, f *futures.WsOrderTradeUpdate) {
 	b.SendMessage(t.UserID, msg)
 }
 
-func (b *Bot) HandleTPFilled(t *models.Trade, f *futures.WsOrderTradeUpdate) {
+func (b *Bot) handleTPFilled(t *models.Trade, f *futures.WsOrderTradeUpdate) {
 	orderID, err := utils.ConvertOrderIDtoBinanceOrderID(t.SLOrderID)
 	if err != nil {
 		b.l.Panicf("Error converting stop-loss order ID: %v", err)
@@ -171,7 +150,7 @@ func (b *Bot) HandleTPFilled(t *models.Trade, f *futures.WsOrderTradeUpdate) {
 	b.SendMessage(t.UserID, msg)
 }
 
-func (b *Bot) HandlePlaceStopLossOrder(t *models.Trade, f *futures.WsOrderTradeUpdate) (*futures.CreateOrderResponse, error) {
+func (b *Bot) handlePlaceStopLossOrder(t *models.Trade, f *futures.WsOrderTradeUpdate) (*futures.CreateOrderResponse, error) {
 	psl, err := b.bc.PrepareStopLossOrder(context.Background(), t, f)
 	if err != nil {
 		return nil, fmt.Errorf("error during stop-loss order preparation: %v", err)
@@ -179,7 +158,7 @@ func (b *Bot) HandlePlaceStopLossOrder(t *models.Trade, f *futures.WsOrderTradeU
 	return b.bc.PlacePreparedStopLossOrder(context.Background(), psl)
 }
 
-func (b *Bot) HandlePlaceTakeProfitOrder(t *models.Trade, f *futures.WsOrderTradeUpdate) (*futures.CreateOrderResponse, error) {
+func (b *Bot) handlePlaceTakeProfitOrder(t *models.Trade, f *futures.WsOrderTradeUpdate) (*futures.CreateOrderResponse, error) {
 	ptp, err := b.bc.PrepareTakeProfitOrder(context.Background(), t, f)
 	if err != nil {
 		return nil, fmt.Errorf("error during take-profit order preparation: %v", err)

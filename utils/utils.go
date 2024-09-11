@@ -23,21 +23,16 @@ func ConvertTime(timestamp int64) time.Time {
 	// Convert milliseconds to seconds and nanoseconds
 	seconds := timestamp / 1000
 	nanoseconds := (timestamp % 1000) * 1e6
-
-	// Convert to time.Time
-	return time.Unix(seconds, nanoseconds)
+	t := time.Unix(seconds, nanoseconds).UTC()
+	return t
 }
 
 func FormatTimestamp(timestamp int64) string {
 	t := time.Unix(0, timestamp*int64(time.Millisecond))
 
-	formattedTime := t.Format("2000-01-01 15:04:05")
+	formattedTime := t.Format("2006-01-02 15:04:05")
 
 	return formattedTime
-}
-
-func FormatTime(t time.Time) string {
-	return t.Format("2000-01-01 15:04:05")
 }
 
 func FriendlyDuration(duration time.Duration) string {

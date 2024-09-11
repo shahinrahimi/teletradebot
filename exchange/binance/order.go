@@ -60,12 +60,14 @@ func (bc *BinanceClient) GetTradeDescriber(ctx context.Context, t *models.Trade)
 	} else {
 		side = futures.SideTypeSell
 	}
-	from := utils.FormatTime(utils.ConvertTime(k.CloseTime))
-	timeframeDur, err := types.GetDuration(t.Timeframe)
-	if err != nil {
-		return nil, err
-	}
-	till := utils.FormatTime(utils.ConvertTime(k.CloseTime).Add(timeframeDur))
+
+	from := utils.ConvertTime(k.OpenTime).Format("2006-01-02 15:04:05")
+	till := utils.ConvertTime(k.CloseTime).Add(time.Second).Format("2006-01-02 15:04:05")
+	// timeframeDur, err := types.GetDuration(t.Timeframe)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// till := utils.FormatTime(utils.ConvertTime(k.CloseTime).Add(timeframeDur))
 
 	return &TradeDescriber{
 		From:  from,
