@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/adshao/go-binance/v2/futures"
+	"github.com/shahinrahimi/teletradebot/exchange/binance"
 	"github.com/shahinrahimi/teletradebot/models"
 	"github.com/shahinrahimi/teletradebot/types"
 	"github.com/shahinrahimi/teletradebot/utils"
@@ -93,6 +94,10 @@ func (b *Bot) handleFilled(f futures.WsOrderTradeUpdate) {
 	// update trade
 }
 func (b *Bot) handleNewFilled(t *models.Trade, f *futures.WsOrderTradeUpdate) {
+	td, err := b.bc.GetTradeDescriber(context.Background(), t)
+	if err != nil {
+		b.l.Printf("error getting trade describer")
+	}
 	osl, err1 := b.handlePlaceStopLossOrder(t, f)
 	otp, err2 := b.handlePlaceTakeProfitOrder(t, f)
 	if err1 != nil {
@@ -110,6 +115,20 @@ func (b *Bot) handleNewFilled(t *models.Trade, f *futures.WsOrderTradeUpdate) {
 	} else {
 		msg := fmt.Sprintf("Take-profit order placed successfully.\n\nTrade ID: %d", t.ID)
 		b.SendMessage(t.UserID, msg)
+	}
+
+	if td != nil {
+		binance.TradeDescribers[t.ID] = &binance.TradeDescriber{
+			From:  td.From,
+			Till:  td.Close,
+			Open:  td.Open,
+			Close: td.Close,
+			High:  td.High,
+			Low:   td.Low,
+			TP:    otp.StopPrice,
+			SL:    otp.StopPrice,
+			SP:    f.StopPrice,
+		}
 	}
 
 	slOrderID := utils.ConvertBinanceOrderID(osl.OrderID)

@@ -11,6 +11,10 @@ import (
 	"github.com/shahinrahimi/teletradebot/utils"
 )
 
+var (
+	TradeDescribers = map[int]*TradeDescriber{}
+)
+
 type PreparedOrder struct {
 	Symbol     string
 	Quantity   string
@@ -26,14 +30,26 @@ type TradeDescriber struct {
 	High  string
 	Low   string
 	Close string
-	Side  string
 	SP    string // strop price or entry
 	TP    string // take-profit price
 	SL    string // take-loss price
 }
 
-// TODO check the problem with Till and FROM
-func (bc *BinanceClient) GetTradeDescriber(ctx context.Context, t *models.Trade) (*TradeDescriber, error) {
+func (td *TradeDescriber) ToTelegramString(t *models.Trade) string {
+	sizeString := fmt.Sprintf("%.1f%%", float64(t.Size))
+	slString := fmt.Sprintf("%.1f%%", float64((t.StopLoss - 100)))
+	tpString := fmt.Sprintf("%.1f%%", float64((t.TakeProfit - 100)))
+
+	msg := fmt.Sprintf("Trade ID %d\n\n", t.ID)
+	msg = fmt.Sprintf("%s From:  %s\n Till:  %s\n Open:  %s\n High:  %s\n Low:  %s\n Close:  %s\n\n", msg, td.From, td.Till, td.Open, td.High, td.Low, td.Close)
+	msg = fmt.Sprintf("%sTrading:\n", msg)
+	msg = fmt.Sprintf("%s Entry %s at %s with %s of balance.\n", msg, t.Side, td.SP, sizeString)
+	msg = fmt.Sprintf("%s TP at %s with %s.\n", msg, td.TP, tpString)
+	msg = fmt.Sprintf("%s SL at %s with %s.\n", msg, td.SL, slString)
+	return msg
+}
+
+func (bc *BinanceClient) getTradeLatestDescriber(ctx context.Context, t *models.Trade) (*TradeDescriber, error) {
 	k, err := bc.getLastClosedKline(ctx, t)
 	if err != nil {
 		return nil, err
@@ -54,20 +70,9 @@ func (bc *BinanceClient) GetTradeDescriber(ctx context.Context, t *models.Trade)
 	if err != nil {
 		return nil, err
 	}
-	var side futures.SideType
-	if t.Side == types.SIDE_L {
-		side = futures.SideTypeBuy
-	} else {
-		side = futures.SideTypeSell
-	}
 
 	from := utils.ConvertTime(k.OpenTime).Format("2006-01-02 15:04:05")
 	till := utils.ConvertTime(k.CloseTime).Add(time.Second).Format("2006-01-02 15:04:05")
-	// timeframeDur, err := types.GetDuration(t.Timeframe)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// till := utils.FormatTime(utils.ConvertTime(k.CloseTime).Add(timeframeDur))
 
 	return &TradeDescriber{
 		From:  from,
@@ -76,11 +81,18 @@ func (bc *BinanceClient) GetTradeDescriber(ctx context.Context, t *models.Trade)
 		Close: k.Close,
 		High:  k.High,
 		Low:   k.Low,
-		Side:  string(side),
 		SP:    sp,
 		TP:    tp,
 		SL:    sl,
 	}, nil
+}
+
+func (bc *BinanceClient) GetTradeDescriber(ctx context.Context, t *models.Trade) (*TradeDescriber, error) {
+	td, exist := TradeDescribers[t.ID]
+	if exist {
+		return td, nil
+	}
+	return bc.getTradeLatestDescriber(ctx, t)
 }
 
 func (bc *BinanceClient) PrepareOrder(ctx context.Context, t *models.Trade) (*PreparedOrder, error) {

@@ -2,7 +2,6 @@ package bot
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
@@ -84,7 +83,7 @@ func (b *Bot) startUserDataStream724(ctx context.Context) {
 					if err != nil {
 						b.l.Printf("Error keeping user data stream alive: %v", err)
 					} else {
-						fmt.Println("User data stream kept alive")
+						b.l.Println("User data stream kept alive")
 					}
 				case <-ctx.Done():
 					// Gracefully close the WebSocket connection when context is canceled
