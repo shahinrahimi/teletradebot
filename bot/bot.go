@@ -18,6 +18,12 @@ type Bot struct {
 	middlewares []Middleware
 	bc          *binance.BinanceClient
 	mc          *bitmex.BitmexClient
+	MsgChan     chan BotMessage
+}
+
+type BotMessage struct {
+	ChatID int64
+	MsgStr string
 }
 
 func NewBot(l *log.Logger, s store.Storage, bc *binance.BinanceClient, mc *bitmex.BitmexClient, token string) (*Bot, error) {
@@ -34,6 +40,7 @@ func NewBot(l *log.Logger, s store.Storage, bc *binance.BinanceClient, mc *bitme
 		middlewares: []Middleware{},
 		bc:          bc,
 		mc:          mc,
+		MsgChan:     make(chan BotMessage),
 	}, nil
 }
 
@@ -113,8 +120,15 @@ func (b *Bot) handleUpdate(u tgbotapi.Update, ctx context.Context) {
 }
 
 // SendMessage send message string to user and error does not returned
-func (b *Bot) SendMessage(userID int64, msgStr string) {
-	msg := tgbotapi.NewMessage(userID, msgStr)
+func (b *Bot) StartMessageListener() {
+	go func() {
+		for msg := range b.MsgChan {
+			b.sendMessage(msg.ChatID, msg.MsgStr)
+		}
+	}()
+}
+func (b *Bot) sendMessage(chatID int64, msgStr string) {
+	msg := tgbotapi.NewMessage(chatID, msgStr)
 	if _, err := b.api.Send(msg); err != nil {
 		b.l.Printf("error in sending message to user: %v", err)
 	}

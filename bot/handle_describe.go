@@ -10,12 +10,16 @@ import (
 
 func (b *Bot) HandleDescribe(u *tgbotapi.Update, ctx context.Context) error {
 	t := ctx.Value(models.KeyTrade{}).(models.Trade)
+	userID := u.Message.From.ID
 	if t.Account == types.ACCOUNT_B {
 		td, err := b.bc.GetTradeDescriber(ctx, &t)
 		if err != nil {
 			return err
 		}
-		b.SendMessage(u.Message.From.ID, td.ToTelegramString(&t))
+		b.MsgChan <- BotMessage{
+			ChatID: userID,
+			MsgStr: td.ToTelegramString(&t),
+		}
 
 	} else {
 		return b.HandleUnderDevelopment(u, ctx)

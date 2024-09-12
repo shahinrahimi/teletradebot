@@ -9,10 +9,29 @@ import (
 	swagger "github.com/shahinrahimi/teletradebot/swagger"
 )
 
-func (b *Bot) handleAPIError(err error, UserId int64) {
+func (b *Bot) handleBinanceAPIError(err *common.APIError, userID int64) {
+	msg := fmt.Sprintf("Binance API\n\ncode: %d\nmessage: %s", err.Code, err.Message)
+	b.MsgChan <- BotMessage{
+		ChatID: userID,
+		MsgStr: msg,
+	}
+}
+
+func (b *Bot) handleBitmexAPIError(err swagger.GenericSwaggerError, userID int64) {
+	msg := fmt.Sprintf("Bitmex API\n\nBody: %s\nError: %s", err.Body(), err.Error())
+	b.MsgChan <- BotMessage{
+		ChatID: userID,
+		MsgStr: msg,
+	}
+}
+
+func (b *Bot) handleAPIError(err error, userID int64) {
 	if apiErr, ok := err.(*common.APIError); ok {
-		msg := fmt.Sprintf("Binance API:\ncould not place a order for trade\ncode:%d\nmessage: %s", apiErr.Code, apiErr.Message)
-		b.SendMessage(UserId, msg)
+		msg := fmt.Sprintf("Binance API:\n\\nMessage: %s\nCode: %d", apiErr.Message, apiErr.Code)
+		b.MsgChan <- BotMessage{
+			ChatID: userID,
+			MsgStr: msg,
+		}
 	} else {
 		b.l.Printf("error casting error to Api error type: %T", err)
 	}

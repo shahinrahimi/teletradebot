@@ -8,7 +8,11 @@ import (
 
 func (b *Bot) HandleUnderDevelopment(u *tgbotapi.Update, ctx context.Context) error {
 	//t := ctx.Value(models.KeyTrade{}).(models.Trade)
-	b.SendMessage(u.Message.From.ID, "under development")
+	userID := u.Message.From.ID
+	b.MsgChan <- BotMessage{
+		ChatID: userID,
+		MsgStr: "under development",
+	}
 	return nil
 
 }

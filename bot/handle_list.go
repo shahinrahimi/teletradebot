@@ -7,6 +7,7 @@ import (
 )
 
 func (b *Bot) HandleList(u *tgbotapi.Update, ctx context.Context) error {
+	userID := u.Message.From.ID
 	ts, err := b.s.GetTrades()
 	if err != nil {
 		b.l.Printf("error getting trades: %v", err)
@@ -17,9 +18,15 @@ func (b *Bot) HandleList(u *tgbotapi.Update, ctx context.Context) error {
 		msg = msg + t.ToListString() + "\n"
 	}
 	if len(ts) == 0 {
-		b.SendMessage(u.Message.From.ID, "No trades found.")
+		b.MsgChan <- BotMessage{
+			ChatID: userID,
+			MsgStr: "No trades found.",
+		}
 		return nil
 	}
-	b.SendMessage(u.Message.From.ID, "List of trades\n"+msg)
+	b.MsgChan <- BotMessage{
+		ChatID: userID,
+		MsgStr: "List of trades\n" + msg,
+	}
 	return nil
 }

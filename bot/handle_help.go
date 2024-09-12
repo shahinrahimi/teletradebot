@@ -7,7 +7,10 @@ import (
 )
 
 func (b *Bot) HandleHelp(u *tgbotapi.Update, ctx context.Context) error {
-	var userID int64 = u.Message.From.ID
-	b.SendMessage(userID, GetCommandHelp())
+	userID := u.Message.From.ID
+	b.MsgChan <- BotMessage{
+		ChatID: userID,
+		MsgStr: GetCommandHelp(),
+	}
 	return nil
 }

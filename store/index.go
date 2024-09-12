@@ -15,13 +15,13 @@ type SqliteStore struct {
 }
 
 type Storage interface {
-	CreateTrade(o *models.Trade) error
-	GetTrade(id int) (*models.Trade, error)
+	CreateTrade(o *models.Trade) (int64, error)
+	GetTrade(id int64) (*models.Trade, error)
 	GetTrades() ([]*models.Trade, error)
 	GetTradeByOrderID(order_id string) (*models.Trade, error)
 	GetTradeBySLOrderID(order_id string) (*models.Trade, error)
 	GetTradeByTPOrderID(order_id string) (*models.Trade, error)
-	DeleteTrade(id int) error
+	DeleteTrade(id int64) error
 	UpdateTrade(t *models.Trade) error
 	UpdateTradeFilled(t *models.Trade) error
 	UpdateTradeStopped(t *models.Trade) error

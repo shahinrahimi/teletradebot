@@ -8,10 +8,14 @@ import (
 )
 
 func (b *Bot) HandleAlias(u *tgbotapi.Update, ctx context.Context) error {
+	userID := u.Message.From.ID
 	var msg string = "aliases: \n"
 	for key, value := range config.Shortcuts {
 		msg = msg + "'" + key + "' => " + value + "\n"
 	}
-	b.SendMessage(u.Message.From.ID, msg)
+	b.MsgChan <- BotMessage{
+		ChatID: userID,
+		MsgStr: msg,
+	}
 	return nil
 }

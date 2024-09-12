@@ -12,22 +12,34 @@ import (
 
 func (b *Bot) HandleCancel(u *tgbotapi.Update, ctx context.Context) error {
 	t := ctx.Value(models.KeyTrade{}).(models.Trade)
+	userID := u.Message.From.ID
 	if t.State != types.STATE_PLACED {
 		msg := fmt.Sprintf("The trade is currently in an invalid state [%s] for cancellation.", t.State)
-		b.SendMessage(u.Message.From.ID, msg)
+		b.MsgChan <- BotMessage{
+			ChatID: userID,
+			MsgStr: msg,
+		}
 		return nil
 	}
 	// should not happened
 	if t.OrderID == "" {
 		b.l.Printf("Unexpected issue: the trade with a state of 'placed' is missing an OrderID")
-		b.SendMessage(u.Message.From.ID, "Unable to find the Order ID for the trade.")
+		msg := "Unable to find the Order ID for the trade."
+		b.MsgChan <- BotMessage{
+			ChatID: userID,
+			MsgStr: msg,
+		}
 		return nil
 	}
 	if t.Account == types.ACCOUNT_B {
 		orderID, err := utils.ConvertOrderIDtoBinanceOrderID(t.OrderID)
 		if err != nil {
 			b.l.Printf("Unexpected issue: the trade's OrderID is not in a valid format for conversion: %v", err)
-			b.SendMessage(u.Message.From.ID, "The Order ID for the trade is not in a valid format.")
+			msg := "The Order ID for the trade is not in a valid format."
+			b.MsgChan <- BotMessage{
+				ChatID: userID,
+				MsgStr: msg,
+			}
 			return err
 		}
 		if _, err := b.bc.CancelOrder(ctx, orderID, t.Symbol); err != nil {
@@ -40,7 +52,10 @@ func (b *Bot) HandleCancel(u *tgbotapi.Update, ctx context.Context) error {
 	}
 
 	msg := fmt.Sprintf("The order has been successfully canceled.\n\nOrder ID: %s\nTrade ID: %d\n", t.OrderID, t.ID)
-	b.SendMessage(u.Message.From.ID, msg)
+	b.MsgChan <- BotMessage{
+		ChatID: userID,
+		MsgStr: msg,
+	}
 
 	if err := b.s.UpdateTradeCancelled(&t); err != nil {
 		b.l.Printf("Error updating the trade status: %v", err)

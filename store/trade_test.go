@@ -52,9 +52,9 @@ func TestCreateTrade(t *testing.T) {
 	store := SqliteStore{db: db}
 
 	trade := createTestTrade()
-	trade.ID = 1
-	err := store.CreateTrade(trade)
+	id, err := store.CreateTrade(trade)
 	require.NoError(t, err)
+	trade.ID = id
 
 	// Verify the trade was inserted correctly
 	insertedTrade, err := store.GetTrade(trade.ID)
@@ -71,9 +71,9 @@ func TestGetTrade(t *testing.T) {
 	store := SqliteStore{db: db}
 
 	trade := createTestTrade()
-	trade.ID = 1
-	err := store.CreateTrade(trade)
+	id, err := store.CreateTrade(trade)
 	require.NoError(t, err)
+	trade.ID = id
 
 	retrievedTrade, err := store.GetTrade(1)
 	require.NoError(t, err)
@@ -90,8 +90,9 @@ func TestGetTradeByOrderID(t *testing.T) {
 	trade := createTestTrade()
 	trade.ID = 1
 
-	err := store.CreateTrade(trade)
+	id, err := store.CreateTrade(trade)
 	require.NoError(t, err)
+	trade.ID = id
 
 	trade.OrderID = "order123"
 	err = store.UpdateTrade(trade)
@@ -110,10 +111,10 @@ func TestGetTradeBySLOrderID(t *testing.T) {
 	store := SqliteStore{db: db}
 
 	trade := createTestTrade()
-	trade.ID = 1
 
-	err := store.CreateTrade(trade)
+	id, err := store.CreateTrade(trade)
 	require.NoError(t, err)
+	trade.ID = id
 
 	trade.SLOrderID = "order123"
 	err = store.UpdateTrade(trade)
@@ -132,10 +133,10 @@ func TestGetTradeByTPOrderID(t *testing.T) {
 	store := SqliteStore{db: db}
 
 	trade := createTestTrade()
-	trade.ID = 1
 
-	err := store.CreateTrade(trade)
+	id, err := store.CreateTrade(trade)
 	require.NoError(t, err)
+	trade.ID = id
 
 	trade.TPOrderID = "order123"
 	err = store.UpdateTrade(trade)
@@ -154,16 +155,16 @@ func TestGetTrades(t *testing.T) {
 	store := SqliteStore{db: db}
 
 	trade1 := createTestTrade()
-	trade1.ID = 1
 	trade2 := createTestTrade()
-	trade2.ID = 2
 	trade2.Symbol = "ETHUSDT"
 
-	err := store.CreateTrade(trade1)
+	id, err := store.CreateTrade(trade1)
 	require.NoError(t, err)
+	trade1.ID = id
 
-	err = store.CreateTrade(trade2)
+	id, err = store.CreateTrade(trade2)
 	require.NoError(t, err)
+	trade2.ID = id
 
 	trades, err := store.GetTrades()
 	require.NoError(t, err)
@@ -177,9 +178,9 @@ func TestDeleteTrade(t *testing.T) {
 	store := SqliteStore{db: db}
 
 	trade := createTestTrade()
-	trade.ID = 1
-	err := store.CreateTrade(trade)
+	id, err := store.CreateTrade(trade)
 	require.NoError(t, err)
+	trade.ID = id
 
 	err = store.DeleteTrade(trade.ID)
 	require.NoError(t, err)
@@ -196,9 +197,9 @@ func TestUpdateTrade(t *testing.T) {
 	store := SqliteStore{db: db}
 
 	trade := createTestTrade()
-	trade.ID = 1
-	err := store.CreateTrade(trade)
+	id, err := store.CreateTrade(trade)
 	require.NoError(t, err)
+	trade.ID = id
 
 	trade.OrderID = "updated_order_id"
 	trade.State = types.STATE_FILLED
@@ -218,9 +219,9 @@ func TestUpdateTradeFilled(t *testing.T) {
 	store := SqliteStore{db: db}
 
 	trade := createTestTrade()
-	trade.ID = 1
-	err := store.CreateTrade(trade)
+	id, err := store.CreateTrade(trade)
 	require.NoError(t, err)
+	trade.ID = id
 
 	err = store.UpdateTradeFilled(trade)
 	require.NoError(t, err)
@@ -237,9 +238,9 @@ func TestUpdateTradeSLandTP(t *testing.T) {
 	store := SqliteStore{db: db}
 
 	trade := createTestTrade()
-	trade.ID = 1
-	err := store.CreateTrade(trade)
+	id, err := store.CreateTrade(trade)
 	require.NoError(t, err)
+	trade.ID = id
 
 	err = store.UpdateTradeSLandTP(trade, "sl_order_123", "tp_order_456")
 	require.NoError(t, err)
@@ -257,9 +258,9 @@ func TestUpdateTradePlaced(t *testing.T) {
 	store := SqliteStore{db: db}
 
 	trade := createTestTrade()
-	trade.ID = 1
-	err := store.CreateTrade(trade)
+	id, err := store.CreateTrade(trade)
 	require.NoError(t, err)
+	trade.ID = id
 
 	err = store.UpdateTradePlaced(trade, "order123")
 	require.NoError(t, err)
@@ -276,9 +277,9 @@ func TestUpdateTradeIdle(t *testing.T) {
 	store := SqliteStore{db: db}
 
 	trade := createTestTrade()
-	trade.ID = 1
-	err := store.CreateTrade(trade)
+	id, err := store.CreateTrade(trade)
 	require.NoError(t, err)
+	trade.ID = id
 
 	err = store.UpdateTradeIdle(trade)
 	require.NoError(t, err)
@@ -298,9 +299,9 @@ func TestUpdateTradeStopped(t *testing.T) {
 	store := SqliteStore{db: db}
 
 	trade := createTestTrade()
-	trade.ID = 1
-	err := store.CreateTrade(trade)
+	id, err := store.CreateTrade(trade)
 	require.NoError(t, err)
+	trade.ID = id
 
 	err = store.UpdateTradeStopped(trade)
 	require.NoError(t, err)
@@ -317,9 +318,9 @@ func TestUpdateTradeProfited(t *testing.T) {
 	store := SqliteStore{db: db}
 
 	trade := createTestTrade()
-	trade.ID = 1
-	err := store.CreateTrade(trade)
+	id, err := store.CreateTrade(trade)
 	require.NoError(t, err)
+	trade.ID = id
 
 	err = store.UpdateTradeProfited(trade)
 	require.NoError(t, err)

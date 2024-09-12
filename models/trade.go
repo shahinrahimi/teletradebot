@@ -7,7 +7,7 @@ import (
 )
 
 type Trade struct {
-	ID     int   // Unique identifier for the trade.
+	ID     int64 // Unique identifier for the trade.
 	UserID int64 // ID of the Telegram user associated with the trade.
 	ChatID int64 // Chat ID in Telegram where trade created for communication.
 

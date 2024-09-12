@@ -1,5 +1,7 @@
 package config
 
+import "time"
+
 var Shortcuts = map[string]string{
 	"1": "b BNBUSDT long 5m 0.1 1 105 105 1",
 	"2": "b BNBUSDT short 5m 0.1 1 105 105 1",
@@ -16,6 +18,9 @@ var Shortcuts = map[string]string{
 	"s": "b BTCUSDT short 15m 0.1 1 50 50 1",
 	"l": "b BTCUSDT long 15m 0.1 1 50 50 1",
 }
+
+var MaxTries int = 30
+var WaitForNextTries time.Duration = time.Second * 10 // seconds
 
 var UserIDs = []int64{
 	104196468,

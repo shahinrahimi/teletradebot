@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	TradeDescribers = map[int]*TradeDescriber{}
+	TradeDescribers = map[int64]*TradeDescriber{}
 )
 
 type PreparedOrder struct {

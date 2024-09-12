@@ -8,9 +8,12 @@ import (
 )
 
 func (b *Bot) HandleInfo(u *tgbotapi.Update, ctx context.Context) error {
-	var userID int64 = u.Message.From.ID
-	var username string = u.Message.From.UserName
+	userID := u.Message.From.ID
+	username := u.Message.From.UserName
 	msg := fmt.Sprintf("UserID:\t%d\nUsername:\t%s", userID, username)
-	b.SendMessage(userID, msg)
+	b.MsgChan <- BotMessage{
+		ChatID: userID,
+		MsgStr: msg,
+	}
 	return nil
 }

@@ -9,17 +9,19 @@ import (
 	"github.com/shahinrahimi/teletradebot/types"
 )
 
-func (s *SqliteStore) CreateTrade(t *models.Trade) error {
+func (s *SqliteStore) CreateTrade(t *models.Trade) (int64, error) {
 	t.UpdatedAt = time.Now().UTC()
 	t.CreatedAt = time.Now().UTC()
-	if _, err := s.db.Exec(models.INSERT_TRADE, t.ToArgs()...); err != nil {
+	result, err := s.db.Exec(models.INSERT_TRADE, t.ToArgs()...)
+	if err != nil {
 		s.l.Printf("error creating a new trade: %v", err)
-		return err
+		return 0, err
 	}
-	return nil
+	return result.LastInsertId()
+
 }
 
-func (s *SqliteStore) GetTrade(id int) (*models.Trade, error) {
+func (s *SqliteStore) GetTrade(id int64) (*models.Trade, error) {
 	var t models.Trade
 	if err := s.db.QueryRow(models.SELECT_TRADE, id).Scan(t.ToFelids()...); err != nil {
 		if err != sql.ErrNoRows {
@@ -77,7 +79,7 @@ func (s *SqliteStore) GetTrades() ([]*models.Trade, error) {
 	return os, err
 }
 
-func (s *SqliteStore) DeleteTrade(id int) error {
+func (s *SqliteStore) DeleteTrade(id int64) error {
 	if _, err := s.db.Exec(models.DELETE_TRADE, id); err != nil {
 		s.l.Printf("error deleting a order from DB: %v", err)
 		return err

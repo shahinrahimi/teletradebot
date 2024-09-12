@@ -75,6 +75,7 @@ func main() {
 	}
 
 	b.StartBinanceService(ctx)
+	b.StartMessageListener()
 
 	//go b.ScanningTrades(ctx)
 
