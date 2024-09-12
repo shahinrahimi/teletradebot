@@ -19,8 +19,8 @@ var Shortcuts = map[string]string{
 	"l": "b BTCUSDT long 15m 0.1 1 50 50 1",
 }
 
-var MaxTries int = 30
-var WaitForNextTries time.Duration = time.Second * 10 // seconds
+var MaxTries int = 3
+var WaitForNextTries time.Duration = time.Second * 3 // seconds
 
 var UserIDs = []int64{
 	104196468,

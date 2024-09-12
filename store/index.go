@@ -18,16 +18,17 @@ type Storage interface {
 	CreateTrade(o *models.Trade) (int64, error)
 	GetTrade(id int64) (*models.Trade, error)
 	GetTrades() ([]*models.Trade, error)
-	GetTradeByOrderID(order_id string) (*models.Trade, error)
-	GetTradeBySLOrderID(order_id string) (*models.Trade, error)
-	GetTradeByTPOrderID(order_id string) (*models.Trade, error)
+	GetTradeByOrderID(orderID string) (*models.Trade, error)
+	GetTradeBySLOrderID(SLOrderID string) (*models.Trade, error)
+	GetTradeByTPOrderID(TPOrderID string) (*models.Trade, error)
 	DeleteTrade(id int64) error
 	UpdateTrade(t *models.Trade) error
 	UpdateTradeFilled(t *models.Trade) error
 	UpdateTradeStopped(t *models.Trade) error
 	UpdateTradeProfited(t *models.Trade) error
 	UpdateTradeCancelled(t *models.Trade) error
-	UpdateTradeSLandTP(t *models.Trade, SLOrderID string, TPOrderID string) error
+	UpdateTradeSLOrder(t *models.Trade, SLOrderID string) error
+	UpdateTradeTPOrder(t *models.Trade, TPOrderID string) error
 	UpdateTradePlaced(t *models.Trade, orderID string) error
 	UpdateTradeIdle(t *models.Trade) error
 }

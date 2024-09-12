@@ -3,6 +3,8 @@ package types
 import (
 	"fmt"
 	"time"
+
+	"github.com/shahinrahimi/teletradebot/models"
 )
 
 const (
@@ -111,4 +113,38 @@ func IsValidCandle(candle string) bool {
 type BotMessage struct {
 	ChatID int64
 	MsgStr string
+}
+
+type TradeDescriber struct {
+	From  time.Time
+	Till  time.Time
+	Open  string
+	High  string
+	Low   string
+	Close string
+	SP    string // strop price or entry
+	TP    string // take-profit price
+	SL    string // take-loss price
+}
+
+var (
+	TradeDescribers = map[int64]*TradeDescriber{}
+)
+
+func (td *TradeDescriber) ToTelegramString(t *models.Trade) string {
+	sizeStr := fmt.Sprintf("%.1f%%", float64(t.Size))
+	slStr := fmt.Sprintf("%.1f%%", float64((t.StopLoss - 100)))
+	tpStr := fmt.Sprintf("%.1f%%", float64((t.TakeProfit - 100)))
+
+	format := "2006-01-02 15:04:05"
+	FromStr := td.From.Local().Format(format)
+	TillStr := td.Till.Local().Format(format)
+
+	msg := fmt.Sprintf("Trade ID %d\n\n", t.ID)
+	msg = fmt.Sprintf("%s From:  %s\n Till:  %s\n Open:  %s\n High:  %s\n Low:  %s\n Close:  %s\n\n", msg, FromStr, TillStr, td.Open, td.High, td.Low, td.Close)
+	msg = fmt.Sprintf("%sTrading:\n", msg)
+	msg = fmt.Sprintf("%s Entry %s at %s with %s of balance.\n", msg, t.Side, td.SP, sizeStr)
+	msg = fmt.Sprintf("%s TP at %s with %s.\n", msg, td.TP, tpStr)
+	msg = fmt.Sprintf("%s SL at %s with %s.\n", msg, td.SL, slStr)
+	return msg
 }

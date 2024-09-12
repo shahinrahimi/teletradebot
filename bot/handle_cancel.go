@@ -7,7 +7,6 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/shahinrahimi/teletradebot/models"
 	"github.com/shahinrahimi/teletradebot/types"
-	"github.com/shahinrahimi/teletradebot/utils"
 )
 
 func (b *Bot) HandleCancel(u *tgbotapi.Update, ctx context.Context) error {
@@ -32,17 +31,7 @@ func (b *Bot) HandleCancel(u *tgbotapi.Update, ctx context.Context) error {
 		return nil
 	}
 	if t.Account == types.ACCOUNT_B {
-		orderID, err := utils.ConvertOrderIDtoBinanceOrderID(t.OrderID)
-		if err != nil {
-			b.l.Printf("Unexpected issue: the trade's OrderID is not in a valid format for conversion: %v", err)
-			msg := "The Order ID for the trade is not in a valid format."
-			b.MsgChan <- types.BotMessage{
-				ChatID: userID,
-				MsgStr: msg,
-			}
-			return err
-		}
-		if _, err := b.bc.CancelOrder(ctx, orderID, t.Symbol); err != nil {
+		if _, err := b.bc.CancelTrade(ctx, &t); err != nil {
 			b.handleAPIError(err, t.UserID)
 			return err
 		}

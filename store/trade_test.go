@@ -231,26 +231,6 @@ func TestUpdateTradeFilled(t *testing.T) {
 	assert.Equal(t, types.STATE_FILLED, updatedTrade.State)
 }
 
-func TestUpdateTradeSLandTP(t *testing.T) {
-	db, cleanup := setupTestDB(t)
-	defer cleanup()
-
-	store := SqliteStore{db: db}
-
-	trade := createTestTrade()
-	id, err := store.CreateTrade(trade)
-	require.NoError(t, err)
-	trade.ID = id
-
-	err = store.UpdateTradeSLandTP(trade, "sl_order_123", "tp_order_456")
-	require.NoError(t, err)
-
-	updatedTrade, err := store.GetTrade(trade.ID)
-	require.NoError(t, err)
-	assert.Equal(t, "sl_order_123", updatedTrade.SLOrderID)
-	assert.Equal(t, "tp_order_456", updatedTrade.TPOrderID)
-}
-
 func TestUpdateTradePlaced(t *testing.T) {
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
