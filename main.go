@@ -31,6 +31,11 @@ func main() {
 		logger.Fatalf("error creating new sqlite store instance: %v", err)
 	}
 	defer s.CloseDB()
+
+	// init DB
+	if err := s.Init(); err != nil {
+		logger.Fatalf("error initializing DB: %v", err)
+	}
 	// reset all trades
 	s.ResetAllTrades()
 
@@ -72,11 +77,6 @@ func main() {
 	bc.StartPolling(ctx)
 	// start polling for bitmex
 	mc.StartPolling(ctx)
-
-	// init DB
-	if err := s.Init(); err != nil {
-		logger.Fatalf("error initializing DB: %v", err)
-	}
 
 	b, err := bot.NewBot(logger, s, bc, mc, token, msgChan)
 	if err != nil {
