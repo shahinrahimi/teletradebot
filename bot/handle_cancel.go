@@ -32,7 +32,6 @@ func (b *Bot) HandleCancel(u *tgbotapi.Update, ctx context.Context) error {
 	}
 	if t.Account == types.ACCOUNT_B {
 		if _, err := b.bc.CancelTrade(ctx, &t); err != nil {
-			b.handleAPIError(err, t.UserID)
 			return err
 		}
 	} else {

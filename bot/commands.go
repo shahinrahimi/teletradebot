@@ -14,6 +14,7 @@ const (
 	CANCEL   string = "cancel"
 	RESET    string = "reset"
 	EXECUTE  string = "execute"
+	CLOSE    string = "close"
 	CHECK    string = "check"
 	REMOVE   string = "remove"
 	VIEW     string = "view"
@@ -37,6 +38,7 @@ func GetSpecifiedCommands() []string {
 		CANCEL,
 		RESET,
 		EXECUTE,
+		CLOSE,
 		CHECK,
 		REMOVE,
 		VIEW,
@@ -56,6 +58,7 @@ func GetAllCommands() []string {
 		CANCEL,
 		RESET,
 		EXECUTE,
+		CLOSE,
 		CHECK,
 		REMOVE,
 		VIEW,

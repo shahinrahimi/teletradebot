@@ -113,6 +113,7 @@ func main() {
 	r2.Handle(bot.CHECK, b.MakeHandlerBotFunc(b.HandleCheck))
 	r2.Handle(bot.CANCEL, b.MakeHandlerBotFunc(b.HandleCancel))
 	r2.Handle(bot.EXECUTE, b.MakeHandlerBotFunc(b.HandleExecute))
+	r2.Handle(bot.CLOSE, b.MakeHandlerBotFunc(b.HandleClose))
 	r2.Handle(bot.VIEW, b.MakeHandlerBotFunc(b.HandleView))
 	r2.Handle(bot.DESCRIBE, b.MakeHandlerBotFunc(b.HandleDescribe))
 	r2.Handle(bot.RESET, b.MakeHandlerBotFunc(b.HandleReset))

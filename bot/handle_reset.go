@@ -16,10 +16,7 @@ func (b *Bot) HandleReset(u *tgbotapi.Update, ctx context.Context) error {
 		b.l.Printf("Error updating the trade status: %v", err)
 		return err
 	}
-	_, exist := types.TradeDescribers[t.ID]
-	if exist {
-		delete(types.TradeDescribers, t.ID)
-	}
+	models.DeleteDescriber(t.ID)
 	msg := fmt.Sprintf("The trade has been successfully reset.\n\nTrade ID: %d", t.ID)
 	b.MsgChan <- types.BotMessage{
 		ChatID: userID,

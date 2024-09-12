@@ -6,8 +6,6 @@ import (
 )
 
 func (bc *BinanceClient) StartPolling(ctx context.Context) {
-	// Weight: ?
-	//go bc.pollListenKey(ctx, time.Hour)
 	// Weight: 5
 	go bc.pollAccount(ctx, time.Minute)
 	// Weight: 1
@@ -49,18 +47,5 @@ func (bc *BinanceClient) pollAccount(ctx context.Context, interval time.Duration
 		}
 		bc.lastAccount = res
 		time.Sleep(interval)
-	}
-}
-
-func (bc *BinanceClient) pollListenKey(ctx context.Context, interval time.Duration) {
-	for {
-		listenKey, err := bc.Client.NewStartUserStreamService().Do(ctx)
-		if err != nil {
-			bc.l.Printf("Error fetching listen key: %v", err)
-			continue
-		}
-		bc.ListenKey = listenKey
-		time.Sleep(interval)
-
 	}
 }
