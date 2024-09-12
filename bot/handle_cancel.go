@@ -15,7 +15,7 @@ func (b *Bot) HandleCancel(u *tgbotapi.Update, ctx context.Context) error {
 	userID := u.Message.From.ID
 	if t.State != types.STATE_PLACED {
 		msg := fmt.Sprintf("The trade is currently in an invalid state [%s] for cancellation.", t.State)
-		b.MsgChan <- BotMessage{
+		b.MsgChan <- types.BotMessage{
 			ChatID: userID,
 			MsgStr: msg,
 		}
@@ -25,7 +25,7 @@ func (b *Bot) HandleCancel(u *tgbotapi.Update, ctx context.Context) error {
 	if t.OrderID == "" {
 		b.l.Printf("Unexpected issue: the trade with a state of 'placed' is missing an OrderID")
 		msg := "Unable to find the Order ID for the trade."
-		b.MsgChan <- BotMessage{
+		b.MsgChan <- types.BotMessage{
 			ChatID: userID,
 			MsgStr: msg,
 		}
@@ -36,7 +36,7 @@ func (b *Bot) HandleCancel(u *tgbotapi.Update, ctx context.Context) error {
 		if err != nil {
 			b.l.Printf("Unexpected issue: the trade's OrderID is not in a valid format for conversion: %v", err)
 			msg := "The Order ID for the trade is not in a valid format."
-			b.MsgChan <- BotMessage{
+			b.MsgChan <- types.BotMessage{
 				ChatID: userID,
 				MsgStr: msg,
 			}
@@ -52,7 +52,7 @@ func (b *Bot) HandleCancel(u *tgbotapi.Update, ctx context.Context) error {
 	}
 
 	msg := fmt.Sprintf("The order has been successfully canceled.\n\nOrder ID: %s\nTrade ID: %d\n", t.OrderID, t.ID)
-	b.MsgChan <- BotMessage{
+	b.MsgChan <- types.BotMessage{
 		ChatID: userID,
 		MsgStr: msg,
 	}

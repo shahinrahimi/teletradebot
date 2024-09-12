@@ -107,3 +107,8 @@ func IsValidCandle(candle string) bool {
 	}
 	return false
 }
+
+type BotMessage struct {
+	ChatID int64
+	MsgStr string
+}

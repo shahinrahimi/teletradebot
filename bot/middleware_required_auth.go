@@ -6,6 +6,7 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/shahinrahimi/teletradebot/config"
+	"github.com/shahinrahimi/teletradebot/types"
 )
 
 func (b *Bot) RequiredAuth(next Handler) Handler {
@@ -19,7 +20,7 @@ func (b *Bot) RequiredAuth(next Handler) Handler {
 			}
 		}
 		msg := fmt.Sprintf("You are not allowed\n\n Username: %s UserID: %s", username)
-		b.MsgChan <- BotMessage{
+		b.MsgChan <- types.BotMessage{
 			ChatID: userID,
 			MsgStr: msg,
 		}

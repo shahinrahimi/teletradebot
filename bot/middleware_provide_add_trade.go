@@ -23,7 +23,7 @@ func (b *Bot) ProvideAddTrade(next Handler) Handler {
 			value, exist := config.Shortcuts[args[0]]
 			if !exist {
 				msg := fmt.Sprintf("Shortcut not found: '%s'", args[0])
-				b.MsgChan <- BotMessage{
+				b.MsgChan <- types.BotMessage{
 					ChatID: userID,
 					MsgStr: msg,
 				}
@@ -35,7 +35,7 @@ func (b *Bot) ProvideAddTrade(next Handler) Handler {
 		}
 		t, err := utils.ParseTrade(tradeArgs)
 		if err != nil {
-			b.MsgChan <- BotMessage{
+			b.MsgChan <- types.BotMessage{
 				ChatID: userID,
 				MsgStr: err.Error(),
 			}
@@ -59,7 +59,7 @@ func (b *Bot) ProvideAddTrade(next Handler) Handler {
 		if !isAvailable {
 			b.l.Printf("Error checking symbol '%s' availability on %s", t.Symbol, t.Account)
 			msg := fmt.Sprintf("the symbol '%s' is not available for exchange '%s'.", t.Symbol, t.Account)
-			b.MsgChan <- BotMessage{
+			b.MsgChan <- types.BotMessage{
 				ChatID: userID,
 				MsgStr: msg,
 			}

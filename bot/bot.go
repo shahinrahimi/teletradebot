@@ -8,6 +8,7 @@ import (
 	"github.com/shahinrahimi/teletradebot/exchange/binance"
 	"github.com/shahinrahimi/teletradebot/exchange/bitmex"
 	"github.com/shahinrahimi/teletradebot/store"
+	"github.com/shahinrahimi/teletradebot/types"
 )
 
 type Bot struct {
@@ -18,15 +19,10 @@ type Bot struct {
 	middlewares []Middleware
 	bc          *binance.BinanceClient
 	mc          *bitmex.BitmexClient
-	MsgChan     chan BotMessage
+	MsgChan     chan types.BotMessage
 }
 
-type BotMessage struct {
-	ChatID int64
-	MsgStr string
-}
-
-func NewBot(l *log.Logger, s store.Storage, bc *binance.BinanceClient, mc *bitmex.BitmexClient, token string) (*Bot, error) {
+func NewBot(l *log.Logger, s store.Storage, bc *binance.BinanceClient, mc *bitmex.BitmexClient, token string, msgChan chan types.BotMessage) (*Bot, error) {
 	api, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		l.Printf("error creating a new bot api: %v", err)
@@ -40,7 +36,7 @@ func NewBot(l *log.Logger, s store.Storage, bc *binance.BinanceClient, mc *bitme
 		middlewares: []Middleware{},
 		bc:          bc,
 		mc:          mc,
-		MsgChan:     make(chan BotMessage),
+		MsgChan:     msgChan,
 	}, nil
 }
 

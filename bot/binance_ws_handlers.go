@@ -56,7 +56,7 @@ func (b *Bot) handleFilled(f futures.WsOrderTradeUpdate) {
 			return
 		}
 		msg := fmt.Sprintf("Order filled successfully.\n\nTrade ID: %d", t.ID)
-		b.MsgChan <- BotMessage{
+		b.MsgChan <- types.BotMessage{
 			ChatID: t.UserID,
 			MsgStr: msg,
 		}
@@ -106,13 +106,13 @@ func (b *Bot) handleNewFilled(t *models.Trade, f *futures.WsOrderTradeUpdate) {
 	if err1 != nil {
 		b.l.Printf("Error placing stop-loss order: %v", err1)
 		msg := fmt.Sprintf("Failed to place stop-loss order.\n\nTrade ID: %d", t.ID)
-		b.MsgChan <- BotMessage{
+		b.MsgChan <- types.BotMessage{
 			ChatID: t.UserID,
 			MsgStr: msg,
 		}
 	} else {
 		msg := fmt.Sprintf("Stop-loss order placed successfully.\n\nTrade ID: %d", t.ID)
-		b.MsgChan <- BotMessage{
+		b.MsgChan <- types.BotMessage{
 			ChatID: t.UserID,
 			MsgStr: msg,
 		}
@@ -120,13 +120,13 @@ func (b *Bot) handleNewFilled(t *models.Trade, f *futures.WsOrderTradeUpdate) {
 	if err2 != nil {
 		b.l.Printf("Error placing take-profit order: %v", err2)
 		msg := fmt.Sprintf("Failed to place take-profit order.\n\nTrade ID: %d", t.ID)
-		b.MsgChan <- BotMessage{
+		b.MsgChan <- types.BotMessage{
 			ChatID: t.UserID,
 			MsgStr: msg,
 		}
 	} else {
 		msg := fmt.Sprintf("Take-profit order placed successfully.\n\nTrade ID: %d", t.ID)
-		b.MsgChan <- BotMessage{
+		b.MsgChan <- types.BotMessage{
 			ChatID: t.UserID,
 			MsgStr: msg,
 		}
@@ -159,7 +159,7 @@ func (b *Bot) handleSLFilled(t *models.Trade, f *futures.WsOrderTradeUpdate) {
 		return
 	}
 	msg := fmt.Sprintf("🛑 Stop-loss order executed successfully.\n\nTrade ID: %d", t.ID)
-	b.MsgChan <- BotMessage{
+	b.MsgChan <- types.BotMessage{
 		ChatID: t.UserID,
 		MsgStr: msg,
 	}
@@ -168,7 +168,7 @@ func (b *Bot) handleSLFilled(t *models.Trade, f *futures.WsOrderTradeUpdate) {
 		return
 	}
 	msg = fmt.Sprintf("Take-profit order has been canceled.\n\nTrade ID: %d", t.ID)
-	b.MsgChan <- BotMessage{
+	b.MsgChan <- types.BotMessage{
 		ChatID: t.UserID,
 		MsgStr: msg,
 	}
@@ -181,7 +181,7 @@ func (b *Bot) handleTPFilled(t *models.Trade, f *futures.WsOrderTradeUpdate) {
 		return
 	}
 	msg := fmt.Sprintf("✅ Take-profit order executed successfully.\n\nTrade ID: %d", t.ID)
-	b.MsgChan <- BotMessage{
+	b.MsgChan <- types.BotMessage{
 		ChatID: t.UserID,
 		MsgStr: msg,
 	}
@@ -190,7 +190,7 @@ func (b *Bot) handleTPFilled(t *models.Trade, f *futures.WsOrderTradeUpdate) {
 		return
 	}
 	msg = fmt.Sprintf("Stop-loss order has been canceled.\n\nTrade ID: %d", t.ID)
-	b.MsgChan <- BotMessage{
+	b.MsgChan <- types.BotMessage{
 		ChatID: t.UserID,
 		MsgStr: msg,
 	}
@@ -257,7 +257,7 @@ func (b *Bot) scheduleOrderReplacement(ctx context.Context, delay time.Duration,
 				b.l.Printf("Error updating trade to PLACED state: %v", err)
 			}
 			msg := fmt.Sprintf("Order replaced successfully\n\nNewOrder ID: %d\nTrade ID: %d", cp.OrderID, t.ID)
-			b.MsgChan <- BotMessage{
+			b.MsgChan <- types.BotMessage{
 				ChatID: t.UserID,
 				MsgStr: msg,
 			}

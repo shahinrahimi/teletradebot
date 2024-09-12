@@ -12,6 +12,7 @@ import (
 	"github.com/shahinrahimi/teletradebot/exchange/binance"
 	"github.com/shahinrahimi/teletradebot/exchange/bitmex"
 	"github.com/shahinrahimi/teletradebot/store"
+	"github.com/shahinrahimi/teletradebot/types"
 )
 
 func main() {
@@ -20,6 +21,9 @@ func main() {
 
 	// create global context
 	ctx := context.WithoutCancel(context.Background())
+
+	// create global message channel
+	msgChan := make(chan types.BotMessage)
 
 	// check .env file
 	if err := godotenv.Load(); err != nil {
@@ -49,7 +53,7 @@ func main() {
 	//mc := exchange.NewBitmexClient(logger, "https://testnet.bitmex.com", apiKey2, apiSec2)
 
 	// create binance and bitmex client
-	bc := binance.NewBinanceClient(logger, apiKey, apiSec, true)
+	bc := binance.NewBinanceClient(logger, apiKey, apiSec, true, msgChan)
 	mc := bitmex.NewBitmexClient(logger, apiKey2, apiSec2, true)
 
 	// start polling for binance
@@ -69,7 +73,7 @@ func main() {
 		logger.Fatalf("error initializing DB: %v", err)
 	}
 
-	b, err := bot.NewBot(logger, s, bc, mc, token)
+	b, err := bot.NewBot(logger, s, bc, mc, token, msgChan)
 	if err != nil {
 		logger.Fatalf("error creating instance of bot: %v", err)
 	}

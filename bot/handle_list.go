@@ -4,6 +4,7 @@ import (
 	"context"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/shahinrahimi/teletradebot/types"
 )
 
 func (b *Bot) HandleList(u *tgbotapi.Update, ctx context.Context) error {
@@ -18,13 +19,13 @@ func (b *Bot) HandleList(u *tgbotapi.Update, ctx context.Context) error {
 		msg = msg + t.ToListString() + "\n"
 	}
 	if len(ts) == 0 {
-		b.MsgChan <- BotMessage{
+		b.MsgChan <- types.BotMessage{
 			ChatID: userID,
 			MsgStr: "No trades found.",
 		}
 		return nil
 	}
-	b.MsgChan <- BotMessage{
+	b.MsgChan <- types.BotMessage{
 		ChatID: userID,
 		MsgStr: "List of trades\n" + msg,
 	}

@@ -9,6 +9,7 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/shahinrahimi/teletradebot/models"
+	"github.com/shahinrahimi/teletradebot/types"
 )
 
 func (b *Bot) ProvideTradeByID(next Handler) Handler {
@@ -18,7 +19,7 @@ func (b *Bot) ProvideTradeByID(next Handler) Handler {
 		id, err := strconv.Atoi(args[0])
 		if err != nil {
 			msg := fmt.Sprintf("Invalid trade ID: '%s'. Please provide a numeric ID.", args[0])
-			b.MsgChan <- BotMessage{
+			b.MsgChan <- types.BotMessage{
 				ChatID: userID,
 				MsgStr: msg,
 			}
@@ -28,7 +29,7 @@ func (b *Bot) ProvideTradeByID(next Handler) Handler {
 		if err != nil {
 			if err == sql.ErrNoRows {
 				msg := fmt.Sprintf("No trade found with ID: %d.", id)
-				b.MsgChan <- BotMessage{
+				b.MsgChan <- types.BotMessage{
 					ChatID: userID,
 					MsgStr: msg,
 				}
@@ -36,7 +37,7 @@ func (b *Bot) ProvideTradeByID(next Handler) Handler {
 			}
 			b.l.Printf("Error retrieving trade from database: %v", err)
 			msg := "An internal error occurred while fetching the trade. Please try again later."
-			b.MsgChan <- BotMessage{
+			b.MsgChan <- types.BotMessage{
 				ChatID: userID,
 				MsgStr: msg,
 			}

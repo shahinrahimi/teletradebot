@@ -18,7 +18,7 @@ func (b *Bot) HandleExecute2(u *tgbotapi.Update, ctx context.Context) error {
 	userID := u.Message.From.ID
 	if t.State != types.STATE_IDLE {
 		msg := "The trade could not be executed as it has already been executed once."
-		b.MsgChan <- BotMessage{
+		b.MsgChan <- types.BotMessage{
 			ChatID: userID,
 			MsgStr: msg,
 		}
@@ -36,7 +36,7 @@ func (b *Bot) HandleExecute2(u *tgbotapi.Update, ctx context.Context) error {
 	}
 
 	msg := fmt.Sprintf("Order placed successfully\n\nOrder ID: %s\nTrade ID: %d", order.OrderID, t.ID)
-	b.MsgChan <- BotMessage{
+	b.MsgChan <- types.BotMessage{
 		ChatID: userID,
 		MsgStr: msg,
 	}
@@ -49,7 +49,7 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 	userID := u.Message.From.ID
 	if t.State != types.STATE_IDLE {
 		msg := "The trade could not be executed as it has already been executed once."
-		b.MsgChan <- BotMessage{
+		b.MsgChan <- types.BotMessage{
 			ChatID: userID,
 			MsgStr: msg,
 		}
@@ -111,7 +111,7 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 	}
 
 	msg := fmt.Sprintf("Order placed successfully\n\nOrder ID: %s\nTrade ID: %d", orderID, t.ID)
-	b.MsgChan <- BotMessage{
+	b.MsgChan <- types.BotMessage{
 		ChatID: userID,
 		MsgStr: msg,
 	}

@@ -16,7 +16,7 @@ func (b *Bot) HandleDescribe(u *tgbotapi.Update, ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		b.MsgChan <- BotMessage{
+		b.MsgChan <- types.BotMessage{
 			ChatID: userID,
 			MsgStr: td.ToTelegramString(&t),
 		}

@@ -5,6 +5,7 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/shahinrahimi/teletradebot/config"
+	"github.com/shahinrahimi/teletradebot/types"
 )
 
 func (b *Bot) HandleAlias(u *tgbotapi.Update, ctx context.Context) error {
@@ -13,7 +14,7 @@ func (b *Bot) HandleAlias(u *tgbotapi.Update, ctx context.Context) error {
 	for key, value := range config.Shortcuts {
 		msg = msg + "'" + key + "' => " + value + "\n"
 	}
-	b.MsgChan <- BotMessage{
+	b.MsgChan <- types.BotMessage{
 		ChatID: userID,
 		MsgStr: msg,
 	}
