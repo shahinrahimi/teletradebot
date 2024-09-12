@@ -58,6 +58,19 @@ func (s *SqliteStore) Init() error {
 	return nil
 }
 
+func (s *SqliteStore) ResetAllTrades() {
+	ts, err := s.GetTrades()
+	if err != nil {
+		s.l.Printf("error getting trades: %v", err)
+		return
+	}
+	for _, t := range ts {
+		if err = s.UpdateTradeIdle(t); err != nil {
+			s.l.Printf("error updating trade to idle: %v", err)
+		}
+	}
+}
+
 func (s *SqliteStore) CloseDB() {
 	if err := s.db.Close(); err != nil {
 		s.l.Printf("error closing db connection: %v", err)

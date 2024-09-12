@@ -35,7 +35,7 @@ func (bc *BinanceClient) handleSLFilled(t *models.Trade, f *futures.WsOrderTrade
 		MsgStr: msg,
 	}
 	if _, err := bc.cancelOrder(context.Background(), orderID, f.Symbol); err != nil {
-		bc.l.Printf("Error canceling take-profit order.")
+		bc.l.Printf("Error canceling take-profit order: %v", err)
 		return
 	}
 	msg = fmt.Sprintf("Take-profit order has been canceled.\n\nTrade ID: %d", t.ID)
@@ -57,7 +57,7 @@ func (bc *BinanceClient) handleTPFilled(t *models.Trade, f *futures.WsOrderTrade
 		MsgStr: msg,
 	}
 	if _, err := bc.cancelOrder(context.Background(), orderID, f.Symbol); err != nil {
-		bc.l.Printf("Error canceling stop-loss order.: %v", err)
+		bc.l.Printf("Error canceling stop-loss order: %v", err)
 		return
 	}
 	msg = fmt.Sprintf("Stop-loss order has been canceled.\n\nTrade ID: %d", t.ID)

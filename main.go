@@ -31,6 +31,8 @@ func main() {
 		logger.Fatalf("error creating new sqlite store instance: %v", err)
 	}
 	defer s.CloseDB()
+	// reset all trades
+	s.ResetAllTrades()
 
 	// check .env file
 	if err := godotenv.Load(); err != nil {
