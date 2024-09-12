@@ -19,7 +19,7 @@ func (b *Bot) RequiredAuth(next Handler) Handler {
 				return
 			}
 		}
-		msg := fmt.Sprintf("You are not allowed\n\n Username: %s UserID: %s", username)
+		msg := fmt.Sprintf("You are not allowed\n\n Username: %s UserID: %d", username, userID)
 		b.MsgChan <- types.BotMessage{
 			ChatID: userID,
 			MsgStr: msg,

@@ -49,6 +49,10 @@ func (td *TradeDescriber) ToTelegramString(t *models.Trade) string {
 	return msg
 }
 
+func (bc *BinanceClient) ExecuteTrade(ctx context.Context, t *models.Trade) {
+
+}
+
 func (bc *BinanceClient) getTradeLatestDescriber(ctx context.Context, t *models.Trade) (*TradeDescriber, error) {
 	k, err := bc.getLastClosedKline(ctx, t)
 	if err != nil {
@@ -147,7 +151,6 @@ func (bc *BinanceClient) PlacePreparedOrder(ctx context.Context, p *PreparedOrde
 		StopPrice(p.StopPrice).
 		Type(futures.OrderTypeStopMarket).
 		WorkingType(futures.WorkingTypeMarkPrice)
-
 	return order.Do(ctx)
 }
 

@@ -85,7 +85,8 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 
 			// schedule order cancellation (it will raise error if currently filled)
 			// if cancel successfully it will change trade state to replacing
-			go b.scheduleOrderReplacement(ctx, po.Expiration, res.OrderID, &t)
+			// TODO check whats going on here
+			//go b.bc.scheduleOrderReplacement(ctx, po.Expiration, res.OrderID, &t)
 			orderID = utils.ConvertBinanceOrderID(res.OrderID)
 			break
 

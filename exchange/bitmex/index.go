@@ -4,16 +4,18 @@ import (
 	"context"
 	"log"
 
+	"github.com/shahinrahimi/teletradebot/store"
 	swagger "github.com/shahinrahimi/teletradebot/swagger"
 )
 
 type BitmexClient struct {
 	l      *log.Logger
+	s      store.Storage
 	client *swagger.APIClient
 	auth   context.Context
 }
 
-func NewBitmexClient(l *log.Logger, apiKey string, apiSec string, UseTestnet bool) *BitmexClient {
+func NewBitmexClient(l *log.Logger, s store.Storage, apiKey string, apiSec string, UseTestnet bool) *BitmexClient {
 	cfg := swagger.NewConfiguration()
 	if UseTestnet {
 		cfg.BasePath = "https://testnet.bitmex.com/api/v1"
@@ -26,6 +28,7 @@ func NewBitmexClient(l *log.Logger, apiKey string, apiSec string, UseTestnet boo
 
 	return &BitmexClient{
 		l:      l,
+		s:      s,
 		client: client,
 		auth:   auth,
 	}

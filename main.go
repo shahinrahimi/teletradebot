@@ -25,6 +25,13 @@ func main() {
 	// create global message channel
 	msgChan := make(chan types.BotMessage)
 
+	// create global store (Storage)
+	s, err := store.NewSqliteStore(logger)
+	if err != nil {
+		logger.Fatalf("error creating new sqlite store instance: %v", err)
+	}
+	defer s.CloseDB()
+
 	// check .env file
 	if err := godotenv.Load(); err != nil {
 		logger.Fatalf("error loading environmental file: %v", err)
@@ -53,20 +60,16 @@ func main() {
 	//mc := exchange.NewBitmexClient(logger, "https://testnet.bitmex.com", apiKey2, apiSec2)
 
 	// create binance and bitmex client
-	bc := binance.NewBinanceClient(logger, apiKey, apiSec, true, msgChan)
-	mc := bitmex.NewBitmexClient(logger, apiKey2, apiSec2, true)
+	bc := binance.NewBinanceClient(logger, s, apiKey, apiSec, true, msgChan)
+	mc := bitmex.NewBitmexClient(logger, s, apiKey2, apiSec2, true)
+
+	// start websocket
+	bc.StartWebsocketService(ctx)
 
 	// start polling for binance
 	bc.StartPolling(ctx)
 	// start polling for bitmex
 	mc.StartPolling(ctx)
-
-	// create a store
-	s, err := store.NewSqliteStore(logger)
-	if err != nil {
-		logger.Fatalf("error creating new sqlite store instance: %v", err)
-	}
-	defer s.CloseDB()
 
 	// init DB
 	if err := s.Init(); err != nil {
@@ -77,8 +80,6 @@ func main() {
 	if err != nil {
 		logger.Fatalf("error creating instance of bot: %v", err)
 	}
-
-	b.StartBinanceService(ctx)
 	b.StartMessageListener()
 
 	//go b.ScanningTrades(ctx)
