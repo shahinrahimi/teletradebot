@@ -117,6 +117,12 @@ func (b *Bot) handleNewFilled(ctx context.Context, t *models.Trade, f futures.Ws
 			b.l.Printf("unexpected error happened in casting error to futures.CreateOrderResponse: %T", orderResponse)
 			return
 		}
+		orderID := utils.ConvertBinanceOrderID(orderResponse.OrderID)
+		// update trade
+		if err := b.s.UpdateTradeSLOrder(t, orderID); err != nil {
+			b.l.Printf("error updating trade state: %v", err)
+			return
+		}
 		// message the user
 		msg := fmt.Sprintf("Stop-loss order placed successfully.\n\nOrder ID: %d\nTrade ID: %d", orderResponse.OrderID, t.ID)
 		b.MsgChan <- types.BotMessage{
@@ -138,6 +144,12 @@ func (b *Bot) handleNewFilled(ctx context.Context, t *models.Trade, f futures.Ws
 		orderResponse, ok := res.(*futures.CreateOrderResponse)
 		if !ok {
 			b.l.Printf("unexpected error happened in casting error to futures.CreateOrderResponse: %T", orderResponse)
+			return
+		}
+		orderID := utils.ConvertBinanceOrderID(orderResponse.OrderID)
+		// update trade
+		if err := b.s.UpdateTradeTPOrder(t, orderID); err != nil {
+			b.l.Printf("error updating trade state: %v", err)
 			return
 		}
 		// message the user

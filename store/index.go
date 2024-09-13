@@ -23,6 +23,7 @@ type Storage interface {
 	GetTradeByTPOrderID(TPOrderID string) (*models.Trade, error)
 	DeleteTrade(id int64) error
 	UpdateTrade(t *models.Trade) error
+	UpdateTradeClosed(t *models.Trade) error
 	UpdateTradeFilled(t *models.Trade) error
 	UpdateTradeStopped(t *models.Trade) error
 	UpdateTradeProfited(t *models.Trade) error

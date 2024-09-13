@@ -40,6 +40,7 @@ const (
 	STATE_REVERTING string = `reverting`
 	STATE_STOPPED   string = `stopped`
 	STATE_PROFITED  string = `profited`
+	STATE_CLOSED    string = `closed`
 )
 
 var ExpireDuration = map[string]time.Duration{
