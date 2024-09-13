@@ -135,7 +135,7 @@ func (bc *BinanceClient) getLastClosedKline(ctx context.Context, t *models.Trade
 
 func (bc *BinanceClient) handleError(err error, userID int64) {
 	if apiErr, ok := err.(*common.APIError); ok {
-		msg := fmt.Sprintf("Binance API:\n\\nMessage: %s\nCode: %d", apiErr.Message, apiErr.Code)
+		msg := fmt.Sprintf("Binance API:\n\nMessage: %s\nCode: %d", apiErr.Message, apiErr.Code)
 		bc.MsgChan <- types.BotMessage{
 			ChatID: userID,
 			MsgStr: msg,

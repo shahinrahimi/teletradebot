@@ -2,8 +2,10 @@ package bot
 
 import (
 	"context"
+	"fmt"
 	"log"
 
+	"github.com/adshao/go-binance/v2/common"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/shahinrahimi/teletradebot/exchange/binance"
 	"github.com/shahinrahimi/teletradebot/exchange/bitmex"
@@ -127,6 +129,18 @@ func (b *Bot) sendMessage(chatID int64, msgStr string) {
 	msg := tgbotapi.NewMessage(chatID, msgStr)
 	if _, err := b.api.Send(msg); err != nil {
 		b.l.Printf("error in sending message to user: %v", err)
+	}
+}
+
+func (b *Bot) handleError(err error, userID int64) {
+	if apiErr, ok := err.(*common.APIError); ok {
+		msg := fmt.Sprintf("Binance API:\n\nMessage: %s\nCode: %d", apiErr.Message, apiErr.Code)
+		b.MsgChan <- types.BotMessage{
+			ChatID: userID,
+			MsgStr: msg,
+		}
+	} else {
+		b.l.Printf("error casting error to Api error type: %T", err)
 	}
 }
 

@@ -19,6 +19,10 @@ func (bc *BinanceClient) handleNewFilled(t *models.Trade, f *futures.WsOrderTrad
 		models.SetDescriber(d, t.ID)
 	}
 
+	go func() {
+
+	}()
+
 	go bc.executeSLOrder(t, f)
 	go bc.executeTPOrder(t, f)
 }

@@ -98,6 +98,9 @@ func (s *SqliteStore) UpdateTrade(t *models.Trade) error {
 
 func (s *SqliteStore) UpdateTradeCancelled(t *models.Trade) error {
 	t.State = types.STATE_CANCELED
+	t.OrderID = ""
+	t.SLOrderID = ""
+	t.TPOrderID = ""
 	return s.UpdateTrade(t)
 }
 

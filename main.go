@@ -71,7 +71,7 @@ func main() {
 	mc := bitmex.NewBitmexClient(logger, s, apiKey2, apiSec2, true)
 
 	// start websocket
-	bc.StartWebsocketService(ctx)
+	//bc.StartWebsocketService(ctx)
 
 	// start polling for binance
 	bc.StartPolling(ctx)
@@ -82,7 +82,12 @@ func main() {
 	if err != nil {
 		logger.Fatalf("error creating instance of bot: %v", err)
 	}
+
+	// start listening for messages
 	b.StartMessageListener()
+
+	// start binance ws
+	b.StartWebsocketService(ctx)
 
 	//go b.ScanningTrades(ctx)
 
@@ -114,7 +119,7 @@ func main() {
 	r2.Handle(bot.REMOVE, b.MakeHandlerBotFunc(b.HandleRemove))
 	r2.Handle(bot.CHECK, b.MakeHandlerBotFunc(b.HandleCheck))
 	r2.Handle(bot.CANCEL, b.MakeHandlerBotFunc(b.HandleCancel))
-	r2.Handle(bot.EXECUTE, b.MakeHandlerBotFunc(b.HandleExecute))
+	r2.Handle(bot.EXECUTE, b.MakeHandlerBotFunc(b.HandleExecute3))
 	r2.Handle(bot.CLOSE, b.MakeHandlerBotFunc(b.HandleClose))
 	r2.Handle(bot.VIEW, b.MakeHandlerBotFunc(b.HandleView))
 	r2.Handle(bot.DESCRIBE, b.MakeHandlerBotFunc(b.HandleDescribe))
