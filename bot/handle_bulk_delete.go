@@ -11,7 +11,7 @@ import (
 
 func (b *Bot) HandleBulkDelete(u *tgbotapi.Update, ctx context.Context) error {
 	userID := u.Message.From.ID
-	var trades []models.Trade
+	var trades []*models.Trade
 	args := strings.Split(u.Message.CommandArguments(), " ")
 
 	if len(args) == 2 {
@@ -44,7 +44,7 @@ func (b *Bot) HandleBulkDelete(u *tgbotapi.Update, ctx context.Context) error {
 		}
 
 		for _, t := range trades {
-			ctx = context.WithValue(ctx, models.KeyTrade{}, t)
+			ctx = context.WithValue(ctx, models.KeyTrade{}, *t)
 			go b.HandleRemove(u, ctx)
 		}
 
@@ -55,7 +55,7 @@ func (b *Bot) HandleBulkDelete(u *tgbotapi.Update, ctx context.Context) error {
 			return err
 		}
 		for _, t := range trades {
-			ctx = context.WithValue(ctx, models.KeyTrade{}, t)
+			ctx = context.WithValue(ctx, models.KeyTrade{}, *t)
 			go b.HandleRemove(u, ctx)
 		}
 	}

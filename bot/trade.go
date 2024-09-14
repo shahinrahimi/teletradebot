@@ -46,15 +46,15 @@ func (b *Bot) getAllUniqueRawTrades(rawTrades []models.Trade, account string, si
 	return uniqueTrades, nil
 }
 
-func (b *Bot) getAllTrades(account string, side string) ([]models.Trade, error) {
-	var trades []models.Trade
+func (b *Bot) getAllTrades(account string, side string) ([]*models.Trade, error) {
+	var trades []*models.Trade
 	ts, err := b.s.GetTrades()
 	if err != nil {
 		return nil, err
 	}
 	for _, t := range ts {
 		if t.Account == account && t.Side == side {
-			trades = append(trades, *t)
+			trades = append(trades, t)
 		}
 	}
 

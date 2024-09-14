@@ -11,7 +11,7 @@ import (
 
 func (b *Bot) HandleBulkClose(u *tgbotapi.Update, ctx context.Context) error {
 	userID := u.Message.From.ID
-	var trades []models.Trade
+	var trades []*models.Trade
 	args := strings.Split(u.Message.CommandArguments(), " ")
 	if len(args) == 2 {
 		var err error
