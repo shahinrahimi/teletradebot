@@ -174,7 +174,7 @@ func (b *Bot) handleSLFilled(ctx context.Context, t *models.Trade, f futures.WsO
 			return
 		}
 		// message the user
-		msg = fmt.Sprintf("Take-profit order has been canceled.\n\nPnL: %s\nTrade ID: %d", f.RealizedPnL, t.ID)
+		msg = fmt.Sprintf("Take-profit order has been canceled.\n\nTrade ID: %d", t.ID)
 		b.MsgChan <- types.BotMessage{
 			ChatID: t.UserID,
 			MsgStr: msg,
@@ -189,7 +189,7 @@ func (b *Bot) handleTPFilled(ctx context.Context, t *models.Trade, f futures.WsO
 		return
 	}
 	// message the user
-	msg := fmt.Sprintf("✅ Take-profit order executed successfully.\n\nTrade ID: %d", t.ID)
+	msg := fmt.Sprintf("✅ Take-profit order executed successfully.\n\nPnL: %s\nTrade ID: %d", f.RealizedPnL, t.ID)
 	b.MsgChan <- types.BotMessage{
 		ChatID: t.UserID,
 		MsgStr: msg,

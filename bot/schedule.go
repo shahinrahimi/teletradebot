@@ -39,6 +39,7 @@ func (b *Bot) scheduleOrderReplacement(ctx context.Context, delay time.Duration,
 			})
 			if err != nil {
 				b.l.Printf("error cancelling order: %v", err)
+				// TODO add handleError for cases that canceled and the orderId not found
 				b.handleError(err, t.UserID, t.ID)
 				return
 			}

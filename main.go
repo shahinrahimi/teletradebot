@@ -9,6 +9,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/shahinrahimi/teletradebot/bot"
+	"github.com/shahinrahimi/teletradebot/config"
 	"github.com/shahinrahimi/teletradebot/exchange/binance"
 	"github.com/shahinrahimi/teletradebot/exchange/bitmex"
 	"github.com/shahinrahimi/teletradebot/store"
@@ -63,15 +64,10 @@ func main() {
 	if apiKey2 == "" || apiSec2 == "" {
 		logger.Fatal("error wrong environmental variable for bitmex client")
 	}
-	// create bitmex client
-	//mc := exchange.NewBitmexClient(logger, "https://testnet.bitmex.com", apiKey2, apiSec2)
 
 	// create binance and bitmex client
-	bc := binance.NewBinanceClient(logger, s, apiKey, apiSec, true, msgChan)
-	mc := bitmex.NewBitmexClient(logger, s, apiKey2, apiSec2, true)
-
-	// start websocket
-	//bc.StartWebsocketService(ctx)
+	bc := binance.NewBinanceClient(logger, apiKey, apiSec, config.UseBinanceTestnet, msgChan)
+	mc := bitmex.NewBitmexClient(logger, apiKey2, apiSec2, config.UseBitmexTestnet)
 
 	// start polling for binance
 	bc.StartPolling(ctx)
@@ -89,10 +85,8 @@ func main() {
 	// start binance ws
 	b.StartWebsocketService(ctx)
 
-	//go b.ScanningTrades(ctx)
-
 	// global middleware
-	// b.Use(b.BanBots)
+	b.Use(b.BanBots)
 	b.Use(b.Logger)
 
 	// routes
@@ -106,7 +100,11 @@ func main() {
 	r0 := b.NewRouter("route-0")
 	r0.Handle(bot.LIST, b.MakeHandlerBotFunc(b.HandleList))
 	r0.Handle(bot.ALIAS, b.MakeHandlerBotFunc(b.HandleAlias))
-	r0.Handle("bulk", b.MakeHandlerBotFunc(b.HandleBulk))
+	// for testing
+	r0.Handle("bulke", b.MakeHandlerBotFunc(b.HandleBulkExecute))
+	r0.Handle("bulkd", b.MakeHandlerBotFunc(b.HandleBulkDelete))
+	r0.Handle("bulka", b.MakeHandlerBotFunc(b.HandleBulkAdd))
+	r0.Handle("bulkr", b.MakeHandlerBotFunc(b.HandleBulkReset))
 	r0.Use(b.RequiredAuth)
 
 	// new route

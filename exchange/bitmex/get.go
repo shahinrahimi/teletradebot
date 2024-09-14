@@ -113,7 +113,7 @@ func (mc *BitmexClient) GetLastClosedCandle(t *models.Trade) (*swagger.TradeBin,
 		return nil, err
 	}
 	for index, bin := range tradeBins {
-		mc.l.Printf("index: %d symbol: %s open: %0.2f close: %0.2f", index, bin.Symbol, bin.Open, bin.Close, bin.Timestamp.UTC())
+		mc.l.Printf("index: %d symbol: %s open: %0.2f close: %0.2f, timestamp: %s", index, bin.Symbol, bin.Open, bin.Close, bin.Timestamp.UTC())
 	}
 	if len(tradeBins) > 0 {
 		return &tradeBins[0], nil

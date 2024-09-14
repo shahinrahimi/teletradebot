@@ -24,7 +24,6 @@ func (b *Bot) findTradeWithAnyOrderID(orderID string) (t *models.Trade, isOrderI
 
 func (b *Bot) getAllUniqueTrades(account string, side string, state string) (map[string]models.Trade, error) {
 	uniqueTrades := make(map[string]models.Trade)
-	// get all trades for binance with short side
 	ts, err := b.s.GetTrades()
 	if err != nil {
 		return nil, err
@@ -35,4 +34,29 @@ func (b *Bot) getAllUniqueTrades(account string, side string, state string) (map
 		}
 	}
 	return uniqueTrades, nil
+}
+
+func (b *Bot) getAllUniqueRawTrades(rawTrades []models.Trade, account string, side string) (map[string]models.Trade, error) {
+	uniqueTrades := make(map[string]models.Trade)
+	for _, t := range rawTrades {
+		if t.Account == account && t.Side == side {
+			uniqueTrades[t.Symbol] = t
+		}
+	}
+	return uniqueTrades, nil
+}
+
+func (b *Bot) getAllTrades(account string, side string) ([]models.Trade, error) {
+	var trades []models.Trade
+	ts, err := b.s.GetTrades()
+	if err != nil {
+		return nil, err
+	}
+	for _, t := range ts {
+		if t.Account == account && t.Side == side {
+			trades = append(trades, *t)
+		}
+	}
+
+	return trades, nil
 }
