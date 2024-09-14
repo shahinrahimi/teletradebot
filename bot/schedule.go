@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/adshao/go-binance/v2/common"
 	"github.com/adshao/go-binance/v2/futures"
 	"github.com/shahinrahimi/teletradebot/config"
 	"github.com/shahinrahimi/teletradebot/exchange/binance"
@@ -40,13 +41,26 @@ func (b *Bot) scheduleOrderReplacement(ctx context.Context, delay time.Duration,
 			if err != nil {
 				b.l.Printf("error cancelling order: %v", err)
 				// TODO add handleError for cases that canceled and the orderId not found
-				b.handleError(err, t.UserID, t.ID)
-				return
+				if apiErr, ok := err.(*common.APIError); ok {
+					if apiErr.Code == -2011 {
+						// assume the order is already cancelled successfully so it can not found
+						b.handleError(err, t.UserID, t.ID)
+					} else {
+						b.handleError(err, t.UserID, t.ID)
+						b.s.UpdateTradeCancelled(t)
+						return
+					}
+				} else {
+					b.handleError(err, t.UserID, t.ID)
+					b.s.UpdateTradeCancelled(t)
+					return
+				}
 			}
+
 			cancelOrder, ok := (res).(*futures.CancelOrderResponse)
 			if !ok {
 				b.l.Printf("unexpected error happened in casting error to futures.CancelOrderResponse: %T", cancelOrder)
-				return
+				//return
 			}
 
 			// place new order
