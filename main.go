@@ -105,6 +105,7 @@ func main() {
 	r0.Handle("bulkd", b.MakeHandlerBotFunc(b.HandleBulkDelete))
 	r0.Handle("bulka", b.MakeHandlerBotFunc(b.HandleBulkAdd))
 	r0.Handle("bulkr", b.MakeHandlerBotFunc(b.HandleBulkReset))
+	r0.Handle("bulkc", b.MakeHandlerBotFunc(b.HandleBulkClose))
 	r0.Use(b.RequiredAuth)
 
 	// new route
