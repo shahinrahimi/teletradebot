@@ -20,26 +20,6 @@ func (b *Bot) errHandler(err error) {
 	b.l.Printf("WebSocket error: %v", err)
 }
 
-func (b *Bot) GetAnyTradeAssociateWithOrderID(orderID string) (trade *models.Trade, isOrderID bool, isTPOrderID bool, isSLOrderID bool, err error) {
-	ts, err := b.s.GetTrades()
-	if err != nil {
-		return nil, false, false, false, err
-	}
-	for _, t := range ts {
-		switch {
-		case t.OrderID == orderID:
-			return t, true, false, false, nil
-		case t.TPOrderID == orderID:
-			return t, false, true, false, nil
-		case t.SLOrderID == orderID:
-			return t, false, false, true, nil
-		default:
-			continue
-		}
-	}
-	return nil, false, false, false, nil
-}
-
 func (b *Bot) handleOrderTradeUpdate(ctx context.Context, f futures.WsOrderTradeUpdate) {
 	switch f.Status {
 	case futures.OrderStatusTypeCanceled:
@@ -66,7 +46,7 @@ func (b *Bot) handleOrderTradeUpdate(ctx context.Context, f futures.WsOrderTrade
 
 func (b *Bot) handleFilled(ctx context.Context, f futures.WsOrderTradeUpdate) {
 	orderID := utils.ConvertBinanceOrderID(f.ID)
-	t, isOrderID, isTPOrderID, isSLOrderID, err := b.GetAnyTradeAssociateWithOrderID(orderID)
+	t, isOrderID, isTPOrderID, isSLOrderID, err := b.findTradeWithAnyOrderID(orderID)
 	if err != nil {
 		b.l.Printf("error getting associate trade with ID: %v", err)
 	}
@@ -168,7 +148,7 @@ func (b *Bot) handleSLFilled(ctx context.Context, t *models.Trade, f futures.WsO
 		return
 	}
 	// message the user
-	msg := fmt.Sprintf("🛑 Stop-loss order executed successfully.\n\nTrade ID: %d", t.ID)
+	msg := fmt.Sprintf("🛑 Stop-loss order executed successfully.\n\nPnL: %s\nTrade ID: %d", f.RealizedPnL, t.ID)
 	b.MsgChan <- types.BotMessage{
 		ChatID: t.UserID,
 		MsgStr: msg,
@@ -194,7 +174,7 @@ func (b *Bot) handleSLFilled(ctx context.Context, t *models.Trade, f futures.WsO
 			return
 		}
 		// message the user
-		msg = fmt.Sprintf("Take-profit order has been canceled.\n\nTrade ID: %d", t.ID)
+		msg = fmt.Sprintf("Take-profit order has been canceled.\n\nPnL: %s\nTrade ID: %d", f.RealizedPnL, t.ID)
 		b.MsgChan <- types.BotMessage{
 			ChatID: t.UserID,
 			MsgStr: msg,
