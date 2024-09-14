@@ -109,7 +109,7 @@ func (b *Bot) handleNewFilled(ctx context.Context, t *models.Trade, f futures.Ws
 		})
 		if err != nil {
 			b.l.Printf("error executing stop-loss order: %v", err)
-			b.handleError(err, t.UserID)
+			b.handleError(err, t.UserID, t.ID)
 			return
 		}
 		orderResponse, ok := res.(*futures.CreateOrderResponse)
@@ -138,7 +138,7 @@ func (b *Bot) handleNewFilled(ctx context.Context, t *models.Trade, f futures.Ws
 		})
 		if err != nil {
 			b.l.Printf("error executing take-profit order: %v", err)
-			b.handleError(err, t.UserID)
+			b.handleError(err, t.UserID, t.ID)
 			return
 		}
 		orderResponse, ok := res.(*futures.CreateOrderResponse)
@@ -185,7 +185,7 @@ func (b *Bot) handleSLFilled(ctx context.Context, t *models.Trade, f futures.WsO
 		})
 		if err != nil {
 			b.l.Printf("error cancelling take-profit order: %v", err)
-			b.handleError(err, t.UserID)
+			b.handleError(err, t.UserID, t.ID)
 			return
 		}
 		orderResponse, ok := res.(*futures.CancelOrderResponse)
@@ -226,7 +226,7 @@ func (b *Bot) handleTPFilled(ctx context.Context, t *models.Trade, f futures.WsO
 		})
 		if err != nil {
 			b.l.Printf("error cancelling take-profit order: %v", err)
-			b.handleError(err, t.UserID)
+			b.handleError(err, t.UserID, t.ID)
 			return
 		}
 		orderResponse, ok := res.(*futures.CancelOrderResponse)

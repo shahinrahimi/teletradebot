@@ -20,7 +20,7 @@ func (b *Bot) scheduleOrderReplacement(ctx context.Context, delay time.Duration,
 		})
 		if err != nil {
 			b.l.Printf("error getting order by trade: %v", err)
-			b.handleError(err, t.UserID)
+			b.handleError(err, t.UserID, t.ID)
 			return
 		}
 		orderResponse, ok := (res).(*futures.Order)
@@ -39,7 +39,7 @@ func (b *Bot) scheduleOrderReplacement(ctx context.Context, delay time.Duration,
 			})
 			if err != nil {
 				b.l.Printf("error cancelling order: %v", err)
-				b.handleError(err, t.UserID)
+				b.handleError(err, t.UserID, t.ID)
 				return
 			}
 			cancelOrder, ok := (res).(*futures.CancelOrderResponse)
@@ -54,7 +54,7 @@ func (b *Bot) scheduleOrderReplacement(ctx context.Context, delay time.Duration,
 			})
 			if err != nil {
 				b.l.Printf("error placing trade: %v", err)
-				b.handleError(err, t.UserID)
+				b.handleError(err, t.UserID, t.ID)
 				// change trade state to canceled
 				b.s.UpdateTradeCancelled(t)
 				return
@@ -72,7 +72,7 @@ func (b *Bot) scheduleOrderReplacement(ctx context.Context, delay time.Duration,
 			}
 
 			// schedule
-			b.scheduleOrderReplacement(ctx, preparedOrder.Expiration, createOrder.OrderID, t)
+			go b.scheduleOrderReplacement(ctx, preparedOrder.Expiration, createOrder.OrderID, t)
 
 			// update trade order
 			orderIdStr := utils.ConvertBinanceOrderID(createOrder.OrderID)

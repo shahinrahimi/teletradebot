@@ -11,7 +11,6 @@ const (
 	ALIAS    string = "alias"
 	ADD      string = "add"
 	LIST     string = "list"
-	CANCEL   string = "cancel"
 	RESET    string = "reset"
 	EXECUTE  string = "execute"
 	CLOSE    string = "close"
@@ -35,7 +34,6 @@ func GetGeneralCommands() []string {
 func GetSpecifiedCommands() []string {
 	commands := []string{
 		ADD,
-		CANCEL,
 		RESET,
 		EXECUTE,
 		CLOSE,
@@ -55,7 +53,6 @@ func GetAllCommands() []string {
 		ADD,
 		LIST,
 		ALIAS,
-		CANCEL,
 		RESET,
 		EXECUTE,
 		CLOSE,

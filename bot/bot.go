@@ -132,9 +132,9 @@ func (b *Bot) sendMessage(chatID int64, msgStr string) {
 	}
 }
 
-func (b *Bot) handleError(err error, userID int64) {
+func (b *Bot) handleError(err error, userID int64, tradeID int64) {
 	if apiErr, ok := err.(*common.APIError); ok {
-		msg := fmt.Sprintf("Binance API:\n\nMessage: %s\nCode: %d", apiErr.Message, apiErr.Code)
+		msg := fmt.Sprintf("Binance API:\n\nMessage: %s\nCode: %d\nTradeID: %d", apiErr.Message, apiErr.Code, tradeID)
 		b.MsgChan <- types.BotMessage{
 			ChatID: userID,
 			MsgStr: msg,

@@ -7,6 +7,7 @@ import (
 	"github.com/adshao/go-binance/v2/common"
 	"github.com/shahinrahimi/teletradebot/models"
 	"github.com/shahinrahimi/teletradebot/types"
+	"github.com/shahinrahimi/teletradebot/utils"
 )
 
 func (b *Bot) retry(attempts int, delay time.Duration, t *models.Trade, f func() (interface{}, interface{}, error)) (interface{}, interface{}, error) {
@@ -17,7 +18,7 @@ func (b *Bot) retry(attempts int, delay time.Duration, t *models.Trade, f func()
 			if apiErr, ok := err.(*common.APIError); ok {
 				switch {
 				case (apiErr.Code == -1007 || apiErr.Code == -1008):
-					msg := fmt.Sprintf("Failed to place a order\nRetry after %d seconds ...\n\nTrade ID: %d", delay, t.ID)
+					msg := fmt.Sprintf("Failed to place a order\nRetry after %s ...\n\nTrade ID: %d", utils.FriendlyDuration(delay), t.ID)
 					b.MsgChan <- types.BotMessage{
 						ChatID: t.UserID,
 						MsgStr: msg,
@@ -45,7 +46,7 @@ func (b *Bot) retry2(attempts int, delay time.Duration, t *models.Trade, f func(
 			if apiErr, ok := err.(*common.APIError); ok {
 				switch {
 				case (apiErr.Code == -1007 || apiErr.Code == -1008):
-					msg := fmt.Sprintf("Failed to place a order\nRetry after %d seconds ...\n\nTrade ID: %d", delay, t.ID)
+					msg := fmt.Sprintf("Failed to place a order\nRetry after %s ...\n\nTrade ID: %d", utils.FriendlyDuration(delay), t.ID)
 					b.MsgChan <- types.BotMessage{
 						ChatID: t.UserID,
 						MsgStr: msg,

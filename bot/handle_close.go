@@ -34,7 +34,7 @@ func (b *Bot) HandleClose(u *tgbotapi.Update, ctx context.Context) error {
 			})
 			if err != nil {
 				b.l.Printf("error getting order: %v", err)
-				b.handleError(err, t.UserID)
+				b.handleError(err, t.UserID, t.ID)
 				return
 			}
 			order, ok := res.(*futures.Order)
@@ -51,7 +51,7 @@ func (b *Bot) HandleClose(u *tgbotapi.Update, ctx context.Context) error {
 				})
 				if err != nil {
 					b.l.Printf("error cancelling order: %v", err)
-					b.handleError(err, t.UserID)
+					b.handleError(err, t.UserID, t.ID)
 					return
 				}
 				cancelOrder, ok := res.(*futures.CancelOrderResponse)
@@ -82,7 +82,7 @@ func (b *Bot) HandleClose(u *tgbotapi.Update, ctx context.Context) error {
 				})
 				if err != nil {
 					b.l.Printf("error closing order: %v", err)
-					b.handleError(err, t.UserID)
+					b.handleError(err, t.UserID, t.ID)
 					return
 				}
 				closeOrder, ok := res.(*futures.CreateOrderResponse)
@@ -123,7 +123,7 @@ func (b *Bot) HandleClose(u *tgbotapi.Update, ctx context.Context) error {
 			})
 			if err != nil {
 				b.l.Printf("error cancelling order: %v", err)
-				b.handleError(err, t.UserID)
+				b.handleError(err, t.UserID, t.ID)
 				return
 			}
 			order, ok := res.(*futures.CancelOrderResponse)
@@ -157,7 +157,7 @@ func (b *Bot) HandleClose(u *tgbotapi.Update, ctx context.Context) error {
 			})
 			if err != nil {
 				b.l.Printf("error cancelling order: %v", err)
-				b.handleError(err, t.UserID)
+				b.handleError(err, t.UserID, t.ID)
 				return
 			}
 			order, ok := res.(*futures.CancelOrderResponse)

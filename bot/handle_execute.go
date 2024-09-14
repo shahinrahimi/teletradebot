@@ -32,7 +32,7 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 			})
 			if err != nil {
 				b.l.Printf("error executing trade: %v", err)
-				b.handleError(err, userID)
+				b.handleError(err, userID, t.ID)
 				return
 			}
 			orderResponse, ok := res.(*futures.CreateOrderResponse)

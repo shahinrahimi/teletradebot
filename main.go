@@ -106,6 +106,7 @@ func main() {
 	r0 := b.NewRouter("route-0")
 	r0.Handle(bot.LIST, b.MakeHandlerBotFunc(b.HandleList))
 	r0.Handle(bot.ALIAS, b.MakeHandlerBotFunc(b.HandleAlias))
+	r0.Handle("bulk", b.MakeHandlerBotFunc(b.HandleBulk))
 	r0.Use(b.RequiredAuth)
 
 	// new route
@@ -118,7 +119,6 @@ func main() {
 	r2 := b.NewRouter("route-2")
 	r2.Handle(bot.REMOVE, b.MakeHandlerBotFunc(b.HandleRemove))
 	r2.Handle(bot.CHECK, b.MakeHandlerBotFunc(b.HandleCheck))
-	r2.Handle(bot.CANCEL, b.MakeHandlerBotFunc(b.HandleCancel))
 	r2.Handle(bot.EXECUTE, b.MakeHandlerBotFunc(b.HandleExecute))
 	r2.Handle(bot.CLOSE, b.MakeHandlerBotFunc(b.HandleClose))
 	r2.Handle(bot.VIEW, b.MakeHandlerBotFunc(b.HandleView))
