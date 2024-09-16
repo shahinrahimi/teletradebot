@@ -5,6 +5,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/url"
@@ -135,6 +136,9 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 		done := make(chan struct{})
 
 		// WebSocket read loop
+		var orderTable OrderTable
+		var marginTable MarginTable
+		var executionTable ExecutionTable
 		go func() {
 			defer close(done)
 			for {
@@ -143,7 +147,23 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 					b.l.Printf("error reading bitmex message: %v", err)
 					return
 				}
-				b.l.Printf("received message: %s", message)
+				if err := json.Unmarshal(message, &orderTable); err == nil {
+					b.l.Printf("received message orderTable: %s", orderTable.Table)
+					lastMessageTime = time.Now()
+					continue
+				}
+				if err := json.Unmarshal(message, &marginTable); err == nil {
+					b.l.Printf("received message marginTable: %s", marginTable.Table)
+					lastMessageTime = time.Now()
+					continue
+				}
+				if err := json.Unmarshal(message, &executionTable); err == nil {
+					b.l.Printf("received message executionTable: %s", executionTable.Table)
+					lastMessageTime = time.Now()
+					continue
+				}
+
+				b.l.Printf("received unknown message type: %s", message)
 				lastMessageTime = time.Now()
 			}
 		}()
@@ -172,6 +192,11 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 				}
 			}
 		}()
+
+		// wait for websocket to close or error out
+		<-done
+		b.l.Println("Connection lost. Reconnecting...")
+		time.Sleep(5 * time.Second)
 
 	}
 }
