@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/shahinrahimi/teletradebot/utils"
 )
 
 const (
@@ -173,21 +174,23 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 			for {
 				select {
 				case <-pingTicker.C:
+					b.l.Printf("last message time: %s", utils.FriendlyDuration(time.Since(lastMessageTime)))
 					if time.Since(lastMessageTime) >= pingInterval {
 						b.l.Println("ping bitmex")
-					}
-					err := ws.WriteMessage(websocket.PingMessage, []byte{})
-					if err != nil {
-						b.l.Printf("error sending bitmex ping: %v", err)
-						return
-					}
-					// wait for pong
-					pongWaitTimer := time.NewTimer(pongWait)
-					select {
-					case <-pongWaitTimer.C:
-						b.l.Println("pong timeout - reconnecting")
-						ws.Close()
-						return
+
+						err := ws.WriteMessage(websocket.PingMessage, []byte{})
+						if err != nil {
+							b.l.Printf("error sending bitmex ping: %v", err)
+							return
+						}
+						// wait for pong
+						pongWaitTimer := time.NewTimer(pongWait)
+						select {
+						case <-pongWaitTimer.C:
+							b.l.Println("pong timeout - reconnecting")
+							ws.Close()
+							return
+						}
 					}
 				}
 			}
