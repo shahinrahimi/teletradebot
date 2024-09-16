@@ -112,7 +112,7 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 		}
 		b.l.Printf("sent auth message: %s", authMessage)
 
-		publicSubMessage := fmt.Sprintf(`{"op": "subscribe", ["trade:%s", "instrument:%s"]}`, Symbol, Symbol)
+		publicSubMessage := fmt.Sprintf(`{"op": "subscribe", ["instrument:%s"]}`, Symbol)
 
 		err = ws.WriteMessage(websocket.TextMessage, []byte(publicSubMessage))
 		if err != nil {
@@ -134,6 +134,21 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 		pingTicker := time.NewTicker(pingInterval)
 		defer pingTicker.Stop()
 
+		// Track pong receipt
+		pongReceived := make(chan struct{})
+
+		ws.SetPongHandler(func(appData string) error {
+			b.l.Printf("received pong from BitMEX: %s", appData)
+			lastMessageTime = time.Now() // Reset the last message time
+			// Signal pong received
+			select {
+			case pongReceived <- struct{}{}:
+			default:
+			}
+
+			return nil
+		})
+
 		done := make(chan struct{})
 
 		// WebSocket read loop
@@ -148,24 +163,56 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 					b.l.Printf("error reading bitmex message: %v", err)
 					return
 				}
-				if err := json.Unmarshal(message, &orderTable); err == nil {
-					b.l.Printf("received message orderTable: %s", orderTable.Table)
-					lastMessageTime = time.Now()
+				lastMessageTime = time.Now()
+
+				var baseMessage struct {
+					Info      string `json:"info"`
+					Status    int    `json:"status"`
+					Error     string `json:"error"`
+					Success   bool   `json:"success"`
+					Subscribe string `json:"subscribe"`
+					Table     string `json:"table"`
+				}
+				if err := json.Unmarshal(message, &baseMessage); err != nil {
+					b.l.Printf("error unmarshalling bitmex message: %v", err)
 					continue
 				}
-				if err := json.Unmarshal(message, &marginTable); err == nil {
-					b.l.Printf("received message marginTable: %s", marginTable.Table)
-					lastMessageTime = time.Now()
-					continue
-				}
-				if err := json.Unmarshal(message, &executionTable); err == nil {
-					b.l.Printf("received message executionTable: %s", executionTable.Table)
-					lastMessageTime = time.Now()
-					continue
+				switch {
+				case baseMessage.Info != "":
+					b.l.Printf("received message info: %s", baseMessage.Info)
+				case baseMessage.Status != 0:
+					b.l.Printf("received message status: %d with error: %s", baseMessage.Status, baseMessage.Error)
+				case baseMessage.Success:
+					b.l.Printf("received message success on %v", baseMessage.Subscribe)
+				case baseMessage.Table != "":
+					b.l.Printf("received message table: %s", baseMessage.Table)
+					switch baseMessage.Table {
+					case "order":
+						if err := json.Unmarshal(message, &orderTable); err == nil {
+							b.l.Printf("received message orderTable: %s", orderTable.Table)
+						} else {
+							b.l.Printf("error unmarshalling bitmex message: %v", err)
+						}
+					case "margin":
+						if err := json.Unmarshal(message, &marginTable); err == nil {
+							b.l.Printf("received message marginTable: %s", marginTable.Table)
+						} else {
+							b.l.Printf("error unmarshalling bitmex message: %v", err)
+						}
+					case "execution":
+						if err := json.Unmarshal(message, &executionTable); err == nil {
+							b.l.Printf("received message executionTable: %s", executionTable.Table)
+						} else {
+							b.l.Printf("error unmarshalling bitmex message: %v", err)
+						}
+					default:
+						b.l.Printf("received unknown message table: %s", baseMessage.Table)
+
+					}
+				default:
+					b.l.Printf("received unknown message type: %s", message)
 				}
 
-				b.l.Printf("received unknown message type: %s", message)
-				lastMessageTime = time.Now()
 			}
 		}()
 
@@ -178,7 +225,7 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 					if time.Since(lastMessageTime) >= pingInterval {
 						b.l.Println("ping bitmex")
 
-						err := ws.WriteMessage(websocket.PingMessage, []byte{})
+						err := ws.WriteMessage(websocket.PingMessage, nil)
 						if err != nil {
 							b.l.Printf("error sending bitmex ping: %v", err)
 							return
@@ -186,6 +233,9 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 						// wait for pong
 						pongWaitTimer := time.NewTimer(pongWait)
 						select {
+						case <-pongReceived:
+							b.l.Println("pong received in time")
+							pongWaitTimer.Stop()
 						case <-pongWaitTimer.C:
 							b.l.Println("pong timeout - reconnecting")
 							ws.Close()
