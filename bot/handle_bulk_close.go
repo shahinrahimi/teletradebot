@@ -52,7 +52,7 @@ func (b *Bot) HandleBulkClose(u *tgbotapi.Update, ctx context.Context) error {
 			return err
 		}
 		for _, t := range trades {
-			ctx = context.WithValue(ctx, models.KeyTrade{}, t)
+			ctx = context.WithValue(ctx, models.KeyTrade{}, *t)
 			go b.HandleClose(u, ctx)
 		}
 	}

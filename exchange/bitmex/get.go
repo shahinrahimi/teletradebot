@@ -7,13 +7,29 @@ import (
 	"github.com/antihax/optional"
 	"github.com/shahinrahimi/teletradebot/models"
 	swagger "github.com/shahinrahimi/teletradebot/swagger"
+	"github.com/shahinrahimi/teletradebot/types"
+	"github.com/shahinrahimi/teletradebot/utils"
+)
+
+var (
+	bitmexTypes = map[string]string{
+		"FFWCSX": "Perpetual Contracts",
+		"FFWCSF": "Perpetual Futures",
+		"IFXXXP": "Spot",
+		"FFCCSX": "Futures",
+		"MRBXXX": "BitMEX Basket Index",
+		"MRCXXX": "BitMEX Crypto Index",
+		"MRFXXX": "BitMEX FX Index",
+		"MRRXXX": "BitMEX Lending/Premium Index",
+		"MRIXXX": "BitMEX Volatility Index",
+	}
 )
 
 func (mc *BitmexClient) CheckSymbol(symbol string) bool {
-	opts := &swagger.InstrumentApiInstrumentGetOpts{
-		Symbol: optional.NewString(symbol),
-	}
-	instruments, _, err := mc.client.InstrumentApi.InstrumentGet(mc.auth, opts)
+	// opts := &swagger.InstrumentApiInstrumentGetOpts{
+	// 	Symbol: optional.NewString(symbol),
+	// }
+	instruments, _, err := mc.client.InstrumentApi.InstrumentGetActive(mc.auth)
 	if err != nil {
 		return false
 	}
@@ -96,7 +112,7 @@ func (mc *BitmexClient) GetLastClosedCandle(t *models.Trade) (*swagger.TradeBin,
 	params := swagger.TradeApiTradeGetBucketedOpts{
 		BinSize: optional.NewString(t.Timeframe),
 		Symbol:  optional.NewString(t.Symbol),
-		Count:   optional.NewFloat32(1),
+		Count:   optional.NewFloat32(10),
 		// Partial: optional.NewBool(true),
 		Reverse: optional.NewBool(true),
 		// EndTime: optional.NewTime(time.Now().Add(-time.Hour * 100).UTC().Format(time.RFC3339)),
@@ -112,8 +128,17 @@ func (mc *BitmexClient) GetLastClosedCandle(t *models.Trade) (*swagger.TradeBin,
 		}
 		return nil, err
 	}
+	candleDuration, err := types.GetDuration(t.Timeframe)
+	if err != nil {
+		return nil, err
+	}
 	for index, bin := range tradeBins {
-		mc.l.Printf("index: %d symbol: %s open: %0.2f close: %0.2f, timestamp: %s", index, bin.Symbol, bin.Open, bin.Close, bin.Timestamp.UTC())
+		remainingTime := candleDuration + time.Until(bin.Timestamp)
+		mc.l.Printf(remainingTime.String())
+		// if remainingTime < 0 {
+		// 	return nil, fmt.Errorf("remaining time should not be negative number: %d", remainingTime)
+		// }
+		mc.l.Printf("index: %d s: %s p: %0.8f c: %0.8f, h: %0.8f, l: %0.8f ,t: %s, duration: %s", index, bin.Symbol, bin.Open, bin.Close, bin.High, bin.Low, bin.Timestamp.Local(), utils.FriendlyDuration(remainingTime))
 	}
 	if len(tradeBins) > 0 {
 		return &tradeBins[0], nil

@@ -10,6 +10,7 @@ import (
 	"github.com/shahinrahimi/teletradebot/config"
 	"github.com/shahinrahimi/teletradebot/exchange/binance"
 	"github.com/shahinrahimi/teletradebot/models"
+	"github.com/shahinrahimi/teletradebot/swagger"
 	"github.com/shahinrahimi/teletradebot/types"
 	"github.com/shahinrahimi/teletradebot/utils"
 )
@@ -24,14 +25,14 @@ func (b *Bot) scheduleOrderReplacement(ctx context.Context, delay time.Duration,
 			b.handleError(err, t.UserID, t.ID)
 			return
 		}
-		orderResponse, ok := (res).(*futures.Order)
+		order, ok := (res).(*futures.Order)
 		if !ok {
-			b.l.Printf("unexpected error happened in casting error to futures.Order: %T", orderResponse)
+			b.l.Printf("unexpected error happened in casting error to futures.Order: %T", order)
 			return
 		}
 
 		// replacement if the order is new (not filled not cancelled etc)
-		if orderResponse.Status == futures.OrderStatusTypeNew {
+		if order.Status == futures.OrderStatusTypeNew {
 			b.l.Printf("Order not executed, attempting replacement")
 
 			// cancel order
@@ -103,5 +104,27 @@ func (b *Bot) scheduleOrderReplacement(ctx context.Context, delay time.Duration,
 			}
 
 		}
+	})
+}
+
+func (b *Bot) scheduleOrderReplacementBitmex(ctx context.Context, delay time.Duration, orderID string, t *models.Trade) {
+	time.AfterFunc(delay, func() {
+		res, err := b.retry2(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
+			return b.mc.GetOrder(ctx, t.Symbol, orderID)
+		})
+		if err != nil {
+			b.l.Printf("error getting order by trade: %v", err)
+			b.handleError(err, t.UserID, t.ID)
+			return
+		}
+		order, ok := (res).(*swagger.Order)
+		if !ok {
+			b.l.Printf("unexpected error happened in casting error to *swagger.Order: %T", order)
+			return
+		}
+		b.l.Printf("order status: %s", order.OrdStatus)
+		// if order.OrdStatus == swagger.Order {
+
+		// }
 	})
 }

@@ -35,9 +35,9 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 				b.handleError(err, userID, t.ID)
 				return
 			}
-			orderResponse, ok := res.(*futures.CreateOrderResponse)
+			order, ok := res.(*futures.CreateOrderResponse)
 			if !ok {
-				b.l.Printf("unexpected error happened in casting error to futures.CreateOrderResponse: %T", orderResponse)
+				b.l.Printf("unexpected error happened in casting error to futures.CreateOrderResponse: %T", order)
 				return
 			}
 			preparedOrder, ok := po.(*binance.PreparedOrder)
@@ -45,9 +45,9 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 				b.l.Printf("unexpected error happened in casting interface to futures.binance.PreparedOrder: %T", preparedOrder)
 				return
 			}
-			orderID := utils.ConvertBinanceOrderID(orderResponse.OrderID)
+			orderID := utils.ConvertBinanceOrderID(order.OrderID)
 			// schedule for replacement
-			go b.scheduleOrderReplacement(ctx, preparedOrder.Expiration, orderResponse.OrderID, &t)
+			go b.scheduleOrderReplacement(ctx, preparedOrder.Expiration, order.OrderID, &t)
 
 			msg := fmt.Sprintf("Order placed successfully\n\nOrder ID: %s\nTrade ID: %d", orderID, t.ID)
 			b.MsgChan <- types.BotMessage{
@@ -60,21 +60,44 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 			}
 		}()
 	} else {
-		return b.HandleUnderDevelopment(u, ctx)
 
-		// po, err := b.mc.PrepareOrder(ctx, &t)
-		// if err != nil {
-		// 	b.l.Printf("error preparing order: %v", err)
-		// 	return err
-		// }
-		// order, err := b.mc.PlacePreparedOrder(po)
-		// if err != nil {
-		// 	b.l.Printf("error placing order: %v", err)
-		// 	return err
-		// }
-		//TODO schedule order cancellation
+		// go func() {
+		// 	res, po, err := b.retry(config.MaxTries, config.WaitForNextTries, &t, func() (interface{}, interface{}, error) {
+		// 		return b.mc.PlaceTrade(ctx, &t)
+		// 	})
+		// 	if err != nil {
+		// 		b.l.Printf("error executing trade: %v", err)
+		// 		b.handleError(err, userID, t.ID)
+		// 		return
+		// 	}
 
-		//orderID = order.OrderID
+		// 	order, ok := res.(*swagger.Order)
+		// 	if !ok {
+		// 		b.l.Printf("unexpected error happened in casting error to bitmex.Order: %T", order)
+		// 		return
+		// 	}
+
+		// 	preparedOrder, ok := po.(*bitmex.PreparedOrder)
+		// 	if !ok {
+		// 		b.l.Printf("unexpected error happened in casting interface to bitmex.PreparedOrder: %T", preparedOrder)
+		// 		return
+		// 	}
+
+		// 	msg := fmt.Sprintf("Order placed successfully\n\nOrder ID: %s\nTrade ID: %d", order.OrderID, t.ID)
+		// 	b.MsgChan <- types.BotMessage{
+		// 		ChatID: t.UserID,
+		// 		MsgStr: msg,
+		// 	}
+
+		// 	// schedule for replacement
+		// 	go b.scheduleOrderReplacementBitmex(ctx, preparedOrder.Expiration, order.OrderID, &t)
+		// 	// update trade state
+		// 	if err := b.s.UpdateTradePlaced(&t, order.OrderID); err != nil {
+		// 		b.l.Printf("error updating trade to DB: %v", err)
+		// 	}
+		// }()
+
+		b.mc.GetLastClosedCandle(&t)
 	}
 
 	return nil

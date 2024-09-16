@@ -11,6 +11,8 @@ type BitmexClient struct {
 	l      *log.Logger
 	client *swagger.APIClient
 	auth   context.Context
+	ApiKey string
+	ApiSec string
 }
 
 func NewBitmexClient(l *log.Logger, apiKey string, apiSec string, UseTestnet bool) *BitmexClient {
@@ -28,5 +30,7 @@ func NewBitmexClient(l *log.Logger, apiKey string, apiSec string, UseTestnet boo
 		l:      l,
 		client: client,
 		auth:   auth,
+		ApiKey: apiKey,
+		ApiSec: apiSec,
 	}
 }

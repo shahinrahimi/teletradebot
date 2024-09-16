@@ -62,7 +62,20 @@ func (mc *BitmexClient) PrepareOrder(ctx context.Context, t *models.Trade) (*Pre
 	// if quantity < float64(instrument.LotSize) {
 	// 	return nil, fmt.Errorf("the calculated quantity is less than instrument lot size")
 	// }
+
+	// candleDuration, err := types.GetDuration(t.Timeframe)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// candleCloseTime := utils.ConvertTime(candle.Timestamp)
+	// remainingTime := candleDuration + time.Until(candleCloseTime)
+	// if remainingTime < 0 {
+	// 	return nil, fmt.Errorf("remaining time should not be negative number: %d", remainingTime)
+	// }
+
 	p.Quantity = float32(roundedQuantity)
+	//p.Expiration = remainingTime
 
 	return &p, nil
 
@@ -78,4 +91,36 @@ func (mc *BitmexClient) PlacePreparedOrder(p *PreparedOrder) (*swagger.Order, er
 	}
 	order, _, err := mc.client.OrderApi.OrderNew(mc.auth, p.Symbol, params)
 	return &order, err
+}
+
+func (mc *BitmexClient) PlaceOrder(ctx context.Context, p *PreparedOrder) (*swagger.Order, error) {
+	ctx = context.WithValue(ctx, swagger.ContextAPIKey, swagger.APIKey{
+		Key:    mc.ApiKey,
+		Secret: mc.ApiSec,
+	})
+	params := &swagger.OrderApiOrderNewOpts{
+		Side:     optional.NewString(p.Side),
+		OrderQty: optional.NewFloat32(p.Quantity),
+		OrdType:  optional.NewString("Stop"),
+		StopPx:   optional.NewFloat64(p.StopPrice),
+	}
+	order, _, err := mc.client.OrderApi.OrderNew(ctx, p.Symbol, params)
+	return &order, err
+}
+
+func (mc *BitmexClient) GetOrder(ctx context.Context, symbol string, orderID string) (*swagger.Order, error) {
+
+	params := &swagger.OrderApiOrderGetOrdersOpts{
+		Symbol: optional.NewString(symbol),
+	}
+	orders, _, err := mc.client.OrderApi.OrderGetOrders(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+	for _, o := range orders {
+		if o.OrderID == orderID {
+			return &o, nil
+		}
+	}
+	return nil, fmt.Errorf("order not found")
 }

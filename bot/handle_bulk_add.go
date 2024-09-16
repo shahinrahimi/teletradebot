@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -68,6 +69,22 @@ func (b *Bot) HandleBulkAdd(u *tgbotapi.Update, ctx context.Context) error {
 			return nil
 		}
 		for _, t := range trades {
+			// check for symbol availability
+			var isAvailable bool = false
+			if t.Account == types.ACCOUNT_B {
+				isAvailable = b.bc.CheckSymbol(t.Symbol)
+			}
+			if t.Account == types.ACCOUNT_M {
+				isAvailable = b.mc.CheckSymbol(t.Symbol)
+			}
+			if !isAvailable {
+				msg := fmt.Sprintf("Symbol %s not available for account %s", t.Symbol, t.Account)
+				b.MsgChan <- types.BotMessage{
+					ChatID: userID,
+					MsgStr: msg,
+				}
+				continue
+			}
 			ctx = context.WithValue(ctx, models.KeyTrade{}, t)
 			go b.HandleAdd(u, ctx)
 		}
