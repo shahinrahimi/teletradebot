@@ -137,7 +137,7 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 		pongReceived := make(chan struct{})
 
 		ws.SetPongHandler(func(appData string) error {
-			b.l.Printf("received pong from BitMEX: %s", appData)
+			//b.l.Printf("received pong from BitMEX: %s", appData)
 			lastMessageTime = time.Now() // Reset the last message time
 			// Signal pong received
 			select {
@@ -191,12 +191,17 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 					case "order":
 						if err := json.Unmarshal(message, &orderTable); err == nil {
 							b.l.Printf("received message orderTable: %s", orderTable.Table)
+							b.handleOrderTradeUpdateBitmex(context.Background(), orderTable.Data)
+							for i := range orderTable.Data {
+								b.l.Printf("orderTable: %v", orderTable.Data[i])
+							}
+
 						} else {
 							b.l.Printf("error unmarshalling bitmex message: %v", err)
 						}
 					case "margin":
 						if err := json.Unmarshal(message, &marginTable); err == nil {
-							b.l.Printf("received message marginTable: %s", marginTable.Table)
+							//b.l.Printf("received message marginTable: %s", marginTable.Table)
 						} else {
 							b.l.Printf("error unmarshalling bitmex message: %v", err)
 						}
@@ -247,7 +252,7 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 				case <-pingTicker.C:
 					b.l.Printf("last message time: %s", utils.FriendlyDuration(time.Since(lastMessageTime)))
 					if time.Since(lastMessageTime) >= pingInterval {
-						b.l.Println("ping bitmex")
+						//b.l.Println("ping bitmex")
 
 						err := ws.WriteMessage(websocket.PingMessage, nil)
 						if err != nil {
@@ -258,7 +263,7 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 						pongWaitTimer := time.NewTimer(pongWait)
 						select {
 						case <-pongReceived:
-							b.l.Println("pong received in time")
+							//b.l.Println("pong received in time")
 							pongWaitTimer.Stop()
 						case <-pongWaitTimer.C:
 							b.l.Println("pong timeout - reconnecting")

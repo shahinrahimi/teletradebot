@@ -8,11 +8,12 @@ import (
 )
 
 type BitmexClient struct {
-	l      *log.Logger
-	client *swagger.APIClient
-	auth   context.Context
-	ApiKey string
-	ApiSec string
+	l       *log.Logger
+	client  *swagger.APIClient
+	auth    context.Context
+	Verbose bool
+	ApiKey  string
+	ApiSec  string
 }
 
 func NewBitmexClient(l *log.Logger, apiKey string, apiSec string, UseTestnet bool) *BitmexClient {
@@ -27,11 +28,12 @@ func NewBitmexClient(l *log.Logger, apiKey string, apiSec string, UseTestnet boo
 	})
 
 	return &BitmexClient{
-		l:      l,
-		client: client,
-		auth:   auth,
-		ApiKey: apiKey,
-		ApiSec: apiSec,
+		l:       l,
+		client:  client,
+		auth:    auth,
+		ApiKey:  apiKey,
+		ApiSec:  apiSec,
+		Verbose: true,
 	}
 }
 

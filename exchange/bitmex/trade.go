@@ -9,7 +9,7 @@ import (
 
 func (mc *BitmexClient) PlaceTrade(ctx context.Context, t *models.Trade) (*swagger.Order, *PreparedOrder, error) {
 	mc.l.Printf("executing order for trade ID: %d", t.ID)
-	po, err := mc.PrepareOrder(ctx, t)
+	po, err := mc.prepareOrder(ctx, t)
 	if err != nil {
 		mc.l.Printf("trade could not be executed, error in preparing state: %v", err)
 		return nil, nil, err

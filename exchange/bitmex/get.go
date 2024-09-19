@@ -8,8 +8,6 @@ import (
 	"github.com/antihax/optional"
 	"github.com/shahinrahimi/teletradebot/models"
 	swagger "github.com/shahinrahimi/teletradebot/swagger"
-	"github.com/shahinrahimi/teletradebot/types"
-	"github.com/shahinrahimi/teletradebot/utils"
 )
 
 var (
@@ -133,16 +131,15 @@ func (mc *BitmexClient) GetLastClosedCandleOld(ctx context.Context, t *models.Tr
 			}
 			return nil, err
 		}
-		candleDuration, err := types.GetDuration(t.Timeframe)
-		if err != nil {
-			return nil, err
-		}
-		for index, bin := range tradeBins {
-			remainingTime := candleDuration + time.Until(bin.Timestamp)
-			mc.l.Printf("index: %d s: %s p: %0.8f c: %0.8f, h: %0.8f, l: %0.8f ,t: %s, duration: %s", index, bin.Symbol, bin.Open, bin.Close, bin.High, bin.Low, bin.Timestamp.Local(), utils.FriendlyDuration(remainingTime))
-			if remainingTime < 0 {
-				mc.l.Printf("remaining time should not be negative number: %d try after 1s", remainingTime)
-				time.Sleep(time.Second * 3)
+		for _, bin := range tradeBins {
+			expiration, err := mc.calculateExpiration(t, bin.Timestamp)
+			if err != nil && expiration == 0 {
+				// lets try with delay sleep
+				mc.l.Printf("retrying getting last closed candle with delay sleep 5s")
+				time.Sleep(time.Second * 5)
+				break
+			} else if err != nil && expiration == -1 {
+				return nil, err
 			} else {
 				return &bin, nil
 			}
