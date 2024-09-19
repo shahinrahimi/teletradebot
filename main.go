@@ -41,7 +41,7 @@ func main() {
 
 	c := cash.NewCash(s, logger)
 	// reset all trades
-	s.ResetAllTrades()
+	//s.ResetAllTrades()
 
 	// check .env file
 	if err := godotenv.Load(); err != nil {
@@ -89,7 +89,7 @@ func main() {
 	//b.StartWebsocketService(ctx)
 
 	// start bitmex ws
-	b.StartWebsocketServiceBitmex(ctx)
+	//b.StartWebsocketServiceBitmex(ctx)
 
 	// global middleware
 	b.Use(b.BanBots)

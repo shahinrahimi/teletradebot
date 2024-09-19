@@ -10,7 +10,10 @@ import (
 )
 
 func (b *Bot) HandleReset(u *tgbotapi.Update, ctx context.Context) error {
-	t := ctx.Value(models.KeyTrade{}).(models.Trade)
+	t, ok := ctx.Value(models.KeyTrade{}).(models.Trade)
+	if !ok {
+		b.l.Panic("error getting trade from context")
+	}
 	userID := u.Message.From.ID
 	b.c.UpdateTradeIdle(t.ID)
 	models.DeleteDescriber(t.ID)

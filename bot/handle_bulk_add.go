@@ -72,7 +72,7 @@ func (b *Bot) HandleBulkAdd(u *tgbotapi.Update, ctx context.Context) error {
 				}
 				continue
 			}
-			ctx = context.WithValue(ctx, models.KeyTrade{}, t)
+			ctx = context.WithValue(ctx, models.KeyTrade{}, *t)
 			go b.HandleAdd(u, ctx)
 		}
 	}

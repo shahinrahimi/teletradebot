@@ -13,7 +13,11 @@ import (
 )
 
 func (b *Bot) HandleClose(u *tgbotapi.Update, ctx context.Context) error {
-	t := ctx.Value(models.KeyTrade{}).(models.Trade)
+	t, ok := ctx.Value(models.KeyTrade{}).(models.Trade)
+	if !ok {
+		b.l.Panic("error getting trade from context")
+	}
+
 	userID := u.Message.From.ID
 	if t.Account == types.ACCOUNT_B {
 		// close or cancel main order

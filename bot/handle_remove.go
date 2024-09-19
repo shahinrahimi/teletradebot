@@ -10,7 +10,10 @@ import (
 )
 
 func (b *Bot) HandleRemove(u *tgbotapi.Update, ctx context.Context) error {
-	t := ctx.Value(models.KeyTrade{}).(models.Trade)
+	t, ok := ctx.Value(models.KeyTrade{}).(models.Trade)
+	if !ok {
+		b.l.Panic("error getting trade from context")
+	}
 	userID := u.Message.From.ID
 	b.c.StorageRemoveTrade(t.ID)
 	msg := fmt.Sprintf("The trade has been successfully removed.\n\nTrade ID: %d", t.ID)

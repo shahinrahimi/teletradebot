@@ -10,7 +10,10 @@ import (
 )
 
 func (b *Bot) HandleAdd(u *tgbotapi.Update, ctx context.Context) error {
-	t := ctx.Value(models.KeyTrade{}).(models.Trade)
+	t, ok := ctx.Value(models.KeyTrade{}).(models.Trade)
+	if !ok {
+		b.l.Panic("error getting trade from context")
+	}
 	userID := u.Message.From.ID
 	id, err := b.c.StorageCreateTrade(&t)
 	if err != nil {

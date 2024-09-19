@@ -16,7 +16,11 @@ import (
 )
 
 func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
-	t := ctx.Value(models.KeyTrade{}).(models.Trade)
+	t, ok := ctx.Value(models.KeyTrade{}).(models.Trade)
+	if !ok {
+		b.l.Panic("error getting trade from context")
+	}
+
 	userID := u.Message.From.ID
 	if t.State != types.STATE_IDLE {
 		msg := "The trade could not be executed as it has already been executed once."

@@ -1,7 +1,9 @@
 package cash
 
 import (
+	"fmt"
 	"log"
+	"sort"
 	"sync"
 
 	"github.com/shahinrahimi/teletradebot/models"
@@ -13,43 +15,48 @@ var (
 )
 
 func (c *Cash) StorageCreateTrade(t *models.Trade) (int64, error) {
+	c.l.Printf("StorageCreateTrade: %v", t)
+	if c.s == nil {
+		return 0, fmt.Errorf("storage object is nil")
+	}
 	tradeID, err := c.s.CreateTrade(t)
 	if err != nil {
 		return 0, err
 	}
-	c.AddTrade(t)
+	c.AddTrade(t, tradeID)
 	return tradeID, nil
 }
 
-func (c *Cash) StorageRemoveTrade(id int64) error {
-	err := c.s.DeleteTrade(id)
+func (c *Cash) StorageRemoveTrade(ID int64) error {
+	err := c.s.DeleteTrade(ID)
 	if err != nil {
 		return err
 	}
-	c.RemoveTrade(id)
+	c.RemoveTrade(ID)
 	return nil
 }
 
-func (c *Cash) GetTrade(id int64) *models.Trade {
+func (c *Cash) GetTrade(ID int64) *models.Trade {
 	mu.RLock()
 	defer mu.RUnlock()
-	t, exist := c.trades[id]
+	t, exist := c.trades[ID]
 	if !exist {
-		log.Panicf("trade not found: %d", id)
+		log.Panicf("trade not found: %d", ID)
 	}
 	return t
 }
 
-func (c *Cash) AddTrade(t *models.Trade) {
+func (c *Cash) AddTrade(t *models.Trade, ID int64) {
 	mu.Lock()
 	defer mu.Unlock()
-	c.trades[t.ID] = t
+	t.ID = ID
+	c.trades[ID] = t
 }
 
-func (c *Cash) RemoveTrade(id int64) {
+func (c *Cash) RemoveTrade(ID int64) {
 	mu.Lock()
 	defer mu.Unlock()
-	delete(c.trades, id)
+	delete(c.trades, ID)
 }
 
 func (c *Cash) GetTrades() []*models.Trade {
@@ -59,70 +66,71 @@ func (c *Cash) GetTrades() []*models.Trade {
 	for _, t := range c.trades {
 		ts = append(ts, t)
 	}
+	sort.Slice(ts, func(i, j int) bool { return ts[i].ID < ts[j].ID })
 	return ts
 }
 
-func (c *Cash) UpdateTradeIdle(id int64) {
-	t := c.GetTrade(id)
+func (c *Cash) UpdateTradeIdle(ID int64) {
+	t := c.GetTrade(ID)
 	t.State = types.STATE_IDLE
 	t.OrderID = ""
 	t.SLOrderID = ""
 	t.TPOrderID = ""
-	c.trades[id] = t
+	c.trades[ID] = t
 }
 
-func (c *Cash) UpdateTradePlaced(id int64, orderID string) {
-	t := c.GetTrade(id)
+func (c *Cash) UpdateTradePlaced(ID int64, orderID string) {
+	t := c.GetTrade(ID)
 	t.State = types.STATE_PLACED
 	t.OrderID = orderID
 }
 
-func (c *Cash) UpdateTradeTPOrder(id int64, orderID string) {
+func (c *Cash) UpdateTradeTPOrder(ID int64, orderID string) {
 	mu.Lock()
 	defer mu.Unlock()
-	t := c.GetTrade(id)
+	t := c.GetTrade(ID)
 	t.TPOrderID = orderID
 }
 
-func (c *Cash) UpdateTradeSLOrder(id int64, orderID string) {
+func (c *Cash) UpdateTradeSLOrder(ID int64, orderID string) {
 	mu.Lock()
 	defer mu.Unlock()
-	t := c.GetTrade(id)
+	t := c.GetTrade(ID)
 	t.SLOrderID = orderID
 }
 
-func (c *Cash) UpdateTradeFilled(id int64) {
+func (c *Cash) UpdateTradeFilled(ID int64) {
 	mu.Lock()
 	defer mu.Unlock()
-	t := c.GetTrade(id)
+	t := c.GetTrade(ID)
 	t.State = types.STATE_FILLED
 }
 
-func (c *Cash) UpdateTradeStopped(id int64) {
+func (c *Cash) UpdateTradeStopped(ID int64) {
 	mu.Lock()
 	defer mu.Unlock()
-	t := c.GetTrade(id)
+	t := c.GetTrade(ID)
 	t.State = types.STATE_STOPPED
 }
 
-func (c *Cash) UpdateTradeProfited(id int64) {
+func (c *Cash) UpdateTradeProfited(ID int64) {
 	mu.Lock()
 	defer mu.Unlock()
-	t := c.GetTrade(id)
+	t := c.GetTrade(ID)
 	t.State = types.STATE_PROFITED
 }
 
-func (c *Cash) UpdateTradeCanceled(id int64) {
+func (c *Cash) UpdateTradeCanceled(ID int64) {
 	mu.Lock()
 	defer mu.Unlock()
-	t := c.GetTrade(id)
+	t := c.GetTrade(ID)
 	t.State = types.STATE_CANCELED
 }
 
-func (c *Cash) UpdateTradeClosed(id int64) {
+func (c *Cash) UpdateTradeClosed(ID int64) {
 	mu.Lock()
 	defer mu.Unlock()
-	t := c.GetTrade(id)
+	t := c.GetTrade(ID)
 	t.State = types.STATE_CLOSED
 }
 

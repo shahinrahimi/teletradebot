@@ -9,7 +9,10 @@ import (
 )
 
 func (b *Bot) HandleCheck(u *tgbotapi.Update, ctx context.Context) error {
-	t := ctx.Value(models.KeyTrade{}).(models.Trade)
+	t, ok := ctx.Value(models.KeyTrade{}).(models.Trade)
+	if !ok {
+		b.l.Panic("error getting trade from context")
+	}
 	userID := u.Message.From.ID
 	b.MsgChan <- types.BotMessage{
 		ChatID: userID,

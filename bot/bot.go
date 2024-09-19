@@ -33,6 +33,7 @@ func NewBot(l *log.Logger, c *cash.Cash, bc *binance.BinanceClient, mc *bitmex.B
 	}
 	return &Bot{
 		l:           l,
+		c:           c,
 		api:         api,
 		routers:     make(map[string]*Router),
 		middlewares: []Middleware{},
