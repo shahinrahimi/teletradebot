@@ -9,6 +9,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/shahinrahimi/teletradebot/bot"
+	"github.com/shahinrahimi/teletradebot/cash"
 	"github.com/shahinrahimi/teletradebot/config"
 	"github.com/shahinrahimi/teletradebot/exchange/binance"
 	"github.com/shahinrahimi/teletradebot/exchange/bitmex"
@@ -37,6 +38,8 @@ func main() {
 	if err := s.Init(); err != nil {
 		logger.Fatalf("error initializing DB: %v", err)
 	}
+
+	c := cash.NewCash(s, logger)
 	// reset all trades
 	s.ResetAllTrades()
 
@@ -74,7 +77,7 @@ func main() {
 	// start polling for bitmex
 	mc.StartPolling(ctx)
 
-	b, err := bot.NewBot(logger, s, bc, mc, token, msgChan)
+	b, err := bot.NewBot(logger, c, bc, mc, token, msgChan)
 	if err != nil {
 		logger.Fatalf("error creating instance of bot: %v", err)
 	}
@@ -135,12 +138,12 @@ func main() {
 	}()
 
 	// create signal
-	c := make(chan os.Signal, 1)
+	cc := make(chan os.Signal, 1)
 	// filter all other signal
-	signal.Notify(c, os.Interrupt)
+	signal.Notify(cc, os.Interrupt)
 
 	// block until a signal received
-	rc := <-c
+	rc := <-cc
 	logger.Println("go signal", rc)
 
 	// gracefully shutdown bot, waiting max 30 secs

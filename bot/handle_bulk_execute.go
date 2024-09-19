@@ -13,29 +13,16 @@ func (b *Bot) HandleBulkExecute(u *tgbotapi.Update, ctx context.Context) error {
 	args := strings.Split(u.Message.CommandArguments(), " ")
 	userID := u.Message.From.ID
 	if len(args) == 2 {
-		var trades map[string]models.Trade
-		var err error
+		var trades []*models.Trade
 		switch {
 		case args[0] == "b" && args[1] == "s":
-			trades, err = b.getAllUniqueTrades(types.ACCOUNT_B, types.SIDE_S, types.STATE_IDLE)
-			if err != nil {
-				return err
-			}
+			trades = b.c.GetAllUniqueTrades(types.ACCOUNT_B, types.SIDE_S, types.STATE_IDLE)
 		case args[0] == "b" && args[1] == "l":
-			trades, err = b.getAllUniqueTrades(types.ACCOUNT_B, types.SIDE_L, types.STATE_IDLE)
-			if err != nil {
-				return err
-			}
+			trades = b.c.GetAllUniqueTrades(types.ACCOUNT_B, types.SIDE_L, types.STATE_IDLE)
 		case args[0] == "m" && args[1] == "s":
-			trades, err = b.getAllUniqueTrades(types.ACCOUNT_M, types.SIDE_S, types.STATE_IDLE)
-			if err != nil {
-				return err
-			}
+			trades = b.c.GetAllUniqueTrades(types.ACCOUNT_M, types.SIDE_S, types.STATE_IDLE)
 		case args[0] == "m" && args[1] == "l":
-			trades, err = b.getAllUniqueTrades(types.ACCOUNT_M, types.SIDE_L, types.STATE_IDLE)
-			if err != nil {
-				return err
-			}
+			trades = b.c.GetAllUniqueTrades(types.ACCOUNT_M, types.SIDE_L, types.STATE_IDLE)
 		default:
 			msg := "Wrong arguments. Valid arguments are: b [s|l] and m [s|l]"
 			b.MsgChan <- types.BotMessage{ChatID: userID, MsgStr: msg}

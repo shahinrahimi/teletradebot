@@ -57,9 +57,7 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 				MsgStr: msg,
 			}
 			// update trade state
-			if err := b.s.UpdateTradePlaced(&t, orderID); err != nil {
-				b.l.Printf("error updating trade to DB: %v", err)
-			}
+			b.c.UpdateTradePlaced(t.ID, orderID)
 		}()
 	} else {
 
@@ -94,9 +92,7 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 			// schedule for replacement
 			go b.scheduleOrderReplacementBitmex(ctx, preparedOrder.Expiration, order.OrderID, &t)
 			// update trade state
-			if err := b.s.UpdateTradePlaced(&t, order.OrderID); err != nil {
-				b.l.Printf("error updating trade to DB: %v", err)
-			}
+			b.c.UpdateTradePlaced(t.ID, order.OrderID)
 		}()
 
 		//b.mc.GetLastClosedCandle(&t)

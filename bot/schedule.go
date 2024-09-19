@@ -49,12 +49,12 @@ func (b *Bot) scheduleOrderReplacement(ctx context.Context, delay time.Duration,
 						b.handleError(err, t.UserID, t.ID)
 					} else {
 						b.handleError(err, t.UserID, t.ID)
-						b.s.UpdateTradeCancelled(t)
+						b.c.UpdateTradeCanceled(t.ID)
 						return
 					}
 				} else {
 					b.handleError(err, t.UserID, t.ID)
-					b.s.UpdateTradeCancelled(t)
+					b.c.UpdateTradeCanceled(t.ID)
 					return
 				}
 			}
@@ -73,7 +73,7 @@ func (b *Bot) scheduleOrderReplacement(ctx context.Context, delay time.Duration,
 				b.l.Printf("error placing trade: %v", err)
 				b.handleError(err, t.UserID, t.ID)
 				// change trade state to canceled
-				b.s.UpdateTradeCancelled(t)
+				b.c.UpdateTradeCanceled(t.ID)
 				return
 			}
 			createOrder, ok := (res).(*futures.CreateOrderResponse)
@@ -93,9 +93,7 @@ func (b *Bot) scheduleOrderReplacement(ctx context.Context, delay time.Duration,
 
 			// update trade order
 			orderIdStr := utils.ConvertBinanceOrderID(createOrder.OrderID)
-			if err := b.s.UpdateTradePlaced(t, orderIdStr); err != nil {
-				b.l.Printf("error updating order for trade: %v", err)
-			}
+			b.c.UpdateTradePlaced(t.ID, orderIdStr)
 
 			// message the user
 			msg := fmt.Sprintf("Order replaced successfully\n\nNewOrder ID: %d\nTrade ID: %d", createOrder.OrderID, t.ID)
@@ -163,9 +161,7 @@ func (b *Bot) scheduleOrderReplacementBitmex(ctx context.Context, delay time.Dur
 			go b.scheduleOrderReplacementBitmex(ctx, preparedOrder.Expiration, createOrder.OrderID, t)
 
 			// update trade order
-			if err := b.s.UpdateTradePlaced(t, createOrder.OrderID); err != nil {
-				b.l.Printf("error updating order for trade: %v", err)
-			}
+			b.c.UpdateTradePlaced(t.ID, createOrder.OrderID)
 
 			// message the user
 			msg := fmt.Sprintf("Order replaced successfully\n\nNewOrder ID: %s\nTrade ID: %d", createOrder.OrderID, t.ID)

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/shahinrahimi/teletradebot/exchange/bitmex"
+	"github.com/shahinrahimi/teletradebot/types"
 )
 
 func (b *Bot) handleOrderTradeUpdateBitmex(ctx context.Context, od []OrderData) {
@@ -23,19 +24,16 @@ func (b *Bot) handleOrderTradeUpdateBitmex(ctx context.Context, od []OrderData) 
 }
 
 func (b *Bot) handleFilledBitmex(ctx context.Context, o OrderData) {
-	_, isOrderID, isTPOrderID, isSLOrderID, err := b.findTradeWithAnyOrderID(o.OrderID)
-	if err != nil {
-		b.l.Printf("error getting associate trade with ID: %v", err)
-	}
-	switch {
-	case isOrderID:
+	_, orderIDType := b.c.GetTradeByAnyOrderID(o.OrderID)
+	switch orderIDType {
+	case types.OrderIDTypeMain:
 		//b.handleNewFilledBitmex(ctx, t, o)
-	case isTPOrderID:
+	case types.OrderIDTypeTakeProfit:
 		//b.handleTPFilledBitmex(ctx, t, o)
-	case isSLOrderID:
+	case types.OrderIDTypeStopLoss:
 		//b.handleSLFilledBitmex(ctx, t, o)
 	default:
-		b.l.Printf("the orderID is not associate with any trade: %v", err)
+		b.l.Printf("the orderID is not associate with any trade: %s", o.OrderID)
 	}
 }
 

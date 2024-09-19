@@ -12,10 +12,7 @@ import (
 func (b *Bot) HandleReset(u *tgbotapi.Update, ctx context.Context) error {
 	t := ctx.Value(models.KeyTrade{}).(models.Trade)
 	userID := u.Message.From.ID
-	if err := b.s.UpdateTradeIdle(&t); err != nil {
-		b.l.Printf("Error updating the trade status: %v", err)
-		return err
-	}
+	b.c.UpdateTradeIdle(t.ID)
 	models.DeleteDescriber(t.ID)
 	msg := fmt.Sprintf("The trade has been successfully reset.\n\nTrade ID: %d", t.ID)
 	b.MsgChan <- types.BotMessage{

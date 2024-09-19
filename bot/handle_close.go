@@ -66,9 +66,7 @@ func (b *Bot) HandleClose(u *tgbotapi.Update, ctx context.Context) error {
 					MsgStr: msg,
 				}
 				// update trade
-				if err := b.s.UpdateTradeCancelled(&t); err != nil {
-					b.l.Printf("error updating trade state: %v", err)
-				}
+				b.c.UpdateTradeCanceled(t.ID)
 			case order.Status == futures.OrderStatusTypeFilled || order.Status == futures.OrderStatusTypePartiallyFilled:
 				// close order with market
 				res, err := b.retry2(config.MaxTries, config.WaitForNextTries, &t, func() (interface{}, error) {
@@ -97,9 +95,7 @@ func (b *Bot) HandleClose(u *tgbotapi.Update, ctx context.Context) error {
 					MsgStr: msg,
 				}
 				// update trade
-				if err := b.s.UpdateTradeClosed(&t); err != nil {
-					b.l.Printf("error updating trade state: %v", err)
-				}
+				b.c.UpdateTradeClosed(t.ID)
 			default:
 				b.l.Printf("the state of order is proper for closing: %v", order.Status)
 			}

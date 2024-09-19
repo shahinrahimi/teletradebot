@@ -46,19 +46,16 @@ func (b *Bot) handleOrderTradeUpdate(ctx context.Context, f futures.WsOrderTrade
 
 func (b *Bot) handleFilled(ctx context.Context, f futures.WsOrderTradeUpdate) {
 	orderID := utils.ConvertBinanceOrderID(f.ID)
-	t, isOrderID, isTPOrderID, isSLOrderID, err := b.findTradeWithAnyOrderID(orderID)
-	if err != nil {
-		b.l.Printf("error getting associate trade with ID: %v", err)
-	}
-	switch {
-	case isOrderID:
+	t, orderIDType := b.c.GetTradeByAnyOrderID(orderID)
+	switch orderIDType {
+	case types.OrderIDTypeMain:
 		b.handleNewFilled(ctx, t, f)
-	case isTPOrderID:
+	case types.OrderIDTypeTakeProfit:
 		b.handleTPFilled(ctx, t, f)
-	case isSLOrderID:
+	case types.OrderIDTypeStopLoss:
 		b.handleSLFilled(ctx, t, f)
 	default:
-		b.l.Printf("the orderID is not associate with any trade: %v", err)
+		b.l.Printf("the orderID is not associate with any trade: %s", orderID)
 	}
 }
 
@@ -71,10 +68,8 @@ func (b *Bot) handleNewFilled(ctx context.Context, t *models.Trade, f futures.Ws
 	}
 
 	// update trade state
-	if err := b.s.UpdateTradeFilled(t); err != nil {
-		b.l.Panic("Internal error while updating trade:", err)
-		return
-	}
+	b.c.UpdateTradeFilled(t.ID)
+
 	// message the user
 	msg := fmt.Sprintf("Order filled successfully.\n\nTrade ID: %d", t.ID)
 	b.MsgChan <- types.BotMessage{
@@ -99,10 +94,8 @@ func (b *Bot) handleNewFilled(ctx context.Context, t *models.Trade, f futures.Ws
 		}
 		orderID := utils.ConvertBinanceOrderID(orderResponse.OrderID)
 		// update trade
-		if err := b.s.UpdateTradeSLOrder(t, orderID); err != nil {
-			b.l.Printf("error updating trade state: %v", err)
-			return
-		}
+		b.c.UpdateTradeSLOrder(t.ID, orderID)
+
 		// message the user
 		msg := fmt.Sprintf("Stop-loss order placed successfully.\n\nOrder ID: %d\nTrade ID: %d", orderResponse.OrderID, t.ID)
 		b.MsgChan <- types.BotMessage{
@@ -128,10 +121,8 @@ func (b *Bot) handleNewFilled(ctx context.Context, t *models.Trade, f futures.Ws
 		}
 		orderID := utils.ConvertBinanceOrderID(orderResponse.OrderID)
 		// update trade
-		if err := b.s.UpdateTradeTPOrder(t, orderID); err != nil {
-			b.l.Printf("error updating trade state: %v", err)
-			return
-		}
+		b.c.UpdateTradeTPOrder(t.ID, orderID)
+
 		// message the user
 		msg := fmt.Sprintf("Take-profit order placed successfully.\n\nOrder ID: %d\nTrade ID: %d", orderResponse.OrderID, t.ID)
 		b.MsgChan <- types.BotMessage{
@@ -143,10 +134,8 @@ func (b *Bot) handleNewFilled(ctx context.Context, t *models.Trade, f futures.Ws
 
 func (b *Bot) handleSLFilled(ctx context.Context, t *models.Trade, f futures.WsOrderTradeUpdate) {
 	// update trade state
-	if err := b.s.UpdateTradeStopped(t); err != nil {
-		b.l.Panic("Internal error while updating trade:", err)
-		return
-	}
+	b.c.UpdateTradeStopped(t.ID)
+
 	// message the user
 	msg := fmt.Sprintf("🛑 Stop-loss order executed successfully.\n\nPnL: %s\nTrade ID: %d", f.RealizedPnL, t.ID)
 	b.MsgChan <- types.BotMessage{
@@ -184,10 +173,8 @@ func (b *Bot) handleSLFilled(ctx context.Context, t *models.Trade, f futures.WsO
 
 func (b *Bot) handleTPFilled(ctx context.Context, t *models.Trade, f futures.WsOrderTradeUpdate) {
 	// update trade state
-	if err := b.s.UpdateTradeProfited(t); err != nil {
-		b.l.Panic("Internal error while updating trade:", err)
-		return
-	}
+	b.c.UpdateTradeProfited(t.ID)
+
 	// message the user
 	msg := fmt.Sprintf("✅ Take-profit order executed successfully.\n\nPnL: %s\nTrade ID: %d", f.RealizedPnL, t.ID)
 	b.MsgChan <- types.BotMessage{

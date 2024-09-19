@@ -119,6 +119,13 @@ func (c *Cash) UpdateTradeCanceled(id int64) {
 	t.State = types.STATE_CANCELED
 }
 
+func (c *Cash) UpdateTradeClosed(id int64) {
+	mu.Lock()
+	defer mu.Unlock()
+	t := c.GetTrade(id)
+	t.State = types.STATE_CLOSED
+}
+
 func (c *Cash) GetTradeByOrderID(orderID string) *models.Trade {
 	mu.RLock()
 	defer mu.RUnlock()
