@@ -5,122 +5,124 @@ import (
 	"sync"
 
 	"github.com/shahinrahimi/teletradebot/models"
-	"github.com/shahinrahimi/teletradebot/store"
 	"github.com/shahinrahimi/teletradebot/types"
 )
 
 var (
-	trades = make(map[int64]*models.Trade, 0)
-	mu     sync.RWMutex
+	mu sync.RWMutex
 )
 
-func InitTrades(s store.Storage) {
-	ts, err := s.GetTrades()
+func (c *Cash) StorageCreateTrade(t *models.Trade) (int64, error) {
+	tradeID, err := c.s.CreateTrade(t)
 	if err != nil {
-		log.Panic(err)
+		return 0, err
 	}
-	for _, t := range ts {
-		t.State = types.STATE_IDLE
-		t.OrderID = ""
-		t.SLOrderID = ""
-		t.TPOrderID = ""
-		trades[t.ID] = t
-	}
+	c.AddTrade(t)
+	return tradeID, nil
 }
 
-func GetTrade(id int64) *models.Trade {
+func (c *Cash) StorageRemoveTrade(id int64) error {
+	err := c.s.DeleteTrade(id)
+	if err != nil {
+		return err
+	}
+	c.RemoveTrade(id)
+	return nil
+}
+
+func (c *Cash) GetTrade(id int64) *models.Trade {
 	mu.RLock()
 	defer mu.RUnlock()
-	t, exist := trades[id]
+	t, exist := c.trades[id]
 	if !exist {
 		log.Panicf("trade not found: %d", id)
 	}
 	return t
 }
 
-func AddTrade(t *models.Trade) {
+func (c *Cash) AddTrade(t *models.Trade) {
 	mu.Lock()
 	defer mu.Unlock()
-	trades[t.ID] = t
+	c.trades[t.ID] = t
 }
 
-func RemoveTrade(id int64) {
+func (c *Cash) RemoveTrade(id int64) {
 	mu.Lock()
 	defer mu.Unlock()
-	delete(trades, id)
+	delete(c.trades, id)
 }
 
-func GetTrades() []*models.Trade {
+func (c *Cash) GetTrades() []*models.Trade {
 	mu.RLock()
 	defer mu.RUnlock()
 	var ts []*models.Trade
-	for _, t := range trades {
+	for _, t := range c.trades {
 		ts = append(ts, t)
 	}
 	return ts
 }
 
-func UpdateTradeIdle(id int64) {
-	t := GetTrade(id)
+func (c *Cash) UpdateTradeIdle(id int64) {
+	t := c.GetTrade(id)
 	t.State = types.STATE_IDLE
 	t.OrderID = ""
 	t.SLOrderID = ""
 	t.TPOrderID = ""
-	trades[id] = t
+	c.trades[id] = t
 }
 
-func UpdateTradePlaced(id int64, orderID string) {
-	t := GetTrade(id)
+func (c *Cash) UpdateTradePlaced(id int64, orderID string) {
+	t := c.GetTrade(id)
 	t.State = types.STATE_PLACED
 	t.OrderID = orderID
 }
 
-func UpdateTradeTPOrder(id int64, orderID string) {
+func (c *Cash) UpdateTradeTPOrder(id int64, orderID string) {
 	mu.Lock()
 	defer mu.Unlock()
-	t := GetTrade(id)
+	t := c.GetTrade(id)
 	t.TPOrderID = orderID
 }
 
-func UpdateTradeSLOrder(id int64, orderID string) {
+func (c *Cash) UpdateTradeSLOrder(id int64, orderID string) {
 	mu.Lock()
 	defer mu.Unlock()
-	t := GetTrade(id)
+	t := c.GetTrade(id)
 	t.SLOrderID = orderID
 }
 
-func UpdateTradeFilled(id int64) {
+func (c *Cash) UpdateTradeFilled(id int64) {
 	mu.Lock()
 	defer mu.Unlock()
-	t := GetTrade(id)
+	t := c.GetTrade(id)
 	t.State = types.STATE_FILLED
 }
 
-func UpdateTradeStopped(id int64) {
+func (c *Cash) UpdateTradeStopped(id int64) {
 	mu.Lock()
 	defer mu.Unlock()
-	t := GetTrade(id)
+	t := c.GetTrade(id)
 	t.State = types.STATE_STOPPED
 }
 
-func UpdateTradeProfited(id int64) {
+func (c *Cash) UpdateTradeProfited(id int64) {
 	mu.Lock()
 	defer mu.Unlock()
-	t := GetTrade(id)
+	t := c.GetTrade(id)
 	t.State = types.STATE_PROFITED
 }
 
-func UpdateTradeCanceled(id int64) {
+func (c *Cash) UpdateTradeCanceled(id int64) {
 	mu.Lock()
 	defer mu.Unlock()
-	t := GetTrade(id)
+	t := c.GetTrade(id)
 	t.State = types.STATE_CANCELED
 }
 
-func GetTradeByOrderID(orderID string) *models.Trade {
+func (c *Cash) GetTradeByOrderID(orderID string) *models.Trade {
 	mu.RLock()
 	defer mu.RUnlock()
-	for _, t := range trades {
+	for _, t := range c.trades {
 		if t.OrderID == orderID {
 			return t
 		}
@@ -128,10 +130,10 @@ func GetTradeByOrderID(orderID string) *models.Trade {
 	return nil
 }
 
-func GetTradeBySLOrderID(orderID string) *models.Trade {
+func (c *Cash) GetTradeBySLOrderID(orderID string) *models.Trade {
 	mu.RLock()
 	defer mu.RUnlock()
-	for _, t := range trades {
+	for _, t := range c.trades {
 		if t.SLOrderID == orderID {
 			return t
 		}
@@ -139,10 +141,10 @@ func GetTradeBySLOrderID(orderID string) *models.Trade {
 	return nil
 }
 
-func GetTradeByTPOrderID(orderID string) *models.Trade {
+func (c *Cash) GetTradeByTPOrderID(orderID string) *models.Trade {
 	mu.RLock()
 	defer mu.RUnlock()
-	for _, t := range trades {
+	for _, t := range c.trades {
 		if t.TPOrderID == orderID {
 			return t
 		}
@@ -150,10 +152,10 @@ func GetTradeByTPOrderID(orderID string) *models.Trade {
 	return nil
 }
 
-func GetTradeByAnyOrderID(orderID string) (*models.Trade, types.OrderIDType) {
+func (c *Cash) GetTradeByAnyOrderID(orderID string) (*models.Trade, types.OrderIDType) {
 	mu.RLock()
 	defer mu.RUnlock()
-	for _, t := range trades {
+	for _, t := range c.trades {
 		switch orderID {
 		case t.OrderID:
 			return t, types.OrderIDTypeMain
