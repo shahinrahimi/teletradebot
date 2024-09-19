@@ -45,7 +45,15 @@ func (b *Bot) HandleDescribe(u *tgbotapi.Update, ctx context.Context) error {
 		}
 
 	} else {
-		return b.HandleUnderDevelopment(u, ctx)
+		d, err := b.mc.FetchDescriber(ctx, &t)
+		if err != nil {
+			b.l.Printf("error fetching describer")
+			return err
+		}
+		b.MsgChan <- types.BotMessage{
+			ChatID: userID,
+			MsgStr: d.ToString(&t),
+		}
 	}
 	return nil
 }

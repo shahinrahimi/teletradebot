@@ -1,6 +1,7 @@
 package bitmex
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -41,11 +42,12 @@ func (mc *BitmexClient) CheckSymbol(symbol string) bool {
 	return false
 }
 
-func (mc *BitmexClient) GetMargins() ([]swagger.Margin, error) {
+func (mc *BitmexClient) GetMargins(ctx context.Context) ([]swagger.Margin, error) {
+	ctx = mc.GetAuthContext(ctx)
 	opts := swagger.UserApiUserGetMarginOpts{
 		Currency: optional.NewString("all"),
 	}
-	margins, _, err := mc.client.UserApi.UserGetMargins(mc.auth, &opts)
+	margins, _, err := mc.client.UserApi.UserGetMargins(ctx, &opts)
 	if err != nil {
 		mc.l.Printf("failed to retrieve margins: %v", err)
 		return nil, err
@@ -53,8 +55,8 @@ func (mc *BitmexClient) GetMargins() ([]swagger.Margin, error) {
 	return margins, nil
 }
 
-func (mc *BitmexClient) GetBalance(currency string) (float64, error) {
-	margins, err := mc.GetMargins()
+func (mc *BitmexClient) GetBalance(ctx context.Context, currency string) (float64, error) {
+	margins, err := mc.GetMargins(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -66,18 +68,19 @@ func (mc *BitmexClient) GetBalance(currency string) (float64, error) {
 	return 0, fmt.Errorf("the currency '%s' not found", currency)
 }
 
-func (mc *BitmexClient) GetBalanceXBt() (float64, error) {
+func (mc *BitmexClient) GetBalanceXBt(ctx context.Context) (float64, error) {
 	currency := "XBt"
-	return mc.GetBalance(currency)
+	return mc.GetBalance(ctx, currency)
 }
 
-func (mc *BitmexClient) GetBalanceUSDt() (float64, error) {
+func (mc *BitmexClient) GetBalanceUSDt(ctx context.Context) (float64, error) {
 	currency := "USDt"
-	return mc.GetBalance(currency)
+	return mc.GetBalance(ctx, currency)
 }
 
-func (mc *BitmexClient) GetInstrument(t *models.Trade) (*swagger.Instrument, error) {
-	instruments, _, err := mc.client.InstrumentApi.InstrumentGetActive(mc.auth)
+func (mc *BitmexClient) GetInstrument(ctx context.Context, t *models.Trade) (*swagger.Instrument, error) {
+	ctx = mc.GetAuthContext(ctx)
+	instruments, _, err := mc.client.InstrumentApi.InstrumentGetActive(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -89,11 +92,12 @@ func (mc *BitmexClient) GetInstrument(t *models.Trade) (*swagger.Instrument, err
 	return nil, fmt.Errorf("could not find instrument")
 }
 
-func (mc *BitmexClient) GetMarketPrice(t *models.Trade) (float64, error) {
+func (mc *BitmexClient) GetMarketPrice(ctx context.Context, t *models.Trade) (float64, error) {
+	ctx = mc.GetAuthContext(ctx)
 	opts := &swagger.InstrumentApiInstrumentGetOpts{
 		Symbol: optional.NewString(t.Symbol),
 	}
-	instruments, _, err := mc.client.InstrumentApi.InstrumentGet(mc.auth, opts)
+	instruments, _, err := mc.client.InstrumentApi.InstrumentGet(ctx, opts)
 	if err != nil {
 		return 0, fmt.Errorf("failed to retrieve market price: %v", err)
 	}
@@ -104,7 +108,8 @@ func (mc *BitmexClient) GetMarketPrice(t *models.Trade) (float64, error) {
 	return 0, fmt.Errorf("no market data available for symbol: %s", t.Symbol)
 }
 
-func (mc *BitmexClient) GetLastClosedCandle(t *models.Trade) (*swagger.TradeBin, error) {
+func (mc *BitmexClient) GetLastClosedCandleOld(ctx context.Context, t *models.Trade) (*swagger.TradeBin, error) {
+	ctx = mc.GetAuthContext(ctx)
 	endTime := time.Now().UTC().Format("2006-01-02 15:04")
 	fitler := fmt.Sprintf(`{"endTime": "%s"}`, endTime)
 	// TODO the available bin size 1m,5m,1h,1d
@@ -112,36 +117,37 @@ func (mc *BitmexClient) GetLastClosedCandle(t *models.Trade) (*swagger.TradeBin,
 	params := swagger.TradeApiTradeGetBucketedOpts{
 		BinSize: optional.NewString(t.Timeframe),
 		Symbol:  optional.NewString(t.Symbol),
-		Count:   optional.NewFloat32(10),
+		Count:   optional.NewFloat32(1),
 		// Partial: optional.NewBool(true),
 		Reverse: optional.NewBool(true),
-		// EndTime: optional.NewTime(time.Now().Add(-time.Hour * 100).UTC().Format(time.RFC3339)),
-		Filter: optional.NewString(fitler),
-		// Count:   optional.NewFloat32(1),
+		Filter:  optional.NewString(fitler),
 	}
-	tradeBins, _, err := mc.client.TradeApi.TradeGetBucketed(mc.auth, &params)
-	if err != nil {
-		mc.l.Printf("error: %v", err)
-		mc.l.Printf("err type: %T", err)
-		if ApiErr, ok := (err).(swagger.GenericSwaggerError); ok {
-			mc.l.Printf("error creating a order: %s , errof: %s", string(ApiErr.Body()), ApiErr.Error())
+	// try until we get tradebucket with positive remaining time
+	for i := 0; i < 10; i++ {
+		tradeBins, _, err := mc.client.TradeApi.TradeGetBucketed(ctx, &params)
+		if err != nil {
+			mc.l.Printf("error: %v", err)
+			mc.l.Printf("err type: %T", err)
+			if ApiErr, ok := (err).(swagger.GenericSwaggerError); ok {
+				mc.l.Printf("error creating a order: %s , errof: %s", string(ApiErr.Body()), ApiErr.Error())
+			}
+			return nil, err
 		}
-		return nil, err
+		candleDuration, err := types.GetDuration(t.Timeframe)
+		if err != nil {
+			return nil, err
+		}
+		for index, bin := range tradeBins {
+			remainingTime := candleDuration + time.Until(bin.Timestamp)
+			mc.l.Printf("index: %d s: %s p: %0.8f c: %0.8f, h: %0.8f, l: %0.8f ,t: %s, duration: %s", index, bin.Symbol, bin.Open, bin.Close, bin.High, bin.Low, bin.Timestamp.Local(), utils.FriendlyDuration(remainingTime))
+			if remainingTime < 0 {
+				mc.l.Printf("remaining time should not be negative number: %d try after 1s", remainingTime)
+				time.Sleep(time.Second * 3)
+			} else {
+				return &bin, nil
+			}
+		}
 	}
-	candleDuration, err := types.GetDuration(t.Timeframe)
-	if err != nil {
-		return nil, err
-	}
-	for index, bin := range tradeBins {
-		remainingTime := candleDuration + time.Until(bin.Timestamp)
-		mc.l.Printf(remainingTime.String())
-		// if remainingTime < 0 {
-		// 	return nil, fmt.Errorf("remaining time should not be negative number: %d", remainingTime)
-		// }
-		mc.l.Printf("index: %d s: %s p: %0.8f c: %0.8f, h: %0.8f, l: %0.8f ,t: %s, duration: %s", index, bin.Symbol, bin.Open, bin.Close, bin.High, bin.Low, bin.Timestamp.Local(), utils.FriendlyDuration(remainingTime))
-	}
-	if len(tradeBins) > 0 {
-		return &tradeBins[0], nil
-	}
-	return nil, nil
+	return nil, fmt.Errorf("failed to get last closed candle")
+
 }

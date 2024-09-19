@@ -131,3 +131,17 @@ type ExecutionTable struct {
 	Filter Filter          `json:"filter"`
 	Data   []ExecutionData `json:"data"`
 }
+
+type InstrumentTable struct {
+	Table  string           `json:"table"`
+	Action string           `json:"action"`
+	Data   []InstrumentData `json:"data"`
+}
+
+type InstrumentData struct {
+	Symbol    string    `json:"symbol"`
+	OpenValue int64     `json:"openValue"`
+	FairPrice float64   `json:"fairPrice"`
+	MarkPrice float64   `json:"markPrice"`
+	Timestamp time.Time `json:"timestamp"` // You may use time.Time with proper unmarshaling
+}

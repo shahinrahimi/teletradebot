@@ -3,6 +3,7 @@
         "Bitmex",
         "klines",
         "tgbotapi",
-        "Timeframe"
+        "Timeframe",
+        "Timeframes"
     ]
 }

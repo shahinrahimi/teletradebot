@@ -10,6 +10,7 @@ import (
 	"github.com/shahinrahimi/teletradebot/models"
 	swagger "github.com/shahinrahimi/teletradebot/swagger"
 	"github.com/shahinrahimi/teletradebot/types"
+	"github.com/shahinrahimi/teletradebot/utils"
 )
 
 type PreparedOrder struct {
@@ -23,33 +24,46 @@ type PreparedOrder struct {
 func (mc *BitmexClient) PrepareOrder(ctx context.Context, t *models.Trade) (*PreparedOrder, error) {
 	var p PreparedOrder
 	p.Symbol = t.Symbol
-
-	candle, err := mc.GetLastClosedCandle(t)
+	// timeframeDur, err := types.GetDuration(t.Timeframe)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	candle, err := mc.GetLastClosedCandleOld(ctx, t)
 	if err != nil {
 		mc.l.Printf("Error fetching last closed candle: %v", err)
 		return nil, err
 	}
 
-	if t.Side == types.SIDE_L {
-		p.Side = "Buy"
-		p.StopPrice = candle.High + t.Offset
-	} else {
-		p.Side = "Sell"
-		p.StopPrice = candle.Low - t.Offset
-	}
+	// if t.Side == types.SIDE_L {
+	// 	p.Side = "Buy"
+	// 	p.StopPrice = candle.High + t.Offset
+	// } else {
+	// 	p.Side = "Sell"
+	// 	p.StopPrice = candle.Low - t.Offset
+	// }
 
-	balance, err := mc.GetBalanceUSDt()
+	balance, err := mc.GetBalanceUSDt(ctx)
 	if err != nil {
 		mc.l.Printf("Error fetching balance: %v", err)
 		return nil, err
 	}
 	mc.l.Printf("Fetched balance: %f", balance)
 
-	instrument, err := mc.GetInstrument(t)
+	instrument, err := mc.GetInstrument(ctx, t)
 	if err != nil {
 		mc.l.Printf("Error fetching instrument: %v", err)
 		return nil, err
 	}
+	mc.l.Printf("tick size of instrument: %+v", instrument.TickSize)
+
+	if t.Side == types.SIDE_L {
+		p.Side = "Buy"
+		p.StopPrice = candle.High + 0.01*candle.High
+	} else {
+		p.Side = "Sell"
+		p.StopPrice = candle.Low - 0.01*candle.Low
+	}
+	p.StopPrice = roundToTickSize(p.StopPrice, instrument.TickSize)
 
 	lotSize := instrument.LotSize
 	quantity := (balance * (float64(t.Size) / 100000.0)) / instrument.MarkPrice
@@ -63,22 +77,26 @@ func (mc *BitmexClient) PrepareOrder(ctx context.Context, t *models.Trade) (*Pre
 	// 	return nil, fmt.Errorf("the calculated quantity is less than instrument lot size")
 	// }
 
-	// candleDuration, err := types.GetDuration(t.Timeframe)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	candleDuration, err := types.GetDuration(t.Timeframe)
+	if err != nil {
+		return nil, err
+	}
 
-	// candleCloseTime := utils.ConvertTime(candle.Timestamp)
-	// remainingTime := candleDuration + time.Until(candleCloseTime)
-	// if remainingTime < 0 {
-	// 	return nil, fmt.Errorf("remaining time should not be negative number: %d", remainingTime)
-	// }
+	remainingTime := candleDuration + time.Until(candle.Timestamp)
+	if remainingTime < 0 {
+		return nil, fmt.Errorf("remaining time should not be negative number: %d", remainingTime)
+	}
 
 	p.Quantity = float32(roundedQuantity)
-	//p.Expiration = remainingTime
+	p.Expiration = remainingTime
 
 	return &p, nil
 
+}
+
+func roundToTickSize(price, tickSize float64) float64 {
+	ticks := price / tickSize
+	return math.Round(ticks) * tickSize
 }
 
 func (mc *BitmexClient) PlacePreparedOrder(p *PreparedOrder) (*swagger.Order, error) {
@@ -94,26 +112,41 @@ func (mc *BitmexClient) PlacePreparedOrder(p *PreparedOrder) (*swagger.Order, er
 }
 
 func (mc *BitmexClient) PlaceOrder(ctx context.Context, p *PreparedOrder) (*swagger.Order, error) {
-	ctx = context.WithValue(ctx, swagger.ContextAPIKey, swagger.APIKey{
-		Key:    mc.ApiKey,
-		Secret: mc.ApiSec,
-	})
+	ctx = mc.GetAuthContext(ctx)
 	params := &swagger.OrderApiOrderNewOpts{
 		Side:     optional.NewString(p.Side),
 		OrderQty: optional.NewFloat32(p.Quantity),
 		OrdType:  optional.NewString("Stop"),
 		StopPx:   optional.NewFloat64(p.StopPrice),
 	}
+	mc.l.Printf("placing order: %+v, expiration: %s", params, utils.FriendlyDuration(p.Expiration))
 	order, _, err := mc.client.OrderApi.OrderNew(ctx, p.Symbol, params)
 	return &order, err
 }
 
 func (mc *BitmexClient) GetOrder(ctx context.Context, symbol string, orderID string) (*swagger.Order, error) {
-
+	ctx = mc.GetAuthContext(ctx)
 	params := &swagger.OrderApiOrderGetOrdersOpts{
 		Symbol: optional.NewString(symbol),
 	}
 	orders, _, err := mc.client.OrderApi.OrderGetOrders(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+	for _, o := range orders {
+		if o.OrderID == orderID {
+			return &o, nil
+		}
+	}
+	return nil, fmt.Errorf("order not found")
+}
+
+func (mc *BitmexClient) CancelOrder(ctx context.Context, orderID string) (*swagger.Order, error) {
+	ctx = mc.GetAuthContext(ctx)
+	params := &swagger.OrderApiOrderCancelOpts{
+		OrderID: optional.NewString(orderID),
+	}
+	orders, _, err := mc.client.OrderApi.OrderCancel(ctx, params)
 	if err != nil {
 		return nil, err
 	}

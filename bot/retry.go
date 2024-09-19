@@ -18,6 +18,7 @@ func (b *Bot) retry(attempts int, delay time.Duration, t *models.Trade, f func()
 			if apiErr, ok := err.(*common.APIError); ok {
 				switch {
 				case (apiErr.Code == -1007 || apiErr.Code == -1008):
+					// TODO add action string so the message have meaning (not place order)
 					msg := fmt.Sprintf("Failed to place a order\nRetry after %s ...\n\nTrade ID: %d", utils.FriendlyDuration(delay), t.ID)
 					b.MsgChan <- types.BotMessage{
 						ChatID: t.UserID,

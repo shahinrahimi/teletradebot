@@ -34,3 +34,10 @@ func NewBitmexClient(l *log.Logger, apiKey string, apiSec string, UseTestnet boo
 		ApiSec: apiSec,
 	}
 }
+
+func (mc *BitmexClient) GetAuthContext(ctx context.Context) context.Context {
+	return context.WithValue(ctx, swagger.ContextAPIKey, swagger.APIKey{
+		Key:    mc.ApiKey,
+		Secret: mc.ApiSec,
+	})
+}

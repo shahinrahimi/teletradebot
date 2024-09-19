@@ -9,6 +9,7 @@ import (
 	"github.com/adshao/go-binance/v2/futures"
 	"github.com/shahinrahimi/teletradebot/config"
 	"github.com/shahinrahimi/teletradebot/exchange/binance"
+	"github.com/shahinrahimi/teletradebot/exchange/bitmex"
 	"github.com/shahinrahimi/teletradebot/models"
 	"github.com/shahinrahimi/teletradebot/swagger"
 	"github.com/shahinrahimi/teletradebot/types"
@@ -123,8 +124,55 @@ func (b *Bot) scheduleOrderReplacementBitmex(ctx context.Context, delay time.Dur
 			return
 		}
 		b.l.Printf("order status: %s", order.OrdStatus)
-		// if order.OrdStatus == swagger.Order {
+		if order.OrdStatus == string(bitmex.OrderStatusTypeNew) {
+			b.l.Printf("Order not executed, attempting replacement")
+			res, err := b.retry2(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
+				return b.mc.CancelOrder(ctx, orderID)
+			})
+			if err != nil {
+				b.l.Printf("error cancelling order: %v", err)
+				b.handleError(err, t.UserID, t.ID)
+			}
 
-		// }
+			cancelOrder, ok := (res).(*swagger.Order)
+			if !ok {
+				b.l.Printf("unexpected error happened in casting error to *swagger.Order: %T", cancelOrder)
+			}
+			// place a new order
+			res, po, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, interface{}, error) {
+				return b.mc.PlaceTrade(ctx, t)
+			})
+			if err != nil {
+				b.l.Printf("error placing trade: %v", err)
+				b.handleError(err, t.UserID, t.ID)
+				return
+			}
+			preparedOrder, ok := (po).(*bitmex.PreparedOrder)
+			if !ok {
+				b.l.Printf("unexpected error happened in casting interface to bitmex.PreparedOrder: %T", preparedOrder)
+				return
+			}
+
+			createOrder, ok := (res).(*swagger.Order)
+			if !ok {
+				b.l.Printf("unexpected error happened in casting error to *swagger.Order: %T", createOrder)
+				return
+			}
+
+			// schedule
+			go b.scheduleOrderReplacementBitmex(ctx, preparedOrder.Expiration, createOrder.OrderID, t)
+
+			// update trade order
+			if err := b.s.UpdateTradePlaced(t, createOrder.OrderID); err != nil {
+				b.l.Printf("error updating order for trade: %v", err)
+			}
+
+			// message the user
+			msg := fmt.Sprintf("Order replaced successfully\n\nNewOrder ID: %s\nTrade ID: %d", createOrder.OrderID, t.ID)
+			b.MsgChan <- types.BotMessage{
+				ChatID: t.UserID,
+				MsgStr: msg,
+			}
+		}
 	})
 }

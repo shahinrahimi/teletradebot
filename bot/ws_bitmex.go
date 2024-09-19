@@ -112,13 +112,12 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 		}
 		b.l.Printf("sent auth message: %s", authMessage)
 
-		publicSubMessage := fmt.Sprintf(`{"op": "subscribe", ["instrument:%s"]}`, Symbol)
-
-		err = ws.WriteMessage(websocket.TextMessage, []byte(publicSubMessage))
-		if err != nil {
-			b.l.Fatalf("error sending bitmex public sub message: %v", err)
-		}
-		b.l.Printf("sent public sub message: %s", publicSubMessage)
+		// publicSubMessage := `{"op": "subscribe", "args": ["instrument:DERIVATIVES"]}`
+		// err = ws.WriteMessage(websocket.TextMessage, []byte(publicSubMessage))
+		// if err != nil {
+		// 	b.l.Fatalf("error sending bitmex public sub message: %v", err)
+		// }
+		// b.l.Printf("sent public sub message: %s", publicSubMessage)
 
 		// subscribe to private channel
 		privateSubMessage := fmt.Sprintf(`{"op": "subscribe", "args": ["%s" , "%s", "%s"]}`, "execution", "order", "margin")
@@ -152,9 +151,7 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 		done := make(chan struct{})
 
 		// WebSocket read loop
-		var orderTable OrderTable
-		var marginTable MarginTable
-		var executionTable ExecutionTable
+
 		go func() {
 			defer close(done)
 			for {
@@ -173,6 +170,10 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 					Subscribe string `json:"subscribe"`
 					Table     string `json:"table"`
 				}
+				var orderTable OrderTable
+				var marginTable MarginTable
+				var executionTable ExecutionTable
+				var instrumentTable InstrumentTable
 				if err := json.Unmarshal(message, &baseMessage); err != nil {
 					b.l.Printf("error unmarshalling bitmex message: %v", err)
 					continue
@@ -185,7 +186,7 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 				case baseMessage.Success:
 					b.l.Printf("received message success on %v", baseMessage.Subscribe)
 				case baseMessage.Table != "":
-					b.l.Printf("received message table: %s", baseMessage.Table)
+					//b.l.Printf("received message table: %s", baseMessage.Table)
 					switch baseMessage.Table {
 					case "order":
 						if err := json.Unmarshal(message, &orderTable); err == nil {
@@ -202,6 +203,29 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 					case "execution":
 						if err := json.Unmarshal(message, &executionTable); err == nil {
 							b.l.Printf("received message executionTable: %s", executionTable.Table)
+						} else {
+							b.l.Printf("error unmarshalling bitmex message: %v", err)
+						}
+					case "instrument":
+						if err := json.Unmarshal(message, &instrumentTable); err == nil {
+							//b.l.Printf("received message instrumentTable, symbol is: %s data length: %d", instrumentTable.Table, len(instrumentTable.Data))
+							if len(instrumentTable.Data) >= 3 {
+								b.l.Printf("too many symbols: %d", len(instrumentTable.Data))
+							} else {
+								for _, i := range instrumentTable.Data {
+									if i.Symbol == "SOLUSDT" {
+										b.l.Printf("symbol: %s, markPrice: %0.5f , since: %s", i.Symbol, i.MarkPrice, utils.FriendlyDuration(time.Since(i.Timestamp)))
+									}
+									b.mc.UpdateCandles(i.Symbol, i.MarkPrice, i.Timestamp)
+									//trunc1min := i.Timestamp.Truncate(time.Minute).Local()
+									//trunc15min := i.Timestamp.Truncate(time.Minute * 15).Local()
+									//trunc1h := i.Timestamp.Truncate(time.Hour).Local()
+
+									//b.l.Printf("symbol: %s, markPrice: %0.5f , since: %s \ntruncated1min: %s, truncated15min: %s, truncated1h: %s", i.Symbol, i.MarkPrice, utils.FriendlyDuration(time.Since(i.Timestamp)), trunc1min, trunc15min, trunc1h)
+								}
+
+							}
+
 						} else {
 							b.l.Printf("error unmarshalling bitmex message: %v", err)
 						}
