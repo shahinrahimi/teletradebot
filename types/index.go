@@ -5,12 +5,19 @@ import (
 	"time"
 )
 
+type OrderIDType string
+
 type BotMessage struct {
 	ChatID int64
 	MsgStr string
 }
 
 const (
+	OrderIDTypeMain       OrderIDType = `main`
+	OrderIDTypeStopLoss   OrderIDType = `stop-loss`
+	OrderIDTypeTakeProfit OrderIDType = `take-profit`
+	OrderIDTypeNone       OrderIDType = `none`
+
 	ACCOUNT_B string = `Binance`
 	ACCOUNT_M string = `Bitmex`
 
