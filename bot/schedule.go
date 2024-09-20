@@ -8,7 +8,6 @@ import (
 	"github.com/adshao/go-binance/v2/common"
 	"github.com/adshao/go-binance/v2/futures"
 	"github.com/shahinrahimi/teletradebot/config"
-	"github.com/shahinrahimi/teletradebot/exchange/binance"
 	"github.com/shahinrahimi/teletradebot/exchange/bitmex"
 	"github.com/shahinrahimi/teletradebot/models"
 	"github.com/shahinrahimi/teletradebot/swagger"
@@ -66,7 +65,7 @@ func (b *Bot) scheduleOrderReplacement(ctx context.Context, delay time.Duration,
 			}
 
 			// place new order
-			res, po, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, interface{}, error) {
+			res, d, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, interface{}, error) {
 				return b.bc.PlaceTrade(ctx, t)
 			})
 			if err != nil {
@@ -82,14 +81,16 @@ func (b *Bot) scheduleOrderReplacement(ctx context.Context, delay time.Duration,
 				return
 			}
 
-			preparedOrder, ok := (po).(*binance.PreparedOrder)
+			describer, ok := (d).(*models.Describer)
 			if !ok {
-				b.l.Printf("unexpected error happened in casting interface to binance.PreparedOrder: %T", createOrder)
+				b.l.Printf("unexpected error happened in casting interface to *models.Describer: %T", describer)
 				return
 			}
+			b.c.SetDescriber(describer, t.ID)
+			expiration := describer.CalculateExpiration()
 
 			// schedule
-			go b.scheduleOrderReplacement(ctx, preparedOrder.Expiration, createOrder.OrderID, t)
+			go b.scheduleOrderReplacement(ctx, expiration, createOrder.OrderID, t)
 
 			// update trade order
 			orderIdStr := utils.ConvertBinanceOrderID(createOrder.OrderID)

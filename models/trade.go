@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/shahinrahimi/teletradebot/types"
 )
 
 type Trade struct {
@@ -89,4 +91,45 @@ func (t *Trade) ToListString() string {
 
 func (t *Trade) ToViewString() string {
 	return fmt.Sprintf("Trade ID: %d\n\nAccount: %s\nSymbol: %s\nSide: %s\nTimeframe: %s\nOffset: $%0.2f\nSize: %d\nSL: %d\nTP: %d\nRM: %d", t.ID, t.Account, t.Symbol, t.Side, t.Timeframe, t.Offset, t.Size, t.StopLoss, t.TakeProfit, t.ReverseMultiplier)
+}
+
+func (t *Trade) CalculateStopPrice(high, low float64) (float64, error) {
+	var stopPrice float64
+	if t.Side == types.SIDE_L {
+		stopPrice = high + t.Offset
+	} else {
+		stopPrice = low - t.Offset
+	}
+	if stopPrice <= 0 {
+		return 0, fmt.Errorf("price cannot be zero or negative")
+	}
+	return stopPrice, nil
+}
+
+func (t *Trade) CalculateStopLossPrice(high, low, basePrice float64) (float64, error) {
+	var stopPrice float64
+	r := high - low
+	if t.Side == types.SIDE_L {
+		stopPrice = basePrice - (r * (float64(t.StopLoss)) / 100)
+	} else {
+		stopPrice = basePrice + (r * (float64(t.StopLoss)) / 100)
+	}
+	if stopPrice <= 0 {
+		return 0, fmt.Errorf("price cannot be zero or negative")
+	}
+	return stopPrice, nil
+}
+
+func (t *Trade) CalculateTakeProfitPrice(high, low, basePrice float64) (float64, error) {
+	var stopPrice float64
+	r := high - low
+	if t.Side == types.SIDE_L {
+		stopPrice = basePrice + (r * (float64(t.TakeProfit)) / 100)
+	} else {
+		stopPrice = basePrice - (r * (float64(t.TakeProfit)) / 100)
+	}
+	if stopPrice <= 0 {
+		return 0, fmt.Errorf("price cannot be zero or negative")
+	}
+	return stopPrice, nil
 }

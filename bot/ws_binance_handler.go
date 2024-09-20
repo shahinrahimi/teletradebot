@@ -60,12 +60,6 @@ func (b *Bot) handleFilled(ctx context.Context, f futures.WsOrderTradeUpdate) {
 }
 
 func (b *Bot) handleNewFilled(ctx context.Context, t *models.Trade, f futures.WsOrderTradeUpdate) {
-	d, err := b.bc.FetchDescriber(context.Background(), t)
-	if err != nil {
-		b.l.Printf("error fetching the describer %v", err)
-	} else {
-		models.SetDescriber(d, t.ID)
-	}
 
 	// update trade state
 	b.c.UpdateTradeFilled(t.ID)
@@ -77,10 +71,16 @@ func (b *Bot) handleNewFilled(ctx context.Context, t *models.Trade, f futures.Ws
 		MsgStr: msg,
 	}
 
+	d, exist := b.c.GetDescriber(t.ID)
+	if !exist {
+		b.l.Printf("describer not exist for trade: %d", t.ID)
+		return
+	}
+
 	// place stop-loss order
 	go func() {
-		res, _, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, interface{}, error) {
-			return b.bc.PlaceTradeSLOrder(ctx, t, &f)
+		res, err := b.retry2(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
+			return b.bc.PlaceTradeSLOrder(ctx, t, d, &f)
 		})
 		if err != nil {
 			b.l.Printf("error executing stop-loss order: %v", err)
@@ -106,8 +106,8 @@ func (b *Bot) handleNewFilled(ctx context.Context, t *models.Trade, f futures.Ws
 
 	// place take-profit order
 	go func() {
-		res, _, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, interface{}, error) {
-			return b.bc.PlaceTradeTPOrder(ctx, t, &f)
+		res, err := b.retry2(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
+			return b.bc.PlaceTradeTPOrder(ctx, t, d, &f)
 		})
 		if err != nil {
 			b.l.Printf("error executing take-profit order: %v", err)

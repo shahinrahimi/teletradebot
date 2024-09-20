@@ -16,7 +16,7 @@ func (b *Bot) HandleReset(u *tgbotapi.Update, ctx context.Context) error {
 	}
 	userID := u.Message.From.ID
 	b.c.UpdateTradeIdle(t.ID)
-	models.DeleteDescriber(t.ID)
+	b.c.RemoveDescriber(t.ID)
 	msg := fmt.Sprintf("The trade has been successfully reset.\n\nTrade ID: %d", t.ID)
 	b.MsgChan <- types.BotMessage{
 		ChatID: userID,

@@ -7,7 +7,6 @@ import (
 	"github.com/adshao/go-binance/v2/futures"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/shahinrahimi/teletradebot/config"
-	"github.com/shahinrahimi/teletradebot/exchange/binance"
 	"github.com/shahinrahimi/teletradebot/exchange/bitmex"
 	"github.com/shahinrahimi/teletradebot/models"
 	"github.com/shahinrahimi/teletradebot/swagger"
@@ -33,7 +32,7 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 
 	if t.Account == types.ACCOUNT_B {
 		go func() {
-			res, po, err := b.retry(config.MaxTries, config.WaitForNextTries, &t, func() (interface{}, interface{}, error) {
+			res, d, err := b.retry(config.MaxTries, config.WaitForNextTries, &t, func() (interface{}, interface{}, error) {
 				return b.bc.PlaceTrade(ctx, &t)
 			})
 			if err != nil {
@@ -46,14 +45,16 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 				b.l.Printf("unexpected error happened in casting error to futures.CreateOrderResponse: %T", order)
 				return
 			}
-			preparedOrder, ok := po.(*binance.PreparedOrder)
+			describer, ok := d.(*models.Describer)
 			if !ok {
-				b.l.Printf("unexpected error happened in casting interface to futures.binance.PreparedOrder: %T", preparedOrder)
+				b.l.Printf("unexpected error happened in casting interface to *models.Describer: %T", describer)
 				return
 			}
+			b.c.SetDescriber(describer, t.ID)
+			expiration := describer.CalculateExpiration()
 			orderID := utils.ConvertBinanceOrderID(order.OrderID)
 			// schedule for replacement
-			go b.scheduleOrderReplacement(ctx, preparedOrder.Expiration, order.OrderID, &t)
+			go b.scheduleOrderReplacement(ctx, expiration, order.OrderID, &t)
 
 			msg := fmt.Sprintf("Order placed successfully\n\nOrder ID: %s\nTrade ID: %d", orderID, t.ID)
 			b.MsgChan <- types.BotMessage{

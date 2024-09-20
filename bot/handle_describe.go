@@ -10,44 +10,30 @@ import (
 
 func (b *Bot) HandleDescribe(u *tgbotapi.Update, ctx context.Context) error {
 	t, ok := ctx.Value(models.KeyTrade{}).(models.Trade)
+	userID := u.Message.From.ID
 	if !ok {
 		b.l.Panic("error getting trade from context")
 	}
-	userID := u.Message.From.ID
-	if t.Account == types.ACCOUNT_B {
-		// if trade state is idle or placed it should get latest describer
-		if !((t.State == types.STATE_IDLE) || (t.State == types.STATE_PLACED)) {
-			// try to read describer from memory
-			d, exist := models.GetDescriber(t.ID)
-			if exist {
-				b.MsgChan <- types.BotMessage{
-					ChatID: userID,
-					MsgStr: d.ToString(&t),
-				}
-			} else {
-				d, err := b.bc.FetchDescriber(ctx, &t)
-				if err != nil {
-					b.l.Printf("error fetching describer")
-					return err
-				}
-				b.MsgChan <- types.BotMessage{
-					ChatID: userID,
-					MsgStr: d.ToString(&t),
-				}
-			}
-		} else {
-			d, err := b.bc.FetchDescriber(ctx, &t)
-			if err != nil {
-				b.l.Printf("error fetching describer")
-				return err
-			}
-			b.MsgChan <- types.BotMessage{
-				ChatID: userID,
-				MsgStr: d.ToString(&t),
-			}
+	if d, exist := b.c.GetDescriber(t.ID); exist {
+		b.MsgChan <- types.BotMessage{
+			ChatID: userID,
+			MsgStr: d.ToString(&t),
 		}
-
-	} else {
+		return nil
+	}
+	switch t.Account {
+	case types.ACCOUNT_B:
+		d, err := b.bc.FetchDescriber(ctx, &t)
+		if err != nil {
+			b.l.Printf("error fetching describer")
+			return err
+		}
+		b.MsgChan <- types.BotMessage{
+			ChatID: userID,
+			MsgStr: d.ToString(&t),
+		}
+		return nil
+	case types.ACCOUNT_M:
 		d, err := b.mc.FetchDescriber(ctx, &t)
 		if err != nil {
 			b.l.Printf("error fetching describer")
@@ -57,6 +43,7 @@ func (b *Bot) HandleDescribe(u *tgbotapi.Update, ctx context.Context) error {
 			ChatID: userID,
 			MsgStr: d.ToString(&t),
 		}
+		return nil
 	}
 	return nil
 }

@@ -7,36 +7,34 @@ import (
 	"github.com/shahinrahimi/teletradebot/models"
 )
 
-func (bc *BinanceClient) PlaceTrade(ctx context.Context, t *models.Trade) (*futures.CreateOrderResponse, *PreparedOrder, error) {
+func (bc *BinanceClient) PlaceTrade(ctx context.Context, t *models.Trade) (*futures.CreateOrderResponse, *models.Describer, error) {
 	bc.l.Printf("executing order for trade ID: %d", t.ID)
-	po, err := bc.prepareOrder(ctx, t)
+	// fetch describer
+	d, err := bc.FetchDescriber(ctx, t)
+	if err != nil {
+		bc.l.Printf("error fetching the describer %v", err)
+		return nil, nil, err
+	}
+	// prepare order
+	po, err := bc.prepareDescriberForMainOrder(ctx, d, t)
 	if err != nil {
 		bc.l.Printf("trade could not be executed, error in preparing state: %v", err)
 		return nil, nil, err
 	}
 	res, err := bc.PlaceOrder(ctx, po)
-	return res, po, err
+	return res, d, err
 }
 
-func (bc *BinanceClient) PlaceTradeSLOrder(ctx context.Context, t *models.Trade, f *futures.WsOrderTradeUpdate) (*futures.CreateOrderResponse, *PreparedOrder, error) {
+func (bc *BinanceClient) PlaceTradeSLOrder(ctx context.Context, t *models.Trade, d *models.Describer, f *futures.WsOrderTradeUpdate) (*futures.CreateOrderResponse, error) {
 	bc.l.Printf("executing stop-loss order for trade ID: %d", t.ID)
-	po, err := bc.prepareSLOrder(ctx, t, f)
-	if err != nil {
-		bc.l.Printf("error during stop-loss order preparation: %v", err)
-		return nil, nil, err
-	}
-	res, err := bc.placeSLOrder(ctx, po)
-	return res, po, err
+	po := bc.prepareDescriberForStopLossOrder(ctx, d, t, f)
+	res, err := bc.PlaceSLOrder(ctx, po)
+	return res, err
 }
 
-func (bc *BinanceClient) PlaceTradeTPOrder(ctx context.Context, t *models.Trade, f *futures.WsOrderTradeUpdate) (*futures.CreateOrderResponse, *PreparedOrder, error) {
+func (bc *BinanceClient) PlaceTradeTPOrder(ctx context.Context, t *models.Trade, d *models.Describer, f *futures.WsOrderTradeUpdate) (*futures.CreateOrderResponse, error) {
 	bc.l.Printf("executing take-profit order for trade ID: %d", t.ID)
-	po, err := bc.prepareTPOrder(ctx, t, f)
-	if err != nil {
-		bc.l.Printf("error during take-profit order preparation: %v", err)
-		return nil, nil, err
-	}
-
+	po := bc.prepareDescriberForTakeProfitOrder(ctx, d, t, f)
 	res, err := bc.PlaceTPOrder(ctx, po)
-	return res, po, err
+	return res, err
 }
