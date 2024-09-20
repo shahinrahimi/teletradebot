@@ -71,7 +71,12 @@ func (c *Cash) GetTrades() []*models.Trade {
 }
 
 func (c *Cash) UpdateTradeIdle(ID int64) {
-	t := c.GetTrade(ID)
+	mu.Lock()
+	defer mu.Unlock()
+	t, exist := c.trades[ID]
+	if !exist {
+		c.l.Panicf("trade not found: %d", ID)
+	}
 	t.State = types.STATE_IDLE
 	t.OrderID = ""
 	t.SLOrderID = ""
@@ -80,58 +85,93 @@ func (c *Cash) UpdateTradeIdle(ID int64) {
 }
 
 func (c *Cash) UpdateTradePlaced(ID int64, orderID string) {
-	t := c.GetTrade(ID)
+	mu.Lock()
+	defer mu.Unlock()
+	t, exist := c.trades[ID]
+	if !exist {
+		c.l.Panicf("trade not found: %d", ID)
+	}
 	t.State = types.STATE_PLACED
 	t.OrderID = orderID
+	c.trades[ID] = t
 }
 
 func (c *Cash) UpdateTradeTPOrder(ID int64, orderID string) {
 	mu.Lock()
 	defer mu.Unlock()
-	t := c.GetTrade(ID)
+	t, exist := c.trades[ID]
+	if !exist {
+		c.l.Panicf("trade not found: %d", ID)
+	}
 	t.TPOrderID = orderID
+	c.trades[ID] = t
 }
 
 func (c *Cash) UpdateTradeSLOrder(ID int64, orderID string) {
 	mu.Lock()
 	defer mu.Unlock()
-	t := c.GetTrade(ID)
+	t, exist := c.trades[ID]
+	if !exist {
+		c.l.Panicf("trade not found: %d", ID)
+	}
 	t.SLOrderID = orderID
+	c.trades[ID] = t
+
 }
 
 func (c *Cash) UpdateTradeFilled(ID int64) {
 	mu.Lock()
 	defer mu.Unlock()
-	t := c.GetTrade(ID)
+	t, exist := c.trades[ID]
+	if !exist {
+		c.l.Panicf("trade not found: %d", ID)
+	}
 	t.State = types.STATE_FILLED
+	c.trades[ID] = t
 }
 
 func (c *Cash) UpdateTradeStopped(ID int64) {
 	mu.Lock()
 	defer mu.Unlock()
-	t := c.GetTrade(ID)
+	t, exist := c.trades[ID]
+	if !exist {
+		c.l.Panicf("trade not found: %d", ID)
+	}
 	t.State = types.STATE_STOPPED
+	c.trades[ID] = t
 }
 
 func (c *Cash) UpdateTradeProfited(ID int64) {
 	mu.Lock()
 	defer mu.Unlock()
-	t := c.GetTrade(ID)
+	t, exist := c.trades[ID]
+	if !exist {
+		c.l.Panicf("trade not found: %d", ID)
+	}
 	t.State = types.STATE_PROFITED
+	c.trades[ID] = t
 }
 
 func (c *Cash) UpdateTradeCanceled(ID int64) {
 	mu.Lock()
 	defer mu.Unlock()
-	t := c.GetTrade(ID)
+	t, exist := c.trades[ID]
+	if !exist {
+		c.l.Panicf("trade not found: %d", ID)
+	}
 	t.State = types.STATE_CANCELED
+	c.trades[ID] = t
 }
 
 func (c *Cash) UpdateTradeClosed(ID int64) {
 	mu.Lock()
 	defer mu.Unlock()
-	t := c.GetTrade(ID)
+	t, exist := c.trades[ID]
+	if !exist {
+		c.l.Panicf("trade not found: %d", ID)
+	}
 	t.State = types.STATE_CLOSED
+	c.trades[ID] = t
 }
 
 func (c *Cash) GetTradeByOrderID(orderID string) *models.Trade {

@@ -9,7 +9,6 @@ import (
 	"github.com/shahinrahimi/teletradebot/config"
 	"github.com/shahinrahimi/teletradebot/models"
 	"github.com/shahinrahimi/teletradebot/types"
-	"github.com/shahinrahimi/teletradebot/utils"
 )
 
 func (b *Bot) ProvideAddTrade(next Handler) Handler {
@@ -33,7 +32,7 @@ func (b *Bot) ProvideAddTrade(next Handler) Handler {
 		} else {
 			tradeArgs = args
 		}
-		t, err := utils.ParseTrade(tradeArgs)
+		t, err := models.ParseTrade(tradeArgs)
 		if err != nil {
 			b.MsgChan <- types.BotMessage{
 				ChatID: userID,

@@ -47,6 +47,7 @@ func (b *Bot) handleOrderTradeUpdate(ctx context.Context, f futures.WsOrderTrade
 func (b *Bot) handleFilled(ctx context.Context, f futures.WsOrderTradeUpdate) {
 	orderID := utils.ConvertBinanceOrderID(f.ID)
 	t, orderIDType := b.c.GetTradeByAnyOrderID(orderID)
+	b.l.Printf("orderID: %s, orderIDType: %s", orderID, orderIDType)
 	switch orderIDType {
 	case types.OrderIDTypeMain:
 		b.handleNewFilled(ctx, t, f)
@@ -208,4 +209,22 @@ func (b *Bot) handleTPFilled(ctx context.Context, t *models.Trade, f futures.WsO
 			MsgStr: msg,
 		}
 	}()
+}
+
+func (b *Bot) handleExpired(ctx context.Context, t *models.Trade, f futures.WsOrderTradeUpdate) {
+	orderID := utils.ConvertBinanceOrderID(f.ID)
+	t, orderIDType := b.c.GetTradeByAnyOrderID(orderID)
+	switch orderIDType {
+	case types.OrderIDTypeMain:
+		b.l.Printf("the orderID is expired with trade ID: %s", orderID)
+		//b.handleNewFilled(ctx, t, f)
+	case types.OrderIDTypeTakeProfit:
+		b.l.Printf("the take-profit orderID is expired with trade ID: %s", orderID)
+		//b.handleTPFilled(ctx, t, f)
+	case types.OrderIDTypeStopLoss:
+		b.l.Printf("the stop-loss orderID is expired with trade ID: %s", orderID)
+		//b.handleSLFilled(ctx, t, f)
+	default:
+		b.l.Printf("the orderID expired is not associate with any trade: %s", orderID)
+	}
 }

@@ -29,7 +29,7 @@ func (b *Bot) HandleBulkExecute(u *tgbotapi.Update, ctx context.Context) error {
 			return nil
 		}
 		for _, t := range trades {
-			ctx = context.WithValue(ctx, models.KeyTrade{}, t)
+			ctx = context.WithValue(ctx, models.KeyTrade{}, *t)
 			go b.HandleExecute(u, ctx)
 		}
 	}

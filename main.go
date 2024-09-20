@@ -86,7 +86,7 @@ func main() {
 	b.StartMessageListener()
 
 	// start binance ws
-	//b.StartWebsocketService(ctx)
+	b.StartWebsocketService(ctx)
 
 	// start bitmex ws
 	//b.StartWebsocketServiceBitmex(ctx)

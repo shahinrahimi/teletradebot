@@ -52,6 +52,7 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 			}
 			b.c.SetDescriber(describer, t.ID)
 			expiration := describer.CalculateExpiration()
+			b.l.Printf("expiration: %v", utils.FriendlyDuration(expiration))
 			orderID := utils.ConvertBinanceOrderID(order.OrderID)
 			// schedule for replacement
 			go b.scheduleOrderReplacement(ctx, expiration, order.OrderID, &t)

@@ -9,7 +9,6 @@ import (
 	"github.com/shahinrahimi/teletradebot/config"
 	"github.com/shahinrahimi/teletradebot/models"
 	"github.com/shahinrahimi/teletradebot/types"
-	"github.com/shahinrahimi/teletradebot/utils"
 )
 
 func (b *Bot) HandleBulkAdd(u *tgbotapi.Update, ctx context.Context) error {
@@ -19,7 +18,7 @@ func (b *Bot) HandleBulkAdd(u *tgbotapi.Update, ctx context.Context) error {
 	var rawTrades []models.Trade
 	for _, value := range config.Shortcuts {
 		tradeArgs := strings.Split(value, " ")
-		t, err := utils.ParseTrade(tradeArgs)
+		t, err := models.ParseTrade(tradeArgs)
 		if err != nil {
 			continue
 		}

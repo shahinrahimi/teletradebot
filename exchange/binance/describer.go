@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/shahinrahimi/teletradebot/models"
+	"github.com/shahinrahimi/teletradebot/types"
 	"github.com/shahinrahimi/teletradebot/utils"
 )
 
@@ -47,6 +48,11 @@ func (bc *BinanceClient) FetchDescriber(ctx context.Context, t *models.Trade) (*
 		return nil, err
 	}
 
+	candleDuration, err := types.GetDuration(t.Timeframe)
+	if err != nil {
+		return nil, err
+	}
+
 	return &models.Describer{
 		OpenTime:          utils.ConvertTime(k.OpenTime),
 		CloseTime:         utils.ConvertTime(k.CloseTime).Add(time.Second),
@@ -57,6 +63,7 @@ func (bc *BinanceClient) FetchDescriber(ctx context.Context, t *models.Trade) (*
 		StopPrice:         sp,
 		StopLossPrice:     sl,
 		TakeProfitPrice:   tp,
+		CandleDuration:    candleDuration,
 		PricePrecision:    s.PricePrecision,
 		QuantityPrecision: s.QuantityPrecision,
 	}, nil
