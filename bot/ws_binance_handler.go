@@ -88,17 +88,17 @@ func (b *Bot) handleNewFilled(ctx context.Context, t *models.Trade, f futures.Ws
 			b.handleError(err, t.UserID, t.ID)
 			return
 		}
-		orderResponse, ok := res.(*futures.CreateOrderResponse)
+		order, ok := res.(*futures.CreateOrderResponse)
 		if !ok {
-			b.l.Printf("unexpected error happened in casting error to futures.CreateOrderResponse: %T", orderResponse)
+			b.l.Printf("unexpected error happened in casting error to futures.CreateOrderResponse: %T", order)
 			return
 		}
-		orderID := utils.ConvertBinanceOrderID(orderResponse.OrderID)
+		orderID := utils.ConvertBinanceOrderID(order.OrderID)
 		// update trade
 		b.c.UpdateTradeSLOrder(t.ID, orderID)
 
 		// message the user
-		msg := fmt.Sprintf("Stop-loss order placed successfully.\n\nOrder ID: %d\nTrade ID: %d", orderResponse.OrderID, t.ID)
+		msg := fmt.Sprintf("Stop-loss order placed successfully.\n\nOrder ID: %s\nTrade ID: %d", orderID, t.ID)
 		b.MsgChan <- types.BotMessage{
 			ChatID: t.UserID,
 			MsgStr: msg,
@@ -115,17 +115,17 @@ func (b *Bot) handleNewFilled(ctx context.Context, t *models.Trade, f futures.Ws
 			b.handleError(err, t.UserID, t.ID)
 			return
 		}
-		orderResponse, ok := res.(*futures.CreateOrderResponse)
+		order, ok := res.(*futures.CreateOrderResponse)
 		if !ok {
-			b.l.Printf("unexpected error happened in casting error to futures.CreateOrderResponse: %T", orderResponse)
+			b.l.Printf("unexpected error happened in casting error to futures.CreateOrderResponse: %T", order)
 			return
 		}
-		orderID := utils.ConvertBinanceOrderID(orderResponse.OrderID)
+		orderID := utils.ConvertBinanceOrderID(order.OrderID)
 		// update trade
 		b.c.UpdateTradeTPOrder(t.ID, orderID)
 
 		// message the user
-		msg := fmt.Sprintf("Take-profit order placed successfully.\n\nOrder ID: %d\nTrade ID: %d", orderResponse.OrderID, t.ID)
+		msg := fmt.Sprintf("Take-profit order placed successfully.\n\nOrder ID: %s\nTrade ID: %d", orderID, t.ID)
 		b.MsgChan <- types.BotMessage{
 			ChatID: t.UserID,
 			MsgStr: msg,
@@ -158,9 +158,9 @@ func (b *Bot) handleSLFilled(ctx context.Context, t *models.Trade, f futures.WsO
 			b.handleError(err, t.UserID, t.ID)
 			return
 		}
-		orderResponse, ok := res.(*futures.CancelOrderResponse)
+		order, ok := res.(*futures.CancelOrderResponse)
 		if !ok {
-			b.l.Printf("unexpected error happened in casting error to futures.CancelOrderResponse: %T", orderResponse)
+			b.l.Printf("unexpected error happened in casting error to *futures.CancelOrderResponse: %T", order)
 			return
 		}
 		// message the user
@@ -197,9 +197,9 @@ func (b *Bot) handleTPFilled(ctx context.Context, t *models.Trade, f futures.WsO
 			b.handleError(err, t.UserID, t.ID)
 			return
 		}
-		orderResponse, ok := res.(*futures.CancelOrderResponse)
+		order, ok := res.(*futures.CancelOrderResponse)
 		if !ok {
-			b.l.Printf("unexpected error happened in casting error to futures.CancelOrderResponse: %T", orderResponse)
+			b.l.Printf("unexpected error happened in casting error to *futures.CancelOrderResponse: %T", order)
 			return
 		}
 		// message the user

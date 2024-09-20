@@ -7,7 +7,7 @@ import (
 	"github.com/adshao/go-binance/v2/futures"
 )
 
-func (b *Bot) StartWebsocketService(ctx context.Context) {
+func (b *Bot) StartWebsocketServiceBinance(ctx context.Context) {
 	go b.startUserDataStream724(ctx)
 }
 

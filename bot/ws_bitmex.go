@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/shahinrahimi/teletradebot/exchange/bitmex"
 	"github.com/shahinrahimi/teletradebot/utils"
 )
 
@@ -170,10 +171,10 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 					Subscribe string `json:"subscribe"`
 					Table     string `json:"table"`
 				}
-				var orderTable OrderTable
-				var marginTable MarginTable
-				var executionTable ExecutionTable
-				var instrumentTable InstrumentTable
+				var orderTable bitmex.OrderTable
+				var marginTable bitmex.MarginTable
+				var executionTable bitmex.ExecutionTable
+				var instrumentTable bitmex.InstrumentTable
 				if err := json.Unmarshal(message, &baseMessage); err != nil {
 					b.l.Printf("error unmarshalling bitmex message: %v", err)
 					continue

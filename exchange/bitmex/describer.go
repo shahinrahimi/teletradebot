@@ -17,6 +17,9 @@ func (mc *BitmexClient) FetchDescriber(ctx context.Context, t *models.Trade) (*m
 	if err != nil {
 		return nil, err
 	}
+	// TODO after changing value from last to mark this will be edited
+	k.High = k.High * 1.005
+	k.Low = k.Low * 0.995
 	sp, err := t.CalculateStopPrice(k.High, k.Low)
 	if err != nil {
 		return nil, err

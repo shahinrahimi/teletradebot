@@ -86,10 +86,10 @@ func main() {
 	b.StartMessageListener()
 
 	// start binance ws
-	b.StartWebsocketService(ctx)
+	b.StartWebsocketServiceBinance(ctx)
 
 	// start bitmex ws
-	//b.StartWebsocketServiceBitmex(ctx)
+	b.StartWebsocketServiceBitmex(ctx)
 
 	// global middleware
 	b.Use(b.BanBots)
