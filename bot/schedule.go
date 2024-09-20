@@ -15,7 +15,7 @@ import (
 	"github.com/shahinrahimi/teletradebot/utils"
 )
 
-func (b *Bot) scheduleOrderReplacement(ctx context.Context, delay time.Duration, orderId int64, t *models.Trade) {
+func (b *Bot) scheduleOrderReplacementBinance(ctx context.Context, delay time.Duration, orderId int64, t *models.Trade) {
 	time.AfterFunc(delay, func() {
 		res, err := b.retry2(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
 			return b.bc.GetOrder(ctx, orderId, t.Symbol)
@@ -64,7 +64,7 @@ func (b *Bot) scheduleOrderReplacement(ctx context.Context, delay time.Duration,
 				//return
 			}
 
-			// place new order
+			// place a new order
 			res, d, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, interface{}, error) {
 				return b.bc.PlaceTrade(ctx, t)
 			})
@@ -90,7 +90,7 @@ func (b *Bot) scheduleOrderReplacement(ctx context.Context, delay time.Duration,
 			expiration := describer.CalculateExpiration()
 
 			// schedule
-			go b.scheduleOrderReplacement(ctx, expiration, createOrder.OrderID, t)
+			go b.scheduleOrderReplacementBinance(ctx, expiration, createOrder.OrderID, t)
 
 			// update trade order
 			orderIdStr := utils.ConvertBinanceOrderID(createOrder.OrderID)
@@ -138,7 +138,7 @@ func (b *Bot) scheduleOrderReplacementBitmex(ctx context.Context, delay time.Dur
 				b.l.Printf("unexpected error happened in casting error to *swagger.Order: %T", cancelOrder)
 			}
 			// place a new order
-			res, po, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, interface{}, error) {
+			res, d, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, interface{}, error) {
 				return b.mc.PlaceTrade(ctx, t)
 			})
 			if err != nil {
@@ -146,20 +146,21 @@ func (b *Bot) scheduleOrderReplacementBitmex(ctx context.Context, delay time.Dur
 				b.handleError(err, t.UserID, t.ID)
 				return
 			}
-			preparedOrder, ok := (po).(*bitmex.PreparedOrder)
-			if !ok {
-				b.l.Printf("unexpected error happened in casting interface to bitmex.PreparedOrder: %T", preparedOrder)
-				return
-			}
-
 			createOrder, ok := (res).(*swagger.Order)
 			if !ok {
 				b.l.Printf("unexpected error happened in casting error to *swagger.Order: %T", createOrder)
 				return
 			}
+			describer, ok := (d).(*models.Describer)
+			if !ok {
+				b.l.Printf("unexpected error happened in casting interface to *models.Describer: %T", describer)
+				return
+			}
+			b.c.SetDescriber(describer, t.ID)
+			expiration := describer.CalculateExpiration()
 
 			// schedule
-			go b.scheduleOrderReplacementBitmex(ctx, preparedOrder.Expiration, createOrder.OrderID, t)
+			go b.scheduleOrderReplacementBitmex(ctx, expiration, createOrder.OrderID, t)
 
 			// update trade order
 			b.c.UpdateTradePlaced(t.ID, createOrder.OrderID)

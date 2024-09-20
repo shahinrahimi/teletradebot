@@ -7,13 +7,32 @@ import (
 	"github.com/shahinrahimi/teletradebot/swagger"
 )
 
-func (mc *BitmexClient) PlaceTrade(ctx context.Context, t *models.Trade) (*swagger.Order, *PreparedOrder, error) {
+func (mc *BitmexClient) PlaceTrade(ctx context.Context, t *models.Trade) (*swagger.Order, *models.Describer, error) {
 	mc.l.Printf("executing order for trade ID: %d", t.ID)
-	po, err := mc.prepareOrder(ctx, t)
+	d, err := mc.FetchDescriber(ctx, t)
+	if err != nil {
+		mc.l.Printf("error fetching the describer %v", err)
+		return nil, nil, err
+	}
+	po, err := mc.prepareDescriberForMainOrder(ctx, d, t)
 	if err != nil {
 		mc.l.Printf("trade could not be executed, error in preparing state: %v", err)
 		return nil, nil, err
 	}
 	res, err := mc.PlaceOrder(ctx, po)
-	return res, po, err
+	return res, d, err
+}
+
+func (mc *BitmexClient) PlaceTradeSLOrder(ctx context.Context, t *models.Trade, d *models.Describer, od *OrderData) (*swagger.Order, error) {
+	mc.l.Printf("executing stop-loss order for trade ID: %d", t.ID)
+	po := mc.prepareDescriberForStopLossOrder(ctx, d, t, od)
+	res, err := mc.PlaceSLOrder(ctx, po)
+	return res, err
+}
+
+func (mc *BitmexClient) PlaceTradeTPOrder(ctx context.Context, t *models.Trade, d *models.Describer, od *OrderData) (*swagger.Order, error) {
+	mc.l.Printf("executing take-profit order for trade ID: %d", t.ID)
+	po := mc.prepareDescriberForTakeProfitOrder(ctx, d, t, od)
+	res, err := mc.PlaceTPOrder(ctx, po)
+	return res, err
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"time"
 
 	"github.com/adshao/go-binance/v2/futures"
 	"github.com/shahinrahimi/teletradebot/models"
@@ -12,11 +11,10 @@ import (
 )
 
 type PreparedOrder struct {
-	Symbol     string
-	Quantity   string
-	StopPrice  string
-	Side       futures.SideType
-	Expiration time.Duration
+	Symbol    string
+	Quantity  string
+	StopPrice string
+	Side      futures.SideType
 }
 
 func (bc *BinanceClient) prepareDescriberForMainOrder(ctx context.Context, d *models.Describer, t *models.Trade) (*PreparedOrder, error) {
@@ -50,20 +48,8 @@ func (bc *BinanceClient) prepareDescriberForMainOrder(ctx context.Context, d *mo
 	stopPrice := math.Floor(d.StopPrice/pricePrecision) * pricePrecision
 	p := fmt.Sprintf("%.*f", d.PricePrecision, stopPrice)
 
-	// calculate expiration
-	candleDuration, err := types.GetDuration(t.Timeframe)
-	if err != nil {
-		return nil, err
-	}
-
-	expiration := candleDuration + time.Until(d.CloseTime)
-	if expiration < 0 {
-		return nil, fmt.Errorf("remaining time should not be negative number: %d", expiration)
-	}
-
 	po.Symbol = t.Symbol
 	po.Side = side
-	po.Expiration = expiration
 	po.Quantity = q
 	po.StopPrice = p
 
@@ -88,7 +74,6 @@ func (bc *BinanceClient) prepareDescriberForStopLossOrder(ctx context.Context, d
 	po.Side = side
 	po.Quantity = ou.OriginalQty
 	po.StopPrice = p
-	po.Expiration = 0
 
 	return &po
 }
@@ -111,7 +96,6 @@ func (bc *BinanceClient) prepareDescriberForTakeProfitOrder(ctx context.Context,
 	po.Side = side
 	po.Quantity = ou.OriginalQty
 	po.StopPrice = p
-	po.Expiration = 0
 
 	return &po
 }

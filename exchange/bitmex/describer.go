@@ -34,6 +34,12 @@ func (mc *BitmexClient) FetchDescriber(ctx context.Context, t *models.Trade) (*m
 	if err != nil {
 		return nil, err
 	}
+
+	candleDuration, err := types.GetDuration(t.Timeframe)
+	if err != nil {
+		return nil, err
+	}
+
 	return &models.Describer{
 		OpenTime:        k.Timestamp.Add(-dur),
 		CloseTime:       k.Timestamp,
@@ -43,7 +49,9 @@ func (mc *BitmexClient) FetchDescriber(ctx context.Context, t *models.Trade) (*m
 		Low:             k.Low,
 		StopPrice:       sp,
 		TakeProfitPrice: tp,
+		CandleDuration:  candleDuration,
 		StopLossPrice:   sl,
 		TickSize:        i.TickSize,
+		LotSize:         float64(i.LotSize),
 	}, nil
 }

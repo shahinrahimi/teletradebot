@@ -6,36 +6,36 @@ import (
 	"github.com/adshao/go-binance/v2/futures"
 )
 
-func (bc *BinanceClient) PlaceOrder(ctx context.Context, p *PreparedOrder) (*futures.CreateOrderResponse, error) {
+func (bc *BinanceClient) PlaceOrder(ctx context.Context, po *PreparedOrder) (*futures.CreateOrderResponse, error) {
 	order := bc.Client.NewCreateOrderService().
-		Symbol(p.Symbol).
-		Side(p.Side).
-		Quantity(p.Quantity).
-		StopPrice(p.StopPrice).
+		Symbol(po.Symbol).
+		Side(po.Side).
+		Quantity(po.Quantity).
+		StopPrice(po.StopPrice).
 		Type(futures.OrderTypeStopMarket).
 		WorkingType(futures.WorkingTypeMarkPrice)
 	return order.Do(ctx)
 }
 
-func (bc *BinanceClient) PlaceTPOrder(ctx context.Context, p *PreparedOrder) (*futures.CreateOrderResponse, error) {
+func (bc *BinanceClient) PlaceTPOrder(ctx context.Context, po *PreparedOrder) (*futures.CreateOrderResponse, error) {
 	order := bc.Client.NewCreateOrderService().
-		Symbol(p.Symbol).
-		Side(p.Side).
-		Quantity(p.Quantity).
+		Symbol(po.Symbol).
+		Side(po.Side).
+		Quantity(po.Quantity).
 		WorkingType(futures.WorkingTypeMarkPrice).
 		Type(futures.OrderTypeTakeProfitMarket).
-		StopPrice(p.StopPrice)
+		StopPrice(po.StopPrice)
 	return order.Do(ctx)
 }
 
-func (bc *BinanceClient) PlaceSLOrder(ctx context.Context, p *PreparedOrder) (*futures.CreateOrderResponse, error) {
+func (bc *BinanceClient) PlaceSLOrder(ctx context.Context, po *PreparedOrder) (*futures.CreateOrderResponse, error) {
 	order := bc.Client.NewCreateOrderService().
-		Symbol(p.Symbol).
-		Side(p.Side).
-		Quantity(p.Quantity).
+		Symbol(po.Symbol).
+		Side(po.Side).
+		Quantity(po.Quantity).
 		WorkingType(futures.WorkingTypeMarkPrice).
 		Type(futures.OrderTypeStopMarket).
-		StopPrice(p.StopPrice)
+		StopPrice(po.StopPrice)
 	return order.Do(ctx)
 }
 

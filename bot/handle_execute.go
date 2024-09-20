@@ -7,7 +7,6 @@ import (
 	"github.com/adshao/go-binance/v2/futures"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/shahinrahimi/teletradebot/config"
-	"github.com/shahinrahimi/teletradebot/exchange/bitmex"
 	"github.com/shahinrahimi/teletradebot/models"
 	"github.com/shahinrahimi/teletradebot/swagger"
 	"github.com/shahinrahimi/teletradebot/types"
@@ -55,7 +54,7 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 			b.l.Printf("expiration: %v", utils.FriendlyDuration(expiration))
 			orderID := utils.ConvertBinanceOrderID(order.OrderID)
 			// schedule for replacement
-			go b.scheduleOrderReplacement(ctx, expiration, order.OrderID, &t)
+			go b.scheduleOrderReplacementBinance(ctx, expiration, order.OrderID, &t)
 
 			msg := fmt.Sprintf("Order placed successfully\n\nOrder ID: %s\nTrade ID: %d", orderID, t.ID)
 			b.MsgChan <- types.BotMessage{
@@ -68,7 +67,7 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 	} else {
 
 		go func() {
-			res, po, err := b.retry(config.MaxTries, config.WaitForNextTries, &t, func() (interface{}, interface{}, error) {
+			res, d, err := b.retry(config.MaxTries, config.WaitForNextTries, &t, func() (interface{}, interface{}, error) {
 				return b.mc.PlaceTrade(ctx, &t)
 			})
 			if err != nil {
@@ -83,11 +82,16 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 				return
 			}
 
-			preparedOrder, ok := po.(*bitmex.PreparedOrder)
+			describer, ok := d.(*models.Describer)
 			if !ok {
-				b.l.Printf("unexpected error happened in casting interface to bitmex.PreparedOrder: %T", preparedOrder)
+				b.l.Printf("unexpected error happened in casting interface to bitmex.PreparedOrder: %T", describer)
 				return
 			}
+			b.c.SetDescriber(describer, t.ID)
+			expiration := describer.CalculateExpiration()
+			b.l.Printf("expiration: %v", utils.FriendlyDuration(expiration))
+			// schedule for replacement
+			go b.scheduleOrderReplacementBitmex(ctx, expiration, order.OrderID, &t)
 
 			msg := fmt.Sprintf("Order placed successfully\n\nOrder ID: %s\nTrade ID: %d", order.OrderID, t.ID)
 			b.MsgChan <- types.BotMessage{
@@ -95,8 +99,6 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 				MsgStr: msg,
 			}
 
-			// schedule for replacement
-			go b.scheduleOrderReplacementBitmex(ctx, preparedOrder.Expiration, order.OrderID, &t)
 			// update trade state
 			b.c.UpdateTradePlaced(t.ID, order.OrderID)
 		}()

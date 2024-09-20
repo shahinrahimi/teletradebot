@@ -7,19 +7,22 @@ import (
 )
 
 type Describer struct {
-	OpenTime          time.Time
-	CloseTime         time.Time
-	Open              float64
-	High              float64
-	Low               float64
-	Close             float64
-	StopPrice         float64
-	StopLossPrice     float64
-	TakeProfitPrice   float64
-	CandleDuration    time.Duration
-	PricePrecision    int     // use in binance exchange
-	QuantityPrecision int     // use in binance exchange
-	TickSize          float64 // use in bitmex exchange
+	OpenTime        time.Time
+	CloseTime       time.Time
+	Open            float64
+	High            float64
+	Low             float64
+	Close           float64
+	StopPrice       float64
+	StopLossPrice   float64
+	TakeProfitPrice float64
+	CandleDuration  time.Duration
+
+	PricePrecision    int // use in binance exchange
+	QuantityPrecision int // use in binance exchange
+
+	TickSize float64 // use in bitmex exchange
+	LotSize  float64 // use in bitmex exchange
 }
 
 func (d *Describer) CalculateExpiration() time.Duration {
