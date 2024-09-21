@@ -1,7 +1,6 @@
 package cash
 
 import (
-	"fmt"
 	"log"
 	"sort"
 	"sync"
@@ -15,10 +14,6 @@ var (
 )
 
 func (c *Cash) StorageCreateTrade(t *models.Trade) (int64, error) {
-	c.l.Printf("StorageCreateTrade: %v", t)
-	if c.s == nil {
-		return 0, fmt.Errorf("storage object is nil")
-	}
 	tradeID, err := c.s.CreateTrade(t)
 	if err != nil {
 		return 0, err

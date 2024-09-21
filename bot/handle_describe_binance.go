@@ -2,31 +2,27 @@ package bot
 
 import (
 	"context"
-	"fmt"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/shahinrahimi/teletradebot/models"
 	"github.com/shahinrahimi/teletradebot/types"
 )
 
-func (b *Bot) HandleClose(u *tgbotapi.Update, ctx context.Context) error {
+func (b *Bot) HandleDescribeBinance(u *tgbotapi.Update, ctx context.Context) {
 	t, ok := ctx.Value(models.KeyTrade{}).(models.Trade)
+	userID := u.Message.From.ID
 	if !ok {
 		b.l.Panic("error getting trade from context")
 	}
-
-	userID := u.Message.From.ID
-	switch t.Account {
-	case types.ACCOUNT_B:
-		b.HandleCloseBinance(u, ctx)
-	case types.ACCOUNT_M:
-		b.HandleCloseBitmex(u, ctx)
-	default:
-		msg := fmt.Sprintf("Unknown account: %s", t.Account)
+	go func() {
+		d, err := b.bc.FetchDescriber(ctx, &t)
+		if err != nil {
+			b.l.Printf("error fetching describer")
+			return
+		}
 		b.MsgChan <- types.BotMessage{
 			ChatID: userID,
-			MsgStr: msg,
+			MsgStr: d.ToString(&t),
 		}
-	}
-	return nil
+	}()
 }

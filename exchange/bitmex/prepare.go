@@ -38,9 +38,8 @@ func (mc *BitmexClient) prepareDescriberForMainOrder(ctx context.Context, d *mod
 	}
 	price := instrument.MarkPrice
 
-	size := balance * (float64(t.Size) / 100000.0)
+	size := balance * (float64(t.Size) / 100)
 	quantity := size / price
-	mc.l.Printf("balance: %f, size: %f, price: %f, quantity: %f", balance, size, price, quantity)
 
 	// adjust quantity based on symbol lot size
 	q := math.Floor(quantity/d.LotSize) * d.LotSize

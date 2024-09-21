@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"fmt"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/shahinrahimi/teletradebot/models"
@@ -23,27 +24,15 @@ func (b *Bot) HandleDescribe(u *tgbotapi.Update, ctx context.Context) error {
 	}
 	switch t.Account {
 	case types.ACCOUNT_B:
-		d, err := b.bc.FetchDescriber(ctx, &t)
-		if err != nil {
-			b.l.Printf("error fetching describer")
-			return err
-		}
-		b.MsgChan <- types.BotMessage{
-			ChatID: userID,
-			MsgStr: d.ToString(&t),
-		}
-		return nil
+		b.HandleDescribeBinance(u, ctx)
 	case types.ACCOUNT_M:
-		d, err := b.mc.FetchDescriber(ctx, &t)
-		if err != nil {
-			b.l.Printf("error fetching describer")
-			return err
-		}
+		b.HandleDescribeBitmex(u, ctx)
+	default:
+		msg := fmt.Sprintf("Unknown account: %s", t.Account)
 		b.MsgChan <- types.BotMessage{
 			ChatID: userID,
-			MsgStr: d.ToString(&t),
+			MsgStr: msg,
 		}
-		return nil
 	}
 	return nil
 }

@@ -111,7 +111,7 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 		if err != nil {
 			b.l.Fatalf("error sending bitmex auth message: %v", err)
 		}
-		b.l.Printf("sent auth message: %s", authMessage)
+		//b.l.Printf("sent auth message: %s", authMessage)
 
 		// publicSubMessage := `{"op": "subscribe", "args": ["instrument:DERIVATIVES"]}`
 		// err = ws.WriteMessage(websocket.TextMessage, []byte(publicSubMessage))
@@ -127,7 +127,7 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 		if err != nil {
 			b.l.Fatalf("error sending bitmex private sub message: %v", err)
 		}
-		b.l.Printf("sent private sub message: %s", privateSubMessage)
+		//b.l.Printf("sent private sub message: %s", privateSubMessage)
 
 		// Timer for heartbeat
 		lastMessageTime := time.Now()
@@ -193,9 +193,9 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 						if err := json.Unmarshal(message, &orderTable); err == nil {
 							b.l.Printf("received message orderTable: %s", orderTable.Table)
 							b.handleOrderTradeUpdateBitmex(context.Background(), orderTable.Data)
-							for i := range orderTable.Data {
-								b.l.Printf("orderTable: %v", orderTable.Data[i])
-							}
+							// for i := range orderTable.Data {
+							// 	b.l.Printf("orderTable: %v", orderTable.Data[i])
+							// }
 
 						} else {
 							b.l.Printf("error unmarshalling bitmex message: %v", err)
@@ -251,7 +251,7 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 			for {
 				select {
 				case <-pingTicker.C:
-					b.l.Printf("last message time: %s", utils.FriendlyDuration(time.Since(lastMessageTime)))
+					//b.l.Printf("last message time: %s", utils.FriendlyDuration(time.Since(lastMessageTime)))
 					if time.Since(lastMessageTime) >= pingInterval {
 						//b.l.Println("ping bitmex")
 

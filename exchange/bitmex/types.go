@@ -5,8 +5,9 @@ import "time"
 type SideType string
 
 const (
-	OrderTypeStop   string = "Stop"
-	OrderTypeMarket string = "Market"
+	OrderTypeStop            string = "Stop"
+	OrderTypeMarket          string = "Market"
+	OrderTypeMarketIfTouched string = "MarketIfTouched"
 
 	OrderStatusTypeNew             string = "New"
 	OrderStatusTypePartiallyFilled string = "PartiallyFilled"

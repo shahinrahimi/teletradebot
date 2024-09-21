@@ -37,8 +37,9 @@ func (mc *BitmexClient) PlaceTPOrder(ctx context.Context, po *PreparedOrder) (*s
 	params := &swagger.OrderApiOrderNewOpts{
 		Side:     optional.NewString(string(po.Side)),
 		OrderQty: optional.NewFloat32(float32(po.Quantity)),
-		OrdType:  optional.NewString(OrderTypeStop),
-		StopPx:   optional.NewFloat64(po.StopPrice),
+		OrdType:  optional.NewString(OrderTypeMarketIfTouched),
+		// Price:    optional.NewFloat64(po.StopPrice),
+		StopPx: optional.NewFloat64(po.StopPrice),
 	}
 	order, _, err := mc.client.OrderApi.OrderNew(ctx, po.Symbol, params)
 	return &order, err
@@ -76,4 +77,16 @@ func (mc *BitmexClient) CancelOrder(ctx context.Context, orderID string) (*swagg
 		}
 	}
 	return nil, fmt.Errorf("order not found")
+}
+
+func (mc *BitmexClient) CloseOrder(ctx context.Context, symbol string, orderID string) (*swagger.Order, error) {
+	ctx = mc.GetAuthContext(ctx)
+	params := &swagger.OrderApiOrderClosePositionOpts{
+		//OrderID: optional.NewString(orderID),
+	}
+	order, _, err := mc.client.OrderApi.OrderClosePosition(ctx, symbol, params)
+	if err != nil {
+		return nil, err
+	}
+	return &order, err
 }

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math"
 	"time"
+
+	"github.com/shahinrahimi/teletradebot/utils"
 )
 
 type Describer struct {
@@ -35,6 +37,10 @@ func (d *Describer) getPriceString(price float64) string {
 		pricePrecision := math.Pow10(int(-d.PricePrecision))
 		p := math.Floor(price/pricePrecision) * pricePrecision
 		priceStr = fmt.Sprintf("%.*f", d.PricePrecision, p)
+	} else if d.TickSize > 0 {
+		p := math.Floor(price/d.TickSize) * d.TickSize
+		precision := int(math.Abs(math.Log10(d.TickSize)))
+		priceStr = fmt.Sprintf("%.*f", precision, p)
 	} else {
 		priceStr = fmt.Sprintf("%f", price)
 	}
@@ -62,7 +68,7 @@ func (d *Describer) ToString(t *Trade) string {
 
 	var expiration string
 	if d.CalculateExpiration() > 0 {
-		expiration = friendlyDuration(d.CalculateExpiration())
+		expiration = utils.FriendlyDuration(d.CalculateExpiration())
 	} else {
 		expiration = "∞"
 	}
@@ -75,29 +81,4 @@ func (d *Describer) ToString(t *Trade) string {
 	msg = fmt.Sprintf("%sSL at %s with %s.\n\n", msg, stopLossPrice, stopLossSize)
 	msg = fmt.Sprintf("%sExpiration: %s", msg, expiration)
 	return msg
-}
-
-func friendlyDuration(duration time.Duration) string {
-	// Convert to hours, minutes, seconds, etc.
-	hours := int(duration.Hours())
-	minutes := int(duration.Minutes()) % 60
-	seconds := int(duration.Seconds()) % 60
-	milliseconds := int(duration.Milliseconds()) % 1000
-
-	// Build a friendly string representation
-	var friendlyDuration string
-	if hours > 0 {
-		friendlyDuration += fmt.Sprintf("%dh ", hours)
-	}
-	if minutes > 0 {
-		friendlyDuration += fmt.Sprintf("%dm ", minutes)
-	}
-	if seconds > 0 {
-		friendlyDuration += fmt.Sprintf("%ds ", seconds)
-	}
-	if milliseconds > 0 {
-		friendlyDuration += fmt.Sprintf("%dms", milliseconds)
-	}
-
-	return friendlyDuration
 }

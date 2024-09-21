@@ -21,7 +21,7 @@ func (b *Bot) startUserDataStream724(ctx context.Context) {
 			time.Sleep(5 * time.Second)
 			continue
 		}
-		b.l.Printf("ListenKey acquired: %s", listenKey)
+		//b.l.Printf("ListenKey acquired: %s", listenKey)
 
 		// connect websocket
 		doneC, stopC, err := futures.WsUserDataServe(listenKey, b.wsHandler, b.errHandler)
