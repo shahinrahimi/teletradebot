@@ -145,6 +145,9 @@ func (b *Bot) handleSLFilledBitmex(ctx context.Context, t *models.Trade, od bitm
 			MsgStr: msg,
 		}
 	}()
+
+	// place new stop-loss order
+
 }
 
 func (b *Bot) handleTPFilledBitmex(ctx context.Context, t *models.Trade, od bitmex.OrderData) {
