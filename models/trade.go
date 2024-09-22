@@ -107,13 +107,22 @@ func (t *Trade) CalculateStopPrice(high, low float64) (float64, error) {
 	return stopPrice, nil
 }
 
-func (t *Trade) CalculateStopLossPrice(high, low, basePrice float64) (float64, error) {
+func (t *Trade) CalculateStopLossPrice(high, low, basePrice float64, reverse bool) (float64, error) {
 	var stopPrice float64
 	r := high - low
+	rAmount := (r * (float64(t.StopLoss)) / 100)
 	if t.Side == types.SIDE_L {
-		stopPrice = basePrice - (r * (float64(t.StopLoss)) / 100)
+		if !reverse {
+			stopPrice = basePrice - rAmount
+		} else {
+			stopPrice = basePrice + rAmount
+		}
 	} else {
-		stopPrice = basePrice + (r * (float64(t.StopLoss)) / 100)
+		if !reverse {
+			stopPrice = basePrice + rAmount
+		} else {
+			stopPrice = basePrice + rAmount
+		}
 	}
 	if stopPrice <= 0 {
 		return 0, fmt.Errorf("price cannot be zero or negative")
@@ -121,16 +130,22 @@ func (t *Trade) CalculateStopLossPrice(high, low, basePrice float64) (float64, e
 	return stopPrice, nil
 }
 
-func (t *Trade) CalculateTakeProfitPrice(high, low, basePrice float64) (float64, error) {
+func (t *Trade) CalculateTakeProfitPrice(high, low, basePrice float64, reverse bool) (float64, error) {
 	var stopPrice float64
 	r := high - low
+	rAmount := (r * (float64(t.TakeProfit)) / 100)
 	if t.Side == types.SIDE_L {
-		stopPrice = basePrice + (r * (float64(t.TakeProfit)) / 100)
+		if !reverse {
+			stopPrice = basePrice + rAmount
+		} else {
+			stopPrice = basePrice - rAmount
+		}
 	} else {
-		stopPrice = basePrice - (r * (float64(t.TakeProfit)) / 100)
-	}
-	if stopPrice <= 0 {
-		return 0, fmt.Errorf("price cannot be zero or negative")
+		if !reverse {
+			stopPrice = basePrice - rAmount
+		} else {
+			stopPrice = basePrice + rAmount
+		}
 	}
 	return stopPrice, nil
 }

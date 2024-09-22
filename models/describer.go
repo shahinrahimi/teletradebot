@@ -9,16 +9,18 @@ import (
 )
 
 type Describer struct {
-	OpenTime        time.Time
-	CloseTime       time.Time
-	Open            float64
-	High            float64
-	Low             float64
-	Close           float64
-	StopPrice       float64
-	StopLossPrice   float64
-	TakeProfitPrice float64
-	CandleDuration  time.Duration
+	OpenTime               time.Time
+	CloseTime              time.Time
+	Open                   float64
+	High                   float64
+	Low                    float64
+	Close                  float64
+	StopPrice              float64
+	StopLossPrice          float64
+	TakeProfitPrice        float64
+	ReverseStopLossPrice   float64
+	ReverseTakeProfitPrice float64
+	CandleDuration         time.Duration
 
 	PricePrecision    int // use in binance exchange
 	QuantityPrecision int // use in binance exchange

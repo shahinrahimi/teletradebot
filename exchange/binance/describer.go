@@ -39,11 +39,19 @@ func (bc *BinanceClient) FetchDescriber(ctx context.Context, t *models.Trade) (*
 	if err != nil {
 		return nil, err
 	}
-	sl, err := t.CalculateStopLossPrice(high, low, sp)
+	sl, err := t.CalculateStopLossPrice(high, low, sp, false)
 	if err != nil {
 		return nil, err
 	}
-	tp, err := t.CalculateTakeProfitPrice(high, low, sp)
+	tp, err := t.CalculateTakeProfitPrice(high, low, sp, false)
+	if err != nil {
+		return nil, err
+	}
+	rsl, err := t.CalculateStopLossPrice(high, low, sp, true)
+	if err != nil {
+		return nil, err
+	}
+	rtp, err := t.CalculateTakeProfitPrice(high, low, sp, true)
 	if err != nil {
 		return nil, err
 	}
@@ -54,17 +62,19 @@ func (bc *BinanceClient) FetchDescriber(ctx context.Context, t *models.Trade) (*
 	}
 
 	return &models.Describer{
-		OpenTime:          utils.ConvertTime(k.OpenTime),
-		CloseTime:         utils.ConvertTime(k.CloseTime).Add(time.Second),
-		Open:              open,
-		Close:             close,
-		High:              high,
-		Low:               low,
-		StopPrice:         sp,
-		StopLossPrice:     sl,
-		TakeProfitPrice:   tp,
-		CandleDuration:    candleDuration,
-		PricePrecision:    s.PricePrecision,
-		QuantityPrecision: s.QuantityPrecision,
+		OpenTime:               utils.ConvertTime(k.OpenTime),
+		CloseTime:              utils.ConvertTime(k.CloseTime).Add(time.Second),
+		Open:                   open,
+		Close:                  close,
+		High:                   high,
+		Low:                    low,
+		StopPrice:              sp,
+		StopLossPrice:          sl,
+		TakeProfitPrice:        tp,
+		ReverseStopLossPrice:   rsl,
+		ReverseTakeProfitPrice: rtp,
+		CandleDuration:         candleDuration,
+		PricePrecision:         s.PricePrecision,
+		QuantityPrecision:      s.QuantityPrecision,
 	}, nil
 }

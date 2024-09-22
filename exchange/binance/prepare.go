@@ -133,6 +133,49 @@ func (bc *BinanceClient) prepareDescriberForStopLossOrderPlusReversing(ctx conte
 	return &po
 }
 
+func (bc *BinanceClient) prepareDescriberForReverseStopLossOrder(ctx context.Context, d *models.Describer, t *models.Trade, ou *futures.WsOrderTradeUpdate) *PreparedOrder {
+	var po PreparedOrder
+	var side futures.SideType
+	if t.Side == types.SIDE_L {
+		side = futures.SideTypeBuy
+	} else {
+		side = futures.SideTypeSell
+	}
+
+	// adjust price based on symbol price precision
+	pricePrecision := math.Pow10(int(-d.PricePrecision))
+	stopPrice := math.Floor(d.ReverseStopLossPrice/pricePrecision) * pricePrecision
+	p := fmt.Sprintf("%.*f", d.PricePrecision, stopPrice)
+
+	po.Symbol = t.Symbol
+	po.Side = side
+	po.Quantity = ou.OriginalQty
+	po.StopPrice = p
+
+	return &po
+}
+
+func (bc *BinanceClient) prepareDescriberForReverseTakeProfitOrder(ctx context.Context, d *models.Describer, t *models.Trade, ou *futures.WsOrderTradeUpdate) *PreparedOrder {
+	var po PreparedOrder
+	var side futures.SideType
+	if t.Side == types.SIDE_L {
+		side = futures.SideTypeBuy
+	} else {
+		side = futures.SideTypeSell
+	}
+	// adjust price based on symbol price precision
+	pricePrecision := math.Pow10(int(-d.PricePrecision))
+	stopPrice := math.Floor(d.ReverseTakeProfitPrice/pricePrecision) * pricePrecision
+	p := fmt.Sprintf("%.*f", d.PricePrecision, stopPrice)
+
+	po.Symbol = t.Symbol
+	po.Side = side
+	po.Quantity = ou.OriginalQty
+	po.StopPrice = p
+
+	return &po
+}
+
 // func (bc *BinanceClient) prepareOrder(ctx context.Context, t *models.Trade) (*PreparedOrder, error) {
 // 	var po PreparedOrder
 // 	q, err := bc.getQuantity(t)
