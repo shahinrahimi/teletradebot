@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/shahinrahimi/teletradebot/exchange/bitmex"
 	"github.com/shahinrahimi/teletradebot/utils"
 )
 
@@ -96,7 +97,7 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 	for {
 		ws, _, err := websocket.DefaultDialer.Dial(wsBitmexURLTestnet+endpoint, nil)
 		if err != nil {
-			b.l.Fatal("error dialing bitmex websocket: %v", err)
+			b.l.Fatalf("error dialing bitmex websocket: %v", err)
 		}
 
 		defer ws.Close()
@@ -110,13 +111,13 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 		if err != nil {
 			b.l.Fatalf("error sending bitmex auth message: %v", err)
 		}
-		b.l.Printf("sent auth message: %s", authMessage)
+		//b.l.Printf("sent auth message: %s", authMessage)
 
-		// publicSubMessage := `{"op": "subscribe", "args": ["instrument:DERIVATIVES"]}`
-		// err = ws.WriteMessage(websocket.TextMessage, []byte(publicSubMessage))
-		// if err != nil {
-		// 	b.l.Fatalf("error sending bitmex public sub message: %v", err)
-		// }
+		publicSubMessage := `{"op": "subscribe", "args": ["instrument:DERIVATIVES"]}`
+		err = ws.WriteMessage(websocket.TextMessage, []byte(publicSubMessage))
+		if err != nil {
+			b.l.Fatalf("error sending bitmex public sub message: %v", err)
+		}
 		// b.l.Printf("sent public sub message: %s", publicSubMessage)
 
 		// subscribe to private channel
@@ -126,7 +127,7 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 		if err != nil {
 			b.l.Fatalf("error sending bitmex private sub message: %v", err)
 		}
-		b.l.Printf("sent private sub message: %s", privateSubMessage)
+		//b.l.Printf("sent private sub message: %s", privateSubMessage)
 
 		// Timer for heartbeat
 		lastMessageTime := time.Now()
@@ -170,10 +171,10 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 					Subscribe string `json:"subscribe"`
 					Table     string `json:"table"`
 				}
-				var orderTable OrderTable
-				var marginTable MarginTable
-				var executionTable ExecutionTable
-				var instrumentTable InstrumentTable
+				var orderTable bitmex.OrderTable
+				var marginTable bitmex.MarginTable
+				var executionTable bitmex.ExecutionTable
+				var instrumentTable bitmex.InstrumentTable
 				if err := json.Unmarshal(message, &baseMessage); err != nil {
 					b.l.Printf("error unmarshalling bitmex message: %v", err)
 					continue
@@ -192,9 +193,9 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 						if err := json.Unmarshal(message, &orderTable); err == nil {
 							b.l.Printf("received message orderTable: %s", orderTable.Table)
 							b.handleOrderTradeUpdateBitmex(context.Background(), orderTable.Data)
-							for i := range orderTable.Data {
-								b.l.Printf("orderTable: %v", orderTable.Data[i])
-							}
+							// for i := range orderTable.Data {
+							// 	b.l.Printf("orderTable: %v", orderTable.Data[i])
+							// }
 
 						} else {
 							b.l.Printf("error unmarshalling bitmex message: %v", err)
@@ -221,7 +222,9 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 									if i.Symbol == "SOLUSDT" {
 										b.l.Printf("symbol: %s, markPrice: %0.5f , since: %s", i.Symbol, i.MarkPrice, utils.FriendlyDuration(time.Since(i.Timestamp)))
 									}
-									b.mc.UpdateCandles(i.Symbol, i.MarkPrice, i.Timestamp)
+									if i.MarkPrice > 0 {
+										go b.mc.UpdateCandles(i.Symbol, i.MarkPrice, i.Timestamp)
+									}
 									//trunc1min := i.Timestamp.Truncate(time.Minute).Local()
 									//trunc15min := i.Timestamp.Truncate(time.Minute * 15).Local()
 									//trunc1h := i.Timestamp.Truncate(time.Hour).Local()
@@ -250,7 +253,7 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 			for {
 				select {
 				case <-pingTicker.C:
-					b.l.Printf("last message time: %s", utils.FriendlyDuration(time.Since(lastMessageTime)))
+					//b.l.Printf("last message time: %s", utils.FriendlyDuration(time.Since(lastMessageTime)))
 					if time.Since(lastMessageTime) >= pingInterval {
 						//b.l.Println("ping bitmex")
 

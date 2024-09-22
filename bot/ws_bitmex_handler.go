@@ -2,12 +2,17 @@ package bot
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/shahinrahimi/teletradebot/config"
 	"github.com/shahinrahimi/teletradebot/exchange/bitmex"
+	"github.com/shahinrahimi/teletradebot/models"
+	"github.com/shahinrahimi/teletradebot/swagger"
+	"github.com/shahinrahimi/teletradebot/types"
 )
 
-func (b *Bot) handleOrderTradeUpdateBitmex(ctx context.Context, od []OrderData) {
+func (b *Bot) handleOrderTradeUpdateBitmex(ctx context.Context, od []bitmex.OrderData) {
 	for _, o := range od {
 		b.l.Printf("Order got status: %s , orderType: %s", o.OrdStatus, o.OrdType)
 		switch o.OrdStatus {
@@ -22,179 +27,157 @@ func (b *Bot) handleOrderTradeUpdateBitmex(ctx context.Context, od []OrderData) 
 	}
 }
 
-func (b *Bot) handleFilledBitmex(ctx context.Context, o OrderData) {
-	_, isOrderID, isTPOrderID, isSLOrderID, err := b.findTradeWithAnyOrderID(o.OrderID)
-	if err != nil {
-		b.l.Printf("error getting associate trade with ID: %v", err)
-	}
-	switch {
-	case isOrderID:
-		//b.handleNewFilledBitmex(ctx, t, o)
-	case isTPOrderID:
-		//b.handleTPFilledBitmex(ctx, t, o)
-	case isSLOrderID:
-		//b.handleSLFilledBitmex(ctx, t, o)
+func (b *Bot) handleFilledBitmex(ctx context.Context, od bitmex.OrderData) {
+	t, orderIDType := b.c.GetTradeByAnyOrderID(od.OrderID)
+	switch orderIDType {
+	case types.OrderIDTypeMain:
+		b.handleNewFilledBitmex(ctx, t, od)
+	case types.OrderIDTypeTakeProfit:
+		b.handleTPFilledBitmex(ctx, t, od)
+	case types.OrderIDTypeStopLoss:
+		b.handleSLFilledBitmex(ctx, t, od)
 	default:
-		b.l.Printf("the orderID is not associate with any trade: %v", err)
+		b.l.Printf("the orderID is not associate with any trade: %s", od.OrderID)
 	}
 }
 
-// func (b *Bot) handleNewFilledBitmex(ctx context.Context, t *models.Trade, o OrderData) {
-// 	// d, err := b.mc.FetchDescriber(context.Background(), t)
-// 	// if err != nil {
-// 	// 	b.l.Printf("error fetching the describer %v", err)
-// 	// } else {
-// 	// 	models.SetDescriber(d, t.ID)
-// 	// }
-// 	// update trade state
-// 	if err := b.s.UpdateTradeFilled(t); err != nil {
-// 		b.l.Panic("Internal error while updating trade:", err)
-// 		return
-// 	}
-// 	// message the user
-// 	msg := fmt.Sprintf("Order filled successfully.\n\nTrade ID: %d", t.ID)
-// 	b.MsgChan <- types.BotMessage{
-// 		ChatID: t.UserID,
-// 		MsgStr: msg,
-// 	}
+func (b *Bot) handleNewFilledBitmex(ctx context.Context, t *models.Trade, od bitmex.OrderData) {
+	// update trade state
+	b.c.UpdateTradeFilled(t.ID)
 
-// 	// place stop-loss order
-// 	go func() {
-// 		res, _, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, interface{}, error) {
-// 			return b.bc.PlaceTradeSLOrder(ctx, t, &f)
-// 		})
-// 		if err != nil {
-// 			b.l.Printf("error executing stop-loss order: %v", err)
-// 			b.handleError(err, t.UserID, t.ID)
-// 			return
-// 		}
-// 		orderResponse, ok := res.(*futures.CreateOrderResponse)
-// 		if !ok {
-// 			b.l.Printf("unexpected error happened in casting error to futures.CreateOrderResponse: %T", orderResponse)
-// 			return
-// 		}
-// 		orderID := utils.ConvertBinanceOrderID(orderResponse.OrderID)
-// 		// update trade
-// 		if err := b.s.UpdateTradeSLOrder(t, orderID); err != nil {
-// 			b.l.Printf("error updating trade state: %v", err)
-// 			return
-// 		}
-// 		// message the user
-// 		msg := fmt.Sprintf("Stop-loss order placed successfully.\n\nOrder ID: %d\nTrade ID: %d", orderResponse.OrderID, t.ID)
-// 		b.MsgChan <- types.BotMessage{
-// 			ChatID: t.UserID,
-// 			MsgStr: msg,
-// 		}
-// 	}()
+	// message the user
+	msg := fmt.Sprintf("Order filled successfully.\n\nTrade ID: %d", t.ID)
+	b.MsgChan <- types.BotMessage{
+		ChatID: t.UserID,
+		MsgStr: msg,
+	}
 
-// 	// place take-profit order
-// 	go func() {
-// 		res, _, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, interface{}, error) {
-// 			return b.bc.PlaceTradeTPOrder(ctx, t, &f)
-// 		})
-// 		if err != nil {
-// 			b.l.Printf("error executing take-profit order: %v", err)
-// 			b.handleError(err, t.UserID, t.ID)
-// 			return
-// 		}
-// 		orderResponse, ok := res.(*futures.CreateOrderResponse)
-// 		if !ok {
-// 			b.l.Printf("unexpected error happened in casting error to futures.CreateOrderResponse: %T", orderResponse)
-// 			return
-// 		}
-// 		orderID := utils.ConvertBinanceOrderID(orderResponse.OrderID)
-// 		// update trade
-// 		if err := b.s.UpdateTradeTPOrder(t, orderID); err != nil {
-// 			b.l.Printf("error updating trade state: %v", err)
-// 			return
-// 		}
-// 		// message the user
-// 		msg := fmt.Sprintf("Take-profit order placed successfully.\n\nOrder ID: %d\nTrade ID: %d", orderResponse.OrderID, t.ID)
-// 		b.MsgChan <- types.BotMessage{
-// 			ChatID: t.UserID,
-// 			MsgStr: msg,
-// 		}
-// 	}()
-// }
+	d, exist := b.c.GetDescriber(t.ID)
+	if !exist {
+		b.l.Printf("describer not exist for trade: %d", t.ID)
+		return
+	}
 
-// func (b *Bot) handleSLFilledBitmex(ctx context.Context, t *models.Trade, o OrderData) {
-// 	// update trade state
-// 	if err := b.s.UpdateTradeStopped(t); err != nil {
-// 		b.l.Panic("Internal error while updating trade:", err)
-// 		return
-// 	}
-// 	// message the user
-// 	msg := fmt.Sprintf("🛑 Stop-loss order executed successfully.\n\nPnL: %s\nTrade ID: %d", f.RealizedPnL, t.ID)
-// 	b.MsgChan <- types.BotMessage{
-// 		ChatID: t.UserID,
-// 		MsgStr: msg,
-// 	}
+	// place stop-loss order
+	go func() {
+		res, err := b.retry2(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
+			return b.mc.PlaceTradeSLOrder(ctx, t, d, &od)
+		})
+		if err != nil {
+			b.l.Printf("error executing stop-loss order: %v", err)
+			b.handleError(err, t.UserID, t.ID)
+			return
+		}
+		order, ok := res.(*swagger.Order)
+		if !ok {
+			b.l.Printf("unexpected error happened in casting error to futures.CreateOrderResponse: %T", order)
+			return
+		}
+		orderID := order.OrderID
+		// update trade
+		b.c.UpdateTradeSLOrder(t.ID, orderID)
+		// message the user
+		msg := fmt.Sprintf("Stop-loss order placed successfully.\n\nOrder ID: %s\nTrade ID: %d", orderID, t.ID)
+		b.MsgChan <- types.BotMessage{
+			ChatID: t.UserID,
+			MsgStr: msg,
+		}
+	}()
 
-// 	// cancel take-profit order
-// 	go func() {
-// 		res, err := b.retry2(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
-// 			orderID, err := utils.ConvertOrderIDtoBinanceOrderID(t.TPOrderID)
-// 			if err != nil {
-// 				return nil, err
-// 			}
-// 			return b.bc.CancelOrder(ctx, orderID, f.Symbol)
-// 		})
-// 		if err != nil {
-// 			b.l.Printf("error cancelling take-profit order: %v", err)
-// 			b.handleError(err, t.UserID, t.ID)
-// 			return
-// 		}
-// 		orderResponse, ok := res.(*futures.CancelOrderResponse)
-// 		if !ok {
-// 			b.l.Printf("unexpected error happened in casting error to futures.CancelOrderResponse: %T", orderResponse)
-// 			return
-// 		}
-// 		// message the user
-// 		msg = fmt.Sprintf("Take-profit order has been canceled.\n\nTrade ID: %d", t.ID)
-// 		b.MsgChan <- types.BotMessage{
-// 			ChatID: t.UserID,
-// 			MsgStr: msg,
-// 		}
-// 	}()
-// }
+	// place take-profit order
+	go func() {
+		res, err := b.retry2(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
+			return b.mc.PlaceTradeTPOrder(ctx, t, d, &od)
+		})
+		if err != nil {
+			b.l.Printf("error executing take-profit order: %v", err)
+			b.handleError(err, t.UserID, t.ID)
+			return
+		}
+		order, ok := res.(*swagger.Order)
+		if !ok {
+			b.l.Printf("unexpected error happened in casting error to futures.CreateOrderResponse: %T", order)
+			return
+		}
+		orderID := order.OrderID
+		// update trade
+		b.c.UpdateTradeTPOrder(t.ID, orderID)
 
-// func (b *Bot) handleTPFilledBitmex(ctx context.Context, t *models.Trade, o OrderData) {
-// 	// update trade state
-// 	if err := b.s.UpdateTradeProfited(t); err != nil {
-// 		b.l.Panic("Internal error while updating trade:", err)
-// 		return
-// 	}
-// 	// message the user
-// 	msg := fmt.Sprintf("✅ Take-profit order executed successfully.\n\nPnL: %s\nTrade ID: %d", f.RealizedPnL, t.ID)
-// 	b.MsgChan <- types.BotMessage{
-// 		ChatID: t.UserID,
-// 		MsgStr: msg,
-// 	}
+		// message the user
+		msg := fmt.Sprintf("Take-profit order placed successfully.\n\nOrder ID: %s\nTrade ID: %d", orderID, t.ID)
+		b.MsgChan <- types.BotMessage{
+			ChatID: t.UserID,
+			MsgStr: msg,
+		}
+	}()
+}
 
-// 	// cancel stop-loss order
-// 	go func() {
-// 		res, err := b.retry2(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
-// 			orderID, err := utils.ConvertOrderIDtoBinanceOrderID(t.SLOrderID)
-// 			if err != nil {
-// 				return nil, err
-// 			}
-// 			return b.bc.CancelOrder(ctx, orderID, f.Symbol)
-// 		})
-// 		if err != nil {
-// 			b.l.Printf("error cancelling take-profit order: %v", err)
-// 			b.handleError(err, t.UserID, t.ID)
-// 			return
-// 		}
-// 		orderResponse, ok := res.(*futures.CancelOrderResponse)
-// 		if !ok {
-// 			b.l.Printf("unexpected error happened in casting error to futures.CancelOrderResponse: %T", orderResponse)
-// 			return
-// 		}
-// 		// message the user
-// 		msg = fmt.Sprintf("Stop-loss order has been canceled.\n\nTrade ID: %d", t.ID)
-// 		b.MsgChan <- types.BotMessage{
-// 			ChatID: t.UserID,
-// 			MsgStr: msg,
-// 		}
-// 	}()
-// }
+func (b *Bot) handleSLFilledBitmex(ctx context.Context, t *models.Trade, od bitmex.OrderData) {
+	// update trade state
+	b.c.UpdateTradeStopped(t.ID)
+
+	// message the user
+	msg := fmt.Sprintf("🛑 Stop-loss order executed successfully.\n\nTrade ID: %d", t.ID)
+	b.MsgChan <- types.BotMessage{
+		ChatID: t.UserID,
+		MsgStr: msg,
+	}
+
+	// cancel take-profit order
+	go func() {
+		res, err := b.retry2(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
+			return b.mc.CancelOrder(ctx, t.TPOrderID)
+		})
+		if err != nil {
+			b.l.Printf("error cancelling take-profit order: %v", err)
+			b.handleError(err, t.UserID, t.ID)
+			return
+		}
+		order, ok := res.(*swagger.Order)
+		if !ok {
+			b.l.Printf("unexpected error happened in casting error to *swagger.Order: %T", order)
+			return
+		}
+		// message the user
+		msg = fmt.Sprintf("Take-profit order has been canceled.\n\nTrade ID: %d", t.ID)
+		b.MsgChan <- types.BotMessage{
+			ChatID: t.UserID,
+			MsgStr: msg,
+		}
+	}()
+}
+
+func (b *Bot) handleTPFilledBitmex(ctx context.Context, t *models.Trade, od bitmex.OrderData) {
+	// update trade state
+	b.c.UpdateTradeProfited(t.ID)
+
+	// message the user
+	msg := fmt.Sprintf("✅ Take-profit order executed successfully.\n\nTrade ID: %d", t.ID)
+	b.MsgChan <- types.BotMessage{
+		ChatID: t.UserID,
+		MsgStr: msg,
+	}
+
+	// cancel stop-loss order
+	go func() {
+		res, err := b.retry2(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
+			return b.mc.CancelOrder(ctx, t.SLOrderID)
+		})
+		if err != nil {
+			b.l.Printf("error cancelling take-profit order: %v", err)
+			b.handleError(err, t.UserID, t.ID)
+			return
+		}
+		order, ok := res.(*swagger.Order)
+		if !ok {
+			b.l.Printf("unexpected error happened in casting error to *swagger.Order: %T", order)
+			return
+		}
+		// message the user
+		msg = fmt.Sprintf("Stop-loss order has been canceled.\n\nTrade ID: %d", t.ID)
+		b.MsgChan <- types.BotMessage{
+			ChatID: t.UserID,
+			MsgStr: msg,
+		}
+	}()
+}

@@ -4,11 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"strings"
 	"time"
-
-	"github.com/shahinrahimi/teletradebot/models"
-	"github.com/shahinrahimi/teletradebot/types"
 )
 
 func ConvertBinanceOrderID(orderID int64) string {
@@ -82,97 +78,4 @@ func PrintStructFields(s interface{}) {
 
 		fmt.Printf("%s (%s) = %v\n", fieldName, fieldType, fieldValue)
 	}
-}
-
-func ParseTrade(tradeArgs []string) (*models.Trade, error) {
-	var t models.Trade
-	if len(tradeArgs) < 9 {
-		return nil, fmt.Errorf("insufficient arguments provided; please ensure you have 9 parameters")
-	}
-	// account it should be string
-	// m for bitmex
-	// b for binance
-	part1 := strings.TrimSpace(strings.ToLower(tradeArgs[0]))
-	if len(part1) > 1 || (part1 != "m" && part1 != "b") {
-		return nil, fmt.Errorf("invalid account value; use 'm' for BitMEX or 'b' for Binance")
-	} else if part1 == "m" {
-		t.Account = types.ACCOUNT_M
-	} else if part1 == "b" {
-		t.Account = types.ACCOUNT_B
-	} else {
-		// should never happen
-		return nil, fmt.Errorf("unexpected internal error")
-	}
-	// pair
-	part2 := strings.TrimSpace(strings.ToUpper(tradeArgs[1]))
-	t.Symbol = part2
-	// side
-	part3 := strings.TrimSpace(strings.ToUpper(tradeArgs[2]))
-	if part3 != types.SIDE_L && part3 != types.SIDE_S {
-		return nil, fmt.Errorf("invalid side value; please enter 'long' or 'short'")
-	} else {
-		t.Side = part3
-	}
-	// candle
-	part4 := strings.TrimSpace(tradeArgs[3])
-	if !types.IsValidCandle(part4) {
-		return nil, fmt.Errorf("invalid timeframe; valid values are: %s", types.GetValidCandlesString())
-	} else {
-		t.Timeframe = part4
-	}
-	// offset
-	part5 := strings.TrimSpace(tradeArgs[4])
-	offset, err := strconv.ParseFloat(part5, 64)
-	if err != nil {
-		return nil, fmt.Errorf("invalid offset_entry; please provide a numeric value")
-	} else {
-		t.Offset = offset
-	}
-	// size percent
-	part6 := strings.TrimSpace(tradeArgs[5])
-	size_percent, err := strconv.Atoi(part6)
-	if err != nil {
-		return nil, fmt.Errorf("invalid size; please provide a percentage value (e.g., 5)")
-	} else if size_percent <= 0 || size_percent > 50 {
-		return nil, fmt.Errorf("invalid size; please provide a value between 1 and 50")
-	} else {
-		t.Size = size_percent
-	}
-
-	// stop-loss percent
-	part7 := strings.TrimSpace(tradeArgs[6])
-	stop_percent, err := strconv.Atoi(part7)
-	if err != nil {
-		return nil, fmt.Errorf("invalid stop-loss percent; please provide a numeric value (e.g., 105)")
-	} else if stop_percent < 10 {
-		return nil, fmt.Errorf("invalid stop-loss percent; must be 10 or greater")
-	} else {
-		t.StopLoss = stop_percent
-	}
-
-	// target-point percent
-	part8 := strings.TrimSpace(tradeArgs[7])
-	target_percent, err := strconv.Atoi(part8)
-	if err != nil {
-		return nil, fmt.Errorf("invalid target-point percent; please provide a numeric value (e.g., 105)")
-	} else if target_percent < 10 {
-		return nil, fmt.Errorf("invalid target-point percent; must be 10 or greater")
-	} else {
-		t.TakeProfit = target_percent
-	}
-
-	// reverse-multiplier
-	part9 := strings.TrimSpace(tradeArgs[8])
-	reverse_multiplier, err := strconv.Atoi(part9)
-	if err != nil {
-		return nil, fmt.Errorf("invalid reverse_multiplier; please provide a value of 1 or 2")
-	} else if reverse_multiplier <= 0 || reverse_multiplier > 2 {
-		return nil, fmt.Errorf("invalid reverse_multiplier; must be 1 or 2")
-	} else {
-		t.ReverseMultiplier = reverse_multiplier
-	}
-
-	t.State = types.STATE_IDLE
-
-	return &t, nil
 }

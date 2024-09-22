@@ -9,7 +9,6 @@ import (
 	"github.com/shahinrahimi/teletradebot/config"
 	"github.com/shahinrahimi/teletradebot/models"
 	"github.com/shahinrahimi/teletradebot/types"
-	"github.com/shahinrahimi/teletradebot/utils"
 )
 
 func (b *Bot) HandleBulkAdd(u *tgbotapi.Update, ctx context.Context) error {
@@ -19,7 +18,7 @@ func (b *Bot) HandleBulkAdd(u *tgbotapi.Update, ctx context.Context) error {
 	var rawTrades []models.Trade
 	for _, value := range config.Shortcuts {
 		tradeArgs := strings.Split(value, " ")
-		t, err := utils.ParseTrade(tradeArgs)
+		t, err := models.ParseTrade(tradeArgs)
 		if err != nil {
 			continue
 		}
@@ -40,29 +39,16 @@ func (b *Bot) HandleBulkAdd(u *tgbotapi.Update, ctx context.Context) error {
 	}
 
 	if len(args) == 2 {
-		var trades map[string]models.Trade
-		var err error
+		var trades []*models.Trade
 		switch {
 		case args[0] == "b" && args[1] == "s":
-			trades, err = b.getAllUniqueRawTrades(rawTrades, types.ACCOUNT_B, types.SIDE_S)
-			if err != nil {
-				return err
-			}
+			trades = b.c.GetAllUniqueRawTrades(rawTrades, types.ACCOUNT_B, types.SIDE_S)
 		case args[0] == "b" && args[1] == "l":
-			trades, err = b.getAllUniqueRawTrades(rawTrades, types.ACCOUNT_B, types.SIDE_L)
-			if err != nil {
-				return err
-			}
+			trades = b.c.GetAllUniqueRawTrades(rawTrades, types.ACCOUNT_B, types.SIDE_L)
 		case args[0] == "m" && args[1] == "s":
-			trades, err = b.getAllUniqueRawTrades(rawTrades, types.ACCOUNT_M, types.SIDE_S)
-			if err != nil {
-				return err
-			}
+			trades = b.c.GetAllUniqueRawTrades(rawTrades, types.ACCOUNT_M, types.SIDE_S)
 		case args[0] == "m" && args[1] == "l":
-			trades, err = b.getAllUniqueRawTrades(rawTrades, types.ACCOUNT_M, types.SIDE_L)
-			if err != nil {
-				return err
-			}
+			trades = b.c.GetAllUniqueRawTrades(rawTrades, types.ACCOUNT_M, types.SIDE_L)
 		default:
 			msg := "Wrong arguments. Valid arguments are: b [s|l] and m [s|l]"
 			b.MsgChan <- types.BotMessage{ChatID: userID, MsgStr: msg}
@@ -85,7 +71,7 @@ func (b *Bot) HandleBulkAdd(u *tgbotapi.Update, ctx context.Context) error {
 				}
 				continue
 			}
-			ctx = context.WithValue(ctx, models.KeyTrade{}, t)
+			ctx = context.WithValue(ctx, models.KeyTrade{}, *t)
 			go b.HandleAdd(u, ctx)
 		}
 	}

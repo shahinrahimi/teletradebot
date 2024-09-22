@@ -2,50 +2,64 @@ package bitmex
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/shahinrahimi/teletradebot/models"
 	"github.com/shahinrahimi/teletradebot/types"
 )
 
 func (mc *BitmexClient) FetchDescriber(ctx context.Context, t *models.Trade) (*models.Describer, error) {
-	timeframeDur, err := types.GetDuration(t.Timeframe)
+	candleDuration, err := types.GetDuration(t.Timeframe)
 	if err != nil {
 		return nil, err
 	}
-	k, err := mc.GetLastClosedCandle(t.Symbol, timeframeDur)
+	k, err := mc.GetLastClosedCandle(t.Symbol, candleDuration)
 	if err != nil {
 		return nil, err
 	}
 
-	// sp, err := bc.calculateStopPrice(t, k, s)
+	// k, err := mc.GetLastClosedCandleOld(ctx, t)
 	// if err != nil {
 	// 	return nil, err
 	// }
-	// sl, err := bc.calculateStopLossPrice(t, k, s, sp)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// tp, err := bc.calculateTakeProfitPrice(t, k, s, sp)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	var spFloat float64
-	if t.Side == types.SIDE_L {
-		spFloat = k.High + t.Offset
-	} else {
-		spFloat = k.Low - t.Offset
+	i, err := mc.GetInstrument(ctx, t)
+	if err != nil {
+		return nil, err
 	}
+	// TODO after changing value from last to mark this will be edited
+	// k.High = k.High * 1.005
+	// k.Low = k.Low * 0.995
+	sp, err := t.CalculateStopPrice(k.High, k.Low)
+	if err != nil {
+		return nil, err
+	}
+	sl, err := t.CalculateStopLossPrice(k.High, k.Low, sp)
+	if err != nil {
+		return nil, err
+	}
+	tp, err := t.CalculateTakeProfitPrice(k.High, k.Low, sp)
+	if err != nil {
+		return nil, err
+	}
+
+	// dur, err := types.GetDuration(t.Timeframe)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	return &models.Describer{
-		From:  k.OpenTime,
-		Till:  k.CloseTime,
-		Open:  fmt.Sprintf("%.5f", k.Open),
-		Close: fmt.Sprintf("%.5f", k.Close),
-		High:  fmt.Sprintf("%.5f", k.High),
-		Low:   fmt.Sprintf("%.5f", k.Low),
-		SP:    fmt.Sprintf("%.5f", spFloat),
-		TP:    "0",
-		SL:    "0",
+		// OpenTime:        k.Timestamp.Add(-dur),
+		// CloseTime:       k.Timestamp,
+		OpenTime:        k.OpenTime,
+		CloseTime:       k.CloseTime,
+		Open:            k.Open,
+		Close:           k.Close,
+		High:            k.High,
+		Low:             k.Low,
+		StopPrice:       sp,
+		TakeProfitPrice: tp,
+		CandleDuration:  candleDuration,
+		StopLossPrice:   sl,
+		TickSize:        i.TickSize,
+		LotSize:         float64(i.LotSize),
 	}, nil
 }

@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"fmt"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/shahinrahimi/teletradebot/models"
@@ -9,50 +10,28 @@ import (
 )
 
 func (b *Bot) HandleDescribe(u *tgbotapi.Update, ctx context.Context) error {
-	t := ctx.Value(models.KeyTrade{}).(models.Trade)
+	t, ok := ctx.Value(models.KeyTrade{}).(models.Trade)
 	userID := u.Message.From.ID
-	if t.Account == types.ACCOUNT_B {
-		// if trade state is idle or placed it should get latest describer
-		if !((t.State == types.STATE_IDLE) || (t.State == types.STATE_PLACED)) {
-			// try to read describer from memory
-			d, exist := models.GetDescriber(t.ID)
-			if exist {
-				b.MsgChan <- types.BotMessage{
-					ChatID: userID,
-					MsgStr: d.ToString(&t),
-				}
-			} else {
-				d, err := b.bc.FetchDescriber(ctx, &t)
-				if err != nil {
-					b.l.Printf("error fetching describer")
-					return err
-				}
-				b.MsgChan <- types.BotMessage{
-					ChatID: userID,
-					MsgStr: d.ToString(&t),
-				}
-			}
-		} else {
-			d, err := b.bc.FetchDescriber(ctx, &t)
-			if err != nil {
-				b.l.Printf("error fetching describer")
-				return err
-			}
-			b.MsgChan <- types.BotMessage{
-				ChatID: userID,
-				MsgStr: d.ToString(&t),
-			}
-		}
-
-	} else {
-		d, err := b.mc.FetchDescriber(ctx, &t)
-		if err != nil {
-			b.l.Printf("error fetching describer")
-			return err
-		}
+	if !ok {
+		b.l.Panic("error getting trade from context")
+	}
+	if d, exist := b.c.GetDescriber(t.ID); exist {
 		b.MsgChan <- types.BotMessage{
 			ChatID: userID,
 			MsgStr: d.ToString(&t),
+		}
+		return nil
+	}
+	switch t.Account {
+	case types.ACCOUNT_B:
+		b.HandleDescribeBinance(u, ctx)
+	case types.ACCOUNT_M:
+		b.HandleDescribeBitmex(u, ctx)
+	default:
+		msg := fmt.Sprintf("Unknown account: %s", t.Account)
+		b.MsgChan <- types.BotMessage{
+			ChatID: userID,
+			MsgStr: msg,
 		}
 	}
 	return nil

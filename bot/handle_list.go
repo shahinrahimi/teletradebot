@@ -9,11 +9,7 @@ import (
 
 func (b *Bot) HandleList(u *tgbotapi.Update, ctx context.Context) error {
 	userID := u.Message.From.ID
-	ts, err := b.s.GetTrades()
-	if err != nil {
-		b.l.Printf("error getting trades: %v", err)
-		return err
-	}
+	ts := b.c.GetTrades()
 	msg := ""
 	for _, t := range ts {
 		msg = msg + t.ToListString() + "\n"

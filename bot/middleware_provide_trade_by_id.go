@@ -2,7 +2,6 @@ package bot
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strconv"
 	"strings"
@@ -25,25 +24,18 @@ func (b *Bot) ProvideTradeByID(next Handler) Handler {
 			}
 			return
 		}
-		o, err := b.s.GetTrade(int64(id))
-		if err != nil {
-			if err == sql.ErrNoRows {
-				msg := fmt.Sprintf("No trade found with ID: %d.", id)
-				b.MsgChan <- types.BotMessage{
-					ChatID: userID,
-					MsgStr: msg,
-				}
+		ts := b.c.GetTrades()
+		for _, t := range ts {
+			if t.ID == int64(id) {
+				ctx = context.WithValue(ctx, models.KeyTrade{}, *t)
+				next(u, ctx)
 				return
 			}
-			b.l.Printf("Error retrieving trade from database: %v", err)
-			msg := "An internal error occurred while fetching the trade. Please try again later."
-			b.MsgChan <- types.BotMessage{
-				ChatID: userID,
-				MsgStr: msg,
-			}
-			return
 		}
-		ctx = context.WithValue(ctx, models.KeyTrade{}, *o)
-		next(u, ctx)
+		msg := fmt.Sprintf("No trade found with ID: %d.", id)
+		b.MsgChan <- types.BotMessage{
+			ChatID: userID,
+			MsgStr: msg,
+		}
 	}
 }

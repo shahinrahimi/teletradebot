@@ -2,9 +2,11 @@ package binance
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"github.com/shahinrahimi/teletradebot/models"
+	"github.com/shahinrahimi/teletradebot/types"
 	"github.com/shahinrahimi/teletradebot/utils"
 )
 
@@ -13,35 +15,56 @@ func (bc *BinanceClient) FetchDescriber(ctx context.Context, t *models.Trade) (*
 	if err != nil {
 		return nil, err
 	}
+	high, err := strconv.ParseFloat(k.High, 64)
+	if err != nil {
+		return nil, err
+	}
+	low, err := strconv.ParseFloat(k.Low, 64)
+	if err != nil {
+		return nil, err
+	}
+	open, err := strconv.ParseFloat(k.Open, 64)
+	if err != nil {
+		return nil, err
+	}
+	close, err := strconv.ParseFloat(k.Close, 64)
+	if err != nil {
+		return nil, err
+	}
 	s, err := bc.getSymbol(t)
 	if err != nil {
 		return nil, err
 	}
-	sp, err := bc.calculateStopPrice(t, k, s)
+	sp, err := t.CalculateStopPrice(high, low)
 	if err != nil {
 		return nil, err
 	}
-	sl, err := bc.calculateStopLossPrice(t, k, s, sp)
+	sl, err := t.CalculateStopLossPrice(high, low, sp)
 	if err != nil {
 		return nil, err
 	}
-	tp, err := bc.calculateTakeProfitPrice(t, k, s, sp)
+	tp, err := t.CalculateTakeProfitPrice(high, low, sp)
 	if err != nil {
 		return nil, err
 	}
 
-	from := utils.ConvertTime(k.OpenTime)
-	till := utils.ConvertTime(k.CloseTime).Add(time.Second)
+	candleDuration, err := types.GetDuration(t.Timeframe)
+	if err != nil {
+		return nil, err
+	}
 
 	return &models.Describer{
-		From:  from,
-		Till:  till,
-		Open:  k.Open,
-		Close: k.Close,
-		High:  k.High,
-		Low:   k.Low,
-		SP:    sp,
-		TP:    tp,
-		SL:    sl,
+		OpenTime:          utils.ConvertTime(k.OpenTime),
+		CloseTime:         utils.ConvertTime(k.CloseTime).Add(time.Second),
+		Open:              open,
+		Close:             close,
+		High:              high,
+		Low:               low,
+		StopPrice:         sp,
+		StopLossPrice:     sl,
+		TakeProfitPrice:   tp,
+		CandleDuration:    candleDuration,
+		PricePrecision:    s.PricePrecision,
+		QuantityPrecision: s.QuantityPrecision,
 	}, nil
 }
