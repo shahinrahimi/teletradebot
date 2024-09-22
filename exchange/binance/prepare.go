@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"strconv"
 
 	"github.com/adshao/go-binance/v2/futures"
 	"github.com/shahinrahimi/teletradebot/models"
@@ -95,6 +96,38 @@ func (bc *BinanceClient) prepareDescriberForTakeProfitOrder(ctx context.Context,
 	po.Symbol = t.Symbol
 	po.Side = side
 	po.Quantity = ou.OriginalQty
+	po.StopPrice = p
+
+	return &po
+}
+
+func (bc *BinanceClient) prepareDescriberForStopLossOrderPlusReversing(ctx context.Context, d *models.Describer, t *models.Trade, ou *futures.WsOrderTradeUpdate) *PreparedOrder {
+	var po PreparedOrder
+	var side futures.SideType
+	if t.Side == types.SIDE_L {
+		side = futures.SideTypeSell
+	} else {
+		side = futures.SideTypeBuy
+	}
+
+	oq, err := strconv.ParseFloat(ou.OriginalQty, 64)
+	if err != nil {
+		bc.l.Panicf("unexpected error in parsing quantity: %s", err)
+	}
+	quantity := oq + (oq * float64(t.ReverseMultiplier))
+	quantityPrecision := math.Pow10(int(-d.QuantityPrecision))
+	quantity = math.Floor(quantity/quantityPrecision) * quantityPrecision
+	// add quantity based on symbol quantity precision
+	q := fmt.Sprintf("%.*f", d.QuantityPrecision, quantity)
+
+	// adjust price based on symbol price precision
+	pricePrecision := math.Pow10(int(-d.PricePrecision))
+	stopPrice := math.Floor(d.StopLossPrice/pricePrecision) * pricePrecision
+	p := fmt.Sprintf("%.*f", d.PricePrecision, stopPrice)
+
+	po.Symbol = t.Symbol
+	po.Side = side
+	po.Quantity = q
 	po.StopPrice = p
 
 	return &po
