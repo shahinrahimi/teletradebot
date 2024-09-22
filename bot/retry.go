@@ -19,7 +19,7 @@ func (b *Bot) retry(attempts int, delay time.Duration, t *models.Trade, f func()
 				switch {
 				case (apiErr.Code == -1007 || apiErr.Code == -1008):
 					// TODO add action string so the message have meaning (not place order)
-					msg := fmt.Sprintf("Failed to place a order\nRetry after %s ...\n\nTrade ID: %d", utils.FriendlyDuration(delay), t.ID)
+					msg := fmt.Sprintf("Failed to perform action on order\nRetry after %s ...\n\nTrade ID: %d", utils.FriendlyDuration(delay), t.ID)
 					b.MsgChan <- types.BotMessage{
 						ChatID: t.UserID,
 						MsgStr: msg,
@@ -30,7 +30,7 @@ func (b *Bot) retry(attempts int, delay time.Duration, t *models.Trade, f func()
 					return nil, nil, err
 				}
 			} else {
-				b.l.Printf("unexpected error happened in placing a order: %v", err)
+				b.l.Printf("unexpected error happened in retrying function: %v", err)
 				return nil, nil, err
 			}
 		}
@@ -47,7 +47,7 @@ func (b *Bot) retry2(attempts int, delay time.Duration, t *models.Trade, f func(
 			if apiErr, ok := err.(*common.APIError); ok {
 				switch {
 				case (apiErr.Code == -1007 || apiErr.Code == -1008):
-					msg := fmt.Sprintf("Failed to place a order\nRetry after %s ...\n\nTrade ID: %d", utils.FriendlyDuration(delay), t.ID)
+					msg := fmt.Sprintf("Failed to perform action on order\nRetry after %s ...\n\nTrade ID: %d", utils.FriendlyDuration(delay), t.ID)
 					b.MsgChan <- types.BotMessage{
 						ChatID: t.UserID,
 						MsgStr: msg,
@@ -58,7 +58,7 @@ func (b *Bot) retry2(attempts int, delay time.Duration, t *models.Trade, f func(
 					return nil, err
 				}
 			} else {
-				b.l.Printf("unexpected error happened in placing a order: %v", err)
+				b.l.Printf("unexpected error happened in retrying function: %v", err)
 				return nil, err
 			}
 		}

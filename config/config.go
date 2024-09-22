@@ -57,3 +57,17 @@ var UserIDs = []int64{
 	104196468,
 	539168576,
 }
+
+// hard coded contract size for each symbol for bitmex
+var ContractSizes = map[string]float64{
+	"XBTUSDT":  0.000001,
+	"ETHUSDT":  0.00001,
+	"ADAUSDT":  0.01,
+	"AVAXUSDT": 0.0001,
+	"BNBUSDT":  0.0001,
+	"LTCUSDT":  0.0001,
+	"LINKUSDT": 0.001,
+	"SOLUSDT":  0.0001,
+	"TRXUSDT":  0.1,
+	"XRPUSDT":  0.01,
+}

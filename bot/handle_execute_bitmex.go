@@ -32,13 +32,13 @@ func (b *Bot) HandleExecuteBitmex(update *tgbotapi.Update, ctx context.Context) 
 
 		order, ok := res.(*swagger.Order)
 		if !ok {
-			b.l.Printf("unexpected error happened in casting error to bitmex.Order: %T", order)
+			b.l.Printf("unexpected error happened in casting error to *bitmex.Order: %T", order)
 			return
 		}
 
 		describer, ok := d.(*models.Describer)
 		if !ok {
-			b.l.Printf("unexpected error happened in casting interface to bitmex.PreparedOrder: %T", describer)
+			b.l.Printf("unexpected error happened in casting interface to *models.Describer: %T", describer)
 			return
 		}
 		b.c.SetDescriber(describer, t.ID)

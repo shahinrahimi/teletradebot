@@ -106,8 +106,44 @@ func (b *Bot) HandleCloseBinance(u *tgbotapi.Update, ctx context.Context) {
 
 	// cancel TP order
 	go func() {
-		// cancel
+		// get order
 		res, err := b.retry2(config.MaxTries, config.WaitForNextTries, &t, func() (interface{}, error) {
+			// check if orderId is empty string
+			if t.TPOrderID == "" {
+				return nil, fmt.Errorf("the TP orderID is empty string")
+			}
+			// convert orderID
+			orderID, err := utils.ConvertOrderIDtoBinanceOrderID(t.TPOrderID)
+			if err != nil {
+				b.l.Printf("error converting TP orderID to binance OrderID: %v", err)
+				return nil, err
+			}
+			return b.bc.GetOrder(ctx, orderID, t.Symbol)
+		})
+		if err != nil {
+			b.l.Printf("error getting TP order: %v", err)
+			b.handleError(err, t.UserID, t.ID)
+			return
+		}
+		order, ok := res.(*futures.Order)
+		if !ok {
+			b.l.Printf("unexpected error happened in casting res to *futures.Order: %T", order)
+			return
+		}
+		// check if order is not filled
+		if order.Status != futures.OrderStatusTypeFilled && order.Status != futures.OrderStatusTypePartiallyFilled {
+			return
+		}
+		if order.Status == futures.OrderStatusTypeCanceled {
+			msg := fmt.Sprintf("Take-Profit order has been canceled.\n\nOrderID: %d\nTrade ID: %d", order.OrderID, t.ID)
+			b.MsgChan <- types.BotMessage{
+				ChatID: userID,
+				MsgStr: msg,
+			}
+			return
+		}
+		// cancel
+		res, err = b.retry2(config.MaxTries, config.WaitForNextTries, &t, func() (interface{}, error) {
 			// check if orderId is empty string
 			if t.TPOrderID == "" {
 				return nil, fmt.Errorf("the TP orderID is empty string")
@@ -125,9 +161,9 @@ func (b *Bot) HandleCloseBinance(u *tgbotapi.Update, ctx context.Context) {
 			b.handleError(err, t.UserID, t.ID)
 			return
 		}
-		order, ok := res.(*futures.CancelOrderResponse)
+		CancelOrder, ok := res.(*futures.CancelOrderResponse)
 		if !ok {
-			b.l.Printf("unexpected error happened in casting res to *futures.CancelOrderResponse: %T", order)
+			b.l.Printf("unexpected error happened in casting res to *futures.CancelOrderResponse: %T", CancelOrder)
 			return
 		}
 		// message the user
@@ -140,8 +176,44 @@ func (b *Bot) HandleCloseBinance(u *tgbotapi.Update, ctx context.Context) {
 
 	// cancel SL order
 	go func() {
-		// cancel
+		// get order
 		res, err := b.retry2(config.MaxTries, config.WaitForNextTries, &t, func() (interface{}, error) {
+			// check if orderId is empty string
+			if t.SLOrderID == "" {
+				return nil, fmt.Errorf("the SL orderID is empty string")
+			}
+			// convert orderID
+			orderID, err := utils.ConvertOrderIDtoBinanceOrderID(t.SLOrderID)
+			if err != nil {
+				b.l.Printf("error converting SL orderID to binance OrderID: %v", err)
+				return nil, err
+			}
+			return b.bc.GetOrder(ctx, orderID, t.Symbol)
+		})
+		if err != nil {
+			b.l.Printf("error getting SL order: %v", err)
+			b.handleError(err, t.UserID, t.ID)
+			return
+		}
+		order, ok := res.(*futures.Order)
+		if !ok {
+			b.l.Printf("unexpected error happened in casting res to *futures.Order: %T", order)
+			return
+		}
+		// check if order is not filled
+		if order.Status != futures.OrderStatusTypeFilled && order.Status != futures.OrderStatusTypePartiallyFilled {
+			return
+		}
+		if order.Status == futures.OrderStatusTypeCanceled {
+			msg := fmt.Sprintf("Stop-Loss order has been canceled.\n\nOrderID: %d\nTrade ID: %d", order.OrderID, t.ID)
+			b.MsgChan <- types.BotMessage{
+				ChatID: userID,
+				MsgStr: msg,
+			}
+			return
+		}
+		// cancel
+		res, err = b.retry2(config.MaxTries, config.WaitForNextTries, &t, func() (interface{}, error) {
 			// check if orderId is empty string
 			if t.SLOrderID == "" {
 				return nil, fmt.Errorf("the SL orderID is empty string")
@@ -159,9 +231,9 @@ func (b *Bot) HandleCloseBinance(u *tgbotapi.Update, ctx context.Context) {
 			b.handleError(err, t.UserID, t.ID)
 			return
 		}
-		order, ok := res.(*futures.CancelOrderResponse)
+		cancelOrder, ok := res.(*futures.CancelOrderResponse)
 		if !ok {
-			b.l.Printf("unexpected error happened in casting res to *futures.CancelOrderResponse: %T", order)
+			b.l.Printf("unexpected error happened in casting res to *futures.CancelOrderResponse: %T", cancelOrder)
 			return
 		}
 		// message the user

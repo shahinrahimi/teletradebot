@@ -8,18 +8,26 @@ import (
 )
 
 func (mc *BitmexClient) FetchDescriber(ctx context.Context, t *models.Trade) (*models.Describer, error) {
-
-	k, err := mc.GetLastClosedCandleOld(ctx, t)
+	candleDuration, err := types.GetDuration(t.Timeframe)
 	if err != nil {
 		return nil, err
 	}
+	k, err := mc.GetLastClosedCandle(t.Symbol, candleDuration)
+	if err != nil {
+		return nil, err
+	}
+
+	// k, err := mc.GetLastClosedCandleOld(ctx, t)
+	// if err != nil {
+	// 	return nil, err
+	// }
 	i, err := mc.GetInstrument(ctx, t)
 	if err != nil {
 		return nil, err
 	}
 	// TODO after changing value from last to mark this will be edited
-	k.High = k.High * 1.2
-	k.Low = k.Low * 0.8
+	// k.High = k.High * 1.005
+	// k.Low = k.Low * 0.995
 	sp, err := t.CalculateStopPrice(k.High, k.Low)
 	if err != nil {
 		return nil, err
@@ -33,19 +41,16 @@ func (mc *BitmexClient) FetchDescriber(ctx context.Context, t *models.Trade) (*m
 		return nil, err
 	}
 
-	dur, err := types.GetDuration(t.Timeframe)
-	if err != nil {
-		return nil, err
-	}
-
-	candleDuration, err := types.GetDuration(t.Timeframe)
-	if err != nil {
-		return nil, err
-	}
+	// dur, err := types.GetDuration(t.Timeframe)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	return &models.Describer{
-		OpenTime:        k.Timestamp.Add(-dur),
-		CloseTime:       k.Timestamp,
+		// OpenTime:        k.Timestamp.Add(-dur),
+		// CloseTime:       k.Timestamp,
+		OpenTime:        k.OpenTime,
+		CloseTime:       k.CloseTime,
 		Open:            k.Open,
 		Close:           k.Close,
 		High:            k.High,

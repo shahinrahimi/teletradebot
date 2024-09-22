@@ -29,7 +29,7 @@ func (b *Bot) HandleCloseBitmex(u *tgbotapi.Update, ctx context.Context) {
 				return nil, fmt.Errorf("the orderID is empty string")
 			}
 			// convert orderID
-			return b.mc.GetOrder(ctx, t.OrderID, t.Symbol)
+			return b.mc.GetOrder(ctx, t.Symbol, t.OrderID)
 		})
 		if err != nil {
 			b.l.Printf("error getting order: %v", err)
@@ -41,6 +41,8 @@ func (b *Bot) HandleCloseBitmex(u *tgbotapi.Update, ctx context.Context) {
 			b.l.Printf("unexpected error happened in casting error to *swagger.Order: %T", order)
 			return
 		}
+
+		b.l.Printf("order status: %s", order.OrdStatus)
 
 		switch order.OrdStatus {
 		case bitmex.OrderStatusTypeNew:
@@ -98,11 +100,35 @@ func (b *Bot) HandleCloseBitmex(u *tgbotapi.Update, ctx context.Context) {
 
 	// cancel tp order
 	go func() {
+		// get order
 		res, err := b.retry2(config.MaxTries, config.WaitForNextTries, &t, func() (interface{}, error) {
 			// check if orderId is empty string
 			if t.TPOrderID == "" {
 				return nil, fmt.Errorf("the TP orderID is empty string")
 			}
+			return b.mc.GetOrder(ctx, t.Symbol, t.TPOrderID)
+		})
+		if err != nil {
+			b.l.Printf("error getting TP order: %v", err)
+			b.handleError(err, t.UserID, t.ID)
+			return
+		}
+		order, ok := res.(*swagger.Order)
+		if !ok {
+			b.l.Printf("unexpected error happened in casting error to *swagger.Order: %T", order)
+			return
+		}
+		if order.OrdStatus == bitmex.OrderStatusTypeCanceled {
+			// message user
+			msg := fmt.Sprintf("Take-profit order has been canceled.\n\nOrderID: %s\nTrade ID: %d", order.OrderID, t.ID)
+			b.MsgChan <- types.BotMessage{
+				ChatID: t.UserID,
+				MsgStr: msg,
+			}
+			return
+		}
+		// cancel order
+		res, err = b.retry2(config.MaxTries, config.WaitForNextTries, &t, func() (interface{}, error) {
 			return b.mc.CancelOrder(ctx, t.TPOrderID)
 		})
 		if err != nil {
@@ -110,7 +136,7 @@ func (b *Bot) HandleCloseBitmex(u *tgbotapi.Update, ctx context.Context) {
 			b.handleError(err, t.UserID, t.ID)
 			return
 		}
-		order, ok := res.(*swagger.Order)
+		order, ok = res.(*swagger.Order)
 		if !ok {
 			b.l.Printf("unexpected error happened in casting error to *swagger.Order: %T", order)
 			return
@@ -131,6 +157,28 @@ func (b *Bot) HandleCloseBitmex(u *tgbotapi.Update, ctx context.Context) {
 			if t.SLOrderID == "" {
 				return nil, fmt.Errorf("the SL orderID is empty string")
 			}
+			return b.mc.GetOrder(ctx, t.Symbol, t.SLOrderID)
+		})
+		if err != nil {
+			b.l.Printf("error getting SL order: %v", err)
+			b.handleError(err, t.UserID, t.ID)
+			return
+		}
+		order, ok := res.(*swagger.Order)
+		if !ok {
+			b.l.Printf("unexpected error happened in casting error to *swagger.Order: %T", order)
+			return
+		}
+		if order.OrdStatus == bitmex.OrderStatusTypeCanceled {
+			// message user
+			msg := fmt.Sprintf("Stop-loss order has been canceled.\n\nOrderID: %s\nTrade ID: %d", order.OrderID, t.ID)
+			b.MsgChan <- types.BotMessage{
+				ChatID: t.UserID,
+				MsgStr: msg,
+			}
+			return
+		}
+		res, err = b.retry2(config.MaxTries, config.WaitForNextTries, &t, func() (interface{}, error) {
 			return b.mc.CancelOrder(ctx, t.SLOrderID)
 		})
 		if err != nil {
@@ -138,7 +186,7 @@ func (b *Bot) HandleCloseBitmex(u *tgbotapi.Update, ctx context.Context) {
 			b.handleError(err, t.UserID, t.ID)
 			return
 		}
-		order, ok := res.(*swagger.Order)
+		order, ok = res.(*swagger.Order)
 		if !ok {
 			b.l.Printf("unexpected error happened in casting error to *swagger.Order: %T", order)
 			return

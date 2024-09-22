@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/shahinrahimi/teletradebot/config"
 	"github.com/shahinrahimi/teletradebot/models"
 	"github.com/shahinrahimi/teletradebot/types"
 )
@@ -36,20 +37,38 @@ func (mc *BitmexClient) prepareDescriberForMainOrder(ctx context.Context, d *mod
 		mc.l.Printf("Error fetching instrument: %v", err)
 		return nil, err
 	}
+
+	contractSize, exist := config.ContractSizes[t.Symbol]
+	if !exist {
+		return nil, fmt.Errorf("contract size not found for symbol %s", t.Symbol)
+	}
+
+	balance = balance / 1000000 // balance in USDT
 	price := instrument.MarkPrice
 
 	size := balance * (float64(t.Size) / 100)
-	quantity := size / price
-
+	quantity := size / (price * contractSize)
 	// adjust quantity based on symbol lot size
 	q := math.Floor(quantity/d.LotSize) * d.LotSize
+	// log all variable for debug
+	mc.l.Printf("balance: %f, price: %f, size: %f, quantity: %f, lotsize: %f, calculated quantity: %f, maximum quantity: %f", balance, price, size, quantity, d.LotSize, q, instrument.MaxOrderQty)
+
 	if q < d.LotSize {
 		return nil, fmt.Errorf("the calculated quantity (%.2f) less than the lotsize (%.1f)", q, d.LotSize)
 	}
+	if q > float64(instrument.MaxOrderQty) {
+		q = float64(instrument.MaxOrderQty)
+		msg := fmt.Sprintf("the calculated quantity (%.2f) greater than the maximum order quantity (%.2f). so the calculated quantity will be adjusted to %.2f", q, instrument.MaxOrderQty, instrument.MaxOrderQty)
+		mc.l.Println(msg)
+		//return nil, fmt.Errorf("the calculated quantity (%.2f) greater than the maximum order quantity (%.2f)", q, instrument.MaxOrderQty)
+	}
 
 	// adjust price based on symbol tick size
-	ticks := price / d.TickSize
+	ticks := d.StopPrice / d.TickSize
 	p := math.Round(ticks) * d.TickSize
+
+	// log calculated price
+	mc.l.Printf("calculated price: %f for the symbol: %s", p, t.Symbol)
 
 	po.Symbol = t.Symbol
 	po.Side = side

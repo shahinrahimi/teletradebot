@@ -97,7 +97,7 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 	for {
 		ws, _, err := websocket.DefaultDialer.Dial(wsBitmexURLTestnet+endpoint, nil)
 		if err != nil {
-			b.l.Fatal("error dialing bitmex websocket: %v", err)
+			b.l.Fatalf("error dialing bitmex websocket: %v", err)
 		}
 
 		defer ws.Close()
@@ -113,11 +113,11 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 		}
 		//b.l.Printf("sent auth message: %s", authMessage)
 
-		// publicSubMessage := `{"op": "subscribe", "args": ["instrument:DERIVATIVES"]}`
-		// err = ws.WriteMessage(websocket.TextMessage, []byte(publicSubMessage))
-		// if err != nil {
-		// 	b.l.Fatalf("error sending bitmex public sub message: %v", err)
-		// }
+		publicSubMessage := `{"op": "subscribe", "args": ["instrument:DERIVATIVES"]}`
+		err = ws.WriteMessage(websocket.TextMessage, []byte(publicSubMessage))
+		if err != nil {
+			b.l.Fatalf("error sending bitmex public sub message: %v", err)
+		}
 		// b.l.Printf("sent public sub message: %s", publicSubMessage)
 
 		// subscribe to private channel
@@ -222,7 +222,9 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 									if i.Symbol == "SOLUSDT" {
 										b.l.Printf("symbol: %s, markPrice: %0.5f , since: %s", i.Symbol, i.MarkPrice, utils.FriendlyDuration(time.Since(i.Timestamp)))
 									}
-									b.mc.UpdateCandles(i.Symbol, i.MarkPrice, i.Timestamp)
+									if i.MarkPrice > 0 {
+										go b.mc.UpdateCandles(i.Symbol, i.MarkPrice, i.Timestamp)
+									}
 									//trunc1min := i.Timestamp.Truncate(time.Minute).Local()
 									//trunc15min := i.Timestamp.Truncate(time.Minute * 15).Local()
 									//trunc1h := i.Timestamp.Truncate(time.Hour).Local()

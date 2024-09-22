@@ -81,10 +81,12 @@ func (mc *BitmexClient) CancelOrder(ctx context.Context, orderID string) (*swagg
 
 func (mc *BitmexClient) CloseOrder(ctx context.Context, symbol string, orderID string) (*swagger.Order, error) {
 	ctx = mc.GetAuthContext(ctx)
-	params := &swagger.OrderApiOrderClosePositionOpts{
+	params := &swagger.OrderApiOrderNewOpts{
+		// Symbol:  optional.NewString(symbol),
+		ExecInst: optional.NewString("Close"),
 		//OrderID: optional.NewString(orderID),
 	}
-	order, _, err := mc.client.OrderApi.OrderClosePosition(ctx, symbol, params)
+	order, _, err := mc.client.OrderApi.OrderNew(ctx, symbol, params)
 	if err != nil {
 		return nil, err
 	}
