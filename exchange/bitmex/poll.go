@@ -13,7 +13,8 @@ func (mc *BitmexClient) StartPolling(ctx context.Context) {
 
 func (mc *BitmexClient) pollActiveInstruments(ctx context.Context, interval time.Duration) {
 	for {
-		instruments, _, err := mc.client.InstrumentApi.InstrumentGetActive(mc.auth)
+		ctx = mc.getAuthContext(ctx)
+		instruments, _, err := mc.client.InstrumentApi.InstrumentGetActive(ctx)
 		if err != nil {
 			mc.l.Printf("Error fetching exchange info: %v", err)
 			continue

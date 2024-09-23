@@ -110,7 +110,7 @@ func (mc *BitmexClient) FetchDescriber(ctx context.Context, t *models.Trade) (*m
 		TakeProfitSize:    t.TakeProfitSize,
 		StopLossSize:      t.StopLossSize,
 		ReverseMultiplier: t.ReverseMultiplier,
-		TimeFrame:         timeframeDur,
+		TimeFrameDur:      timeframeDur,
 
 		// OpenTime:        k.Timestamp.Add(-dur),
 		// CloseTime:       k.Timestamp,
@@ -125,7 +125,7 @@ func (mc *BitmexClient) FetchDescriber(ctx context.Context, t *models.Trade) (*m
 		StopLossPrice:          sl,
 		ReverseStopLossPrice:   rsl,
 		ReverseTakeProfitPrice: rtp,
-		PricePrecision:         i.TickSize,
-		QuantityPrecision:      float64(i.LotSize),
+		TickSize:               i.TickSize,
+		LotSize:                float64(i.LotSize),
 	}, nil
 }

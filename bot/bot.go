@@ -135,13 +135,19 @@ func (b *Bot) sendMessage(chatID int64, msgStr string) {
 
 func (b *Bot) handleError(err error, userID int64, tradeID int64) {
 	if apiErr, ok := err.(*common.APIError); ok {
-		msg := fmt.Sprintf("Binance API:\n\nMessage: %s\nCode: %d\nTradeID: %d", apiErr.Message, apiErr.Code, tradeID)
+		msg := fmt.Sprintf("Binance API:\n\nMessage: %s\nCode: %d\n\nTradeID: %d", apiErr.Message, apiErr.Code, tradeID)
 		b.MsgChan <- types.BotMessage{
 			ChatID: userID,
 			MsgStr: msg,
 		}
 	} else if apiErr, ok := err.(swagger.GenericSwaggerError); ok {
-		msg := fmt.Sprintf("Bitmex API:\n\nMessage: %s\nCode: %s\nTradeID: %d", apiErr.Body(), apiErr.Error(), tradeID)
+		msg := fmt.Sprintf("Bitmex API:\n\nMessage: %s\nCode: %s\n\nTradeID: %d", apiErr.Body(), apiErr.Error(), tradeID)
+		b.MsgChan <- types.BotMessage{
+			ChatID: userID,
+			MsgStr: msg,
+		}
+	} else if apiErr, ok := err.(*types.BotError); ok {
+		msg := fmt.Sprintf("Bot API:\n\nMessage: %s\n\nTradeID: %d", apiErr.Error(), tradeID)
 		b.MsgChan <- types.BotMessage{
 			ChatID: userID,
 			MsgStr: msg,

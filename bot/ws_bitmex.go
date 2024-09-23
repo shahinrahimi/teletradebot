@@ -14,7 +14,6 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/shahinrahimi/teletradebot/exchange/bitmex"
-	"github.com/shahinrahimi/teletradebot/utils"
 )
 
 const (
@@ -219,9 +218,9 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 								b.l.Printf("too many symbols: %d", len(instrumentTable.Data))
 							} else {
 								for _, i := range instrumentTable.Data {
-									if i.Symbol == "SOLUSDT" {
-										b.l.Printf("symbol: %s, markPrice: %0.5f , since: %s", i.Symbol, i.MarkPrice, utils.FriendlyDuration(time.Since(i.Timestamp)))
-									}
+									// if i.Symbol == "SOLUSDT" {
+									// 	b.l.Printf("symbol: %s, markPrice: %0.5f , since: %s", i.Symbol, i.MarkPrice, utils.FriendlyDuration(time.Since(i.Timestamp)))
+									// }
 									if i.MarkPrice > 0 {
 										go b.mc.UpdateCandles(i.Symbol, i.MarkPrice, i.Timestamp)
 									}

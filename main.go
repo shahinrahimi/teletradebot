@@ -76,7 +76,7 @@ func main() {
 	// start polling for binance
 	bc.StartPolling(ctx)
 	// start polling for bitmex
-	bc.StartPolling(ctx)
+	mc.StartPolling(ctx)
 
 	b, err := bot.NewBot(logger, c, bc, mc, token, msgChan)
 	if err != nil {

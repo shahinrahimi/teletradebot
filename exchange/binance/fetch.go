@@ -108,14 +108,16 @@ func (bc *BinanceClient) FetchDescriber(ctx context.Context, t *models.Trade) (*
 		return nil, err
 	}
 
-	return &models.Describer{
+	bc.l.Printf("fetching describer for trade ID: %d", t.ID)
+
+	d := &models.Describer{
 		TradeID:           t.ID,
 		Symbol:            t.Symbol,
 		Size:              t.Size,
 		TakeProfitSize:    t.TakeProfitSize,
 		StopLossSize:      t.StopLossSize,
 		ReverseMultiplier: t.ReverseMultiplier,
-		TimeFrame:         timeframeDur,
+		TimeFrameDur:      timeframeDur,
 
 		OpenTime:               utils.ConvertTime(k.OpenTime),
 		CloseTime:              utils.ConvertTime(k.CloseTime).Add(time.Second),
@@ -128,7 +130,11 @@ func (bc *BinanceClient) FetchDescriber(ctx context.Context, t *models.Trade) (*
 		TakeProfitPrice:        tp,
 		ReverseStopLossPrice:   rsl,
 		ReverseTakeProfitPrice: rtp,
-		PricePrecision:         float64(s.PricePrecision),
-		QuantityPrecision:      float64(s.QuantityPrecision),
-	}, nil
+		PricePrecision:         s.PricePrecision,
+		QuantityPrecision:      s.QuantityPrecision,
+	}
+
+	bc.l.Printf("describer fetched for trade ID: %+v", d)
+
+	return d, nil
 }

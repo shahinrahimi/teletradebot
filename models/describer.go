@@ -17,7 +17,7 @@ type Describer struct {
 	StopLossSize      int
 	TakeProfitSize    int
 	ReverseMultiplier int
-	TimeFrame         time.Duration
+	TimeFrameDur      time.Duration
 
 	// these fields fetched from exchange
 	OpenTime  time.Time
@@ -33,33 +33,45 @@ type Describer struct {
 	ReverseStopLossPrice   float64
 	ReverseTakeProfitPrice float64
 
-	//PricePrecision
-	//
-	PricePrecision    float64 // use in binance exchange
-	QuantityPrecision float64 // use in binance exchange
+	PricePrecision    int // use in binance exchange
+	QuantityPrecision int // use in binance exchange
 
-	//TickSize float64 // use in bitmex exchange
-	//LotSize  float64 // use in bitmex exchange
+	TickSize float64 // use in bitmex exchange
+	LotSize  float64 // use in bitmex exchange
+}
+
+func (d *Describer) AdjustPriceForBinance(value float64) string {
+	return fmt.Sprintf("%.*f", d.PricePrecision, value)
+}
+
+func (d *Describer) AdjustQuantityForBinance(value float64) string {
+	return fmt.Sprintf("%.*f", d.QuantityPrecision, value)
+}
+
+func (d *Describer) AdjustPriceForBitmex(value float64) float64 {
+	return math.Round(value/d.TickSize) * d.TickSize
+}
+
+func (d *Describer) AdjustQuantityForBitmex(value float64) float64 {
+	return math.Floor(value/d.LotSize) * d.LotSize
+}
+
+func (d *Describer) getPriceString(price float64) string {
+	var priceStr string
+	if d.PricePrecision > 0 {
+		priceStr = fmt.Sprintf("%.*f", d.PricePrecision, price)
+	} else if d.TickSize > 0 {
+		p := math.Floor(price/d.TickSize) * d.TickSize
+		precision := int(math.Abs(math.Log10(d.TickSize)))
+		priceStr = fmt.Sprintf("%.*f", precision, p)
+	} else {
+		priceStr = fmt.Sprintf("%f", price)
+	}
+	return priceStr
 }
 
 func (d *Describer) CalculateExpiration() time.Duration {
-	return d.TimeFrame + time.Until(d.CloseTime)
-}
-
-func (d *Describer) GetValueWithPricePrecision(value float64) float64 {
-	return math.Floor(value/d.PricePrecision) * d.PricePrecision
-}
-
-func (d *Describer) GetValueWithPricePrecisionString(value float64) string {
-	return fmt.Sprintf("%.*f", int(math.Abs(math.Log10(d.PricePrecision))), d.GetValueWithPricePrecision(value))
-}
-
-func (d *Describer) GetValueWithQuantityPrecision(value float64) float64 {
-	return math.Floor(value/d.QuantityPrecision) * d.QuantityPrecision
-}
-
-func (d *Describer) GetValueWithQuantityPrecisionString(value float64) string {
-	return fmt.Sprintf("%.*f", int(math.Abs(math.Log10(d.QuantityPrecision))), d.GetValueWithQuantityPrecision(value))
+	return d.TimeFrameDur + time.Until(d.CloseTime)
 }
 func (d *Describer) ToString() string {
 
@@ -71,14 +83,14 @@ func (d *Describer) ToString() string {
 	stopLossSize := fmt.Sprintf("%.1f%%", float64((d.StopLossSize - 100)))
 	takeProfitSize := fmt.Sprintf("%.1f%%", float64((d.TakeProfitSize - 100)))
 
-	open := d.GetValueWithPricePrecisionString(d.Open)
-	close := d.GetValueWithPricePrecisionString(d.Close)
-	high := d.GetValueWithPricePrecisionString(d.High)
-	low := d.GetValueWithPricePrecisionString(d.Low)
+	open := d.getPriceString(d.Open)
+	close := d.getPriceString(d.Close)
+	high := d.getPriceString(d.High)
+	low := d.getPriceString(d.Low)
 
-	stopPrice := d.GetValueWithPricePrecisionString(d.StopPrice)
-	stopLossPrice := d.GetValueWithPricePrecisionString(d.StopLossPrice)
-	takeProfitPrice := d.GetValueWithPricePrecisionString(d.TakeProfitPrice)
+	stopPrice := d.getPriceString(d.StopPrice)
+	stopLossPrice := d.getPriceString(d.StopLossPrice)
+	takeProfitPrice := d.getPriceString(d.TakeProfitPrice)
 
 	var expiration string
 	if d.CalculateExpiration() > 0 {

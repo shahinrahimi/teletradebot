@@ -32,15 +32,7 @@ type SymbolCandle struct {
 
 var (
 	symbolCandles = make(map[string]SymbolCandle)
-	// timeframes    = []time.Duration{
-	// 	time.Minute,
-	// 	time.Minute * 3,
-	// 	time.Minute * 5,
-	// 	time.Minute * 15,
-	// 	time.Minute * 30,
-	// 	time.Hour,
-	// }
-	mu sync.RWMutex
+	mu            sync.RWMutex
 )
 
 func getCurrentCandle(candles []*Candle, timeframe models.TimeframeType, timestamp time.Time) *Candle {
@@ -51,10 +43,14 @@ func getCurrentCandle(candles []*Candle, timeframe models.TimeframeType, timesta
 	if len(candles) > 0 {
 		targetCandle := candles[len(candles)-1]
 		if targetCandle.OpenTime.Truncate(timeframeDur) == timestamp.Truncate(timeframeDur) {
-			return candles[len(candles)-1]
+			return targetCandle
 		} else {
 			targetCandle.Completed = true
 		}
+	}
+	var firstCandle = false
+	if len(candles) == 0 {
+		firstCandle = true
 	}
 	// create a first candle for the symbol
 	return &Candle{
@@ -63,7 +59,7 @@ func getCurrentCandle(candles []*Candle, timeframe models.TimeframeType, timesta
 		CloseTime:   timestamp.Add(timeframeDur).Truncate(timeframeDur),
 		CreatedAt:   time.Now().UTC(),
 		UpdatedAt:   time.Now().UTC(),
-		FirstCandle: true,
+		FirstCandle: firstCandle,
 	}
 }
 
@@ -131,14 +127,16 @@ func (mc *BitmexClient) GetLastClosedCandle(symbol string, timeframe models.Time
 	case 1:
 		dur := -time.Since(sc.timeframes[timeframe][0].CloseTime) + timeframeDur
 		return nil, &types.BotError{
-			Msg: fmt.Sprintf("symbol %s with timeframe %s is not a haven completed timeframe, please wait for %s", symbol, utils.FriendlyDuration(dur)),
+			Msg: fmt.Sprintf("Symbol %s with timeframe %s has not completed yet. Please wait for %s.", symbol, timeframe, utils.FriendlyDuration(dur)),
 		}
 	case 2:
-		dur := -time.Since(sc.timeframes[timeframe][0].CloseTime)
+		dur := -time.Since(sc.timeframes[timeframe][1].CloseTime)
 		return nil, &types.BotError{
-			Msg: fmt.Sprintf("symbol %s with timeframe %s is not a haven completed timeframe, please wait for %s", symbol, utils.FriendlyDuration(dur)),
+			Msg: fmt.Sprintf("Symbol %s with timeframe %s has not completed yet. Please wait for %s.", symbol, timeframe, utils.FriendlyDuration(dur)),
 		}
 	default:
-		return nil, fmt.Errorf("symbol %s with timeframe %s is not a complete timeframe", symbol, utils.FriendlyDuration(timeframeDur))
+		return nil, &types.BotError{
+			Msg: fmt.Sprintf("Symbol %s with timeframe %s has not completed yet.", symbol, timeframe),
+		}
 	}
 }

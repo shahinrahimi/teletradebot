@@ -53,8 +53,8 @@ func (mc *BitmexClient) prepareMainOrder(ctx context.Context, d *models.Describe
 	size := balance * (float64(d.Size) / 100)
 	quantity := size / (price * contractSize)
 
-	p := d.GetValueWithPricePrecision(d.StopPrice)
-	q := d.GetValueWithQuantityPrecision(quantity)
+	p := d.AdjustPriceForBitmex(d.StopPrice)
+	q := d.AdjustQuantityForBitmex(quantity)
 
 	if q < float64(instrument.LotSize) {
 		return nil, fmt.Errorf("the calculated quantity (%.2f) less than the lotsize (%.1f)", q, instrument.LotSize)
@@ -79,7 +79,7 @@ func (mc *BitmexClient) prepareStopLossOrder(d *models.Describer, od *OrderData)
 	} else {
 		side = SideTypeBuy
 	}
-	p := d.GetValueWithPricePrecision(d.StopLossPrice)
+	p := d.AdjustPriceForBitmex(d.StopLossPrice)
 	po.Symbol = d.Symbol
 	po.Side = side
 	po.Quantity = float64(od.OrderQty)
@@ -95,7 +95,7 @@ func (mc *BitmexClient) prepareTakeProfitOrder(d *models.Describer, od *OrderDat
 	} else {
 		side = SideTypeBuy
 	}
-	p := d.GetValueWithPricePrecision(d.TakeProfitPrice)
+	p := d.AdjustPriceForBitmex(d.TakeProfitPrice)
 	po.Symbol = d.Symbol
 	po.Side = side
 	po.Quantity = float64(od.OrderQty)
@@ -111,9 +111,9 @@ func (mc *BitmexClient) prepareReverseMainOrder(d *models.Describer, od *OrderDa
 	} else {
 		side = SideTypeBuy
 	}
-	p := d.GetValueWithPricePrecision(d.StopLossPrice)
+	p := d.AdjustPriceForBitmex(d.StopLossPrice)
 	quantity := float64(od.OrderQty) * float64(d.ReverseMultiplier)
-	q := d.GetValueWithQuantityPrecision(quantity)
+	q := d.AdjustQuantityForBitmex(quantity)
 	po.Symbol = d.Symbol
 	po.Side = side
 	po.Quantity = q
@@ -129,7 +129,7 @@ func (mc *BitmexClient) prepareReverseStopLossOrder(d *models.Describer, od *Ord
 	} else {
 		side = SideTypeSell
 	}
-	p := d.GetValueWithPricePrecision(d.ReverseStopLossPrice)
+	p := d.AdjustPriceForBitmex(d.ReverseStopLossPrice)
 	po.Symbol = d.Symbol
 	po.Side = side
 	po.Quantity = float64(od.OrderQty)
@@ -145,7 +145,7 @@ func (mc *BitmexClient) prepareReverseTakeProfitOrder(d *models.Describer, od *O
 	} else {
 		side = SideTypeSell
 	}
-	p := d.GetValueWithPricePrecision(d.ReverseTakeProfitPrice)
+	p := d.AdjustPriceForBitmex(d.ReverseTakeProfitPrice)
 	po.Symbol = d.Symbol
 	po.Side = side
 	po.Quantity = float64(od.OrderQty)
