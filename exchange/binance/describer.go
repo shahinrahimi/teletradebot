@@ -31,7 +31,7 @@ func (bc *BinanceClient) FetchDescriber(ctx context.Context, t *models.Trade) (*
 	if err != nil {
 		return nil, err
 	}
-	s, err := bc.getSymbol(t)
+	s, err := bc.getSymbol(t.Symbol)
 	if err != nil {
 		return nil, err
 	}
@@ -62,6 +62,12 @@ func (bc *BinanceClient) FetchDescriber(ctx context.Context, t *models.Trade) (*
 	}
 
 	return &models.Describer{
+		TradeID:        t.ID,
+		Symbol:         t.Symbol,
+		Size:           t.Size,
+		TakeProfitSize: t.TakeProfitSize,
+		StopLossSize:   t.StopLossSize,
+
 		OpenTime:               utils.ConvertTime(k.OpenTime),
 		CloseTime:              utils.ConvertTime(k.CloseTime).Add(time.Second),
 		Open:                   open,
@@ -74,7 +80,7 @@ func (bc *BinanceClient) FetchDescriber(ctx context.Context, t *models.Trade) (*
 		ReverseStopLossPrice:   rsl,
 		ReverseTakeProfitPrice: rtp,
 		CandleDuration:         candleDuration,
-		PricePrecision:         s.PricePrecision,
-		QuantityPrecision:      s.QuantityPrecision,
+		PricePrecision:         float64(s.PricePrecision),
+		QuantityPrecision:      float64(s.QuantityPrecision),
 	}, nil
 }

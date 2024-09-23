@@ -32,8 +32,8 @@ func (b *Bot) HandleBulkAdd(u *tgbotapi.Update, ctx context.Context) error {
 			Timeframe:         t.Timeframe,
 			Offset:            t.Offset,
 			Size:              t.Size,
-			StopLoss:          t.StopLoss,
-			TakeProfit:        t.TakeProfit,
+			StopLossSize:      t.StopLossSize,
+			TakeProfitSize:    t.TakeProfitSize,
 			ReverseMultiplier: t.ReverseMultiplier,
 		})
 	}

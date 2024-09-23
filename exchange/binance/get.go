@@ -35,28 +35,28 @@ func (bc *BinanceClient) CheckSymbol(symbol string) bool {
 	return false
 }
 
-func (bc *BinanceClient) getSymbol(t *models.Trade) (*futures.Symbol, error) {
+func (bc *BinanceClient) getSymbol(symbol string) (*futures.Symbol, error) {
 	if bc.lastExchangeInfo == nil {
 		return nil, fmt.Errorf("exchange info not available right now")
 	}
 	for _, s := range bc.lastExchangeInfo.Symbols {
-		if s.Symbol == t.Symbol {
+		if s.Symbol == symbol {
 			return &s, nil
 		}
 	}
-	return nil, fmt.Errorf("symbol %s not found", t.Symbol)
+	return nil, fmt.Errorf("symbol %s not found", symbol)
 }
 
-func (bc *BinanceClient) getLatestPrice(t *models.Trade) (float64, error) {
+func (bc *BinanceClient) getLatestPrice(symbol string) (float64, error) {
 	if bc.lastSymbolPrices == nil {
 		return 0, fmt.Errorf("latest prices not available right now")
 	}
 	for _, sp := range bc.lastSymbolPrices {
-		if sp.Symbol == t.Symbol {
+		if sp.Symbol == symbol {
 			return strconv.ParseFloat(sp.Price, 64)
 		}
 	}
-	return 0, fmt.Errorf("latest price not available for symbol %s", t.Symbol)
+	return 0, fmt.Errorf("latest price not available for symbol %s", symbol)
 }
 
 func (bc *BinanceClient) getLastClosedKline(ctx context.Context, t *models.Trade) (*futures.Kline, error) {

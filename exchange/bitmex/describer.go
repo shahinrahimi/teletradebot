@@ -21,7 +21,7 @@ func (mc *BitmexClient) FetchDescriber(ctx context.Context, t *models.Trade) (*m
 	// if err != nil {
 	// 	return nil, err
 	// }
-	i, err := mc.GetInstrument(ctx, t)
+	i, err := mc.GetInstrument(ctx, t.Symbol)
 	if err != nil {
 		return nil, err
 	}
@@ -32,11 +32,20 @@ func (mc *BitmexClient) FetchDescriber(ctx context.Context, t *models.Trade) (*m
 	if err != nil {
 		return nil, err
 	}
-	sl, err := t.CalculateStopLossPrice(k.High, k.Low, sp)
+	sl, err := t.CalculateStopLossPrice(k.High, k.Low, sp, false)
 	if err != nil {
 		return nil, err
 	}
-	tp, err := t.CalculateTakeProfitPrice(k.High, k.Low, sp)
+	tp, err := t.CalculateTakeProfitPrice(k.High, k.Low, sp, false)
+	if err != nil {
+		return nil, err
+	}
+
+	rsl, err := t.CalculateStopLossPrice(k.High, k.Low, sp, true)
+	if err != nil {
+		return nil, err
+	}
+	rtp, err := t.CalculateTakeProfitPrice(k.High, k.Low, sp, true)
 	if err != nil {
 		return nil, err
 	}
@@ -47,19 +56,26 @@ func (mc *BitmexClient) FetchDescriber(ctx context.Context, t *models.Trade) (*m
 	// }
 
 	return &models.Describer{
+		TradeID:        t.ID,
+		Symbol:         t.Symbol,
+		Size:           t.Size,
+		TakeProfitSize: t.TakeProfitSize,
+		StopLossSize:   t.StopLossSize,
 		// OpenTime:        k.Timestamp.Add(-dur),
 		// CloseTime:       k.Timestamp,
-		OpenTime:        k.OpenTime,
-		CloseTime:       k.CloseTime,
-		Open:            k.Open,
-		Close:           k.Close,
-		High:            k.High,
-		Low:             k.Low,
-		StopPrice:       sp,
-		TakeProfitPrice: tp,
-		CandleDuration:  candleDuration,
-		StopLossPrice:   sl,
-		TickSize:        i.TickSize,
-		LotSize:         float64(i.LotSize),
+		OpenTime:               k.OpenTime,
+		CloseTime:              k.CloseTime,
+		Open:                   k.Open,
+		Close:                  k.Close,
+		High:                   k.High,
+		Low:                    k.Low,
+		StopPrice:              sp,
+		TakeProfitPrice:        tp,
+		StopLossPrice:          sl,
+		ReverseStopLossPrice:   rsl,
+		ReverseTakeProfitPrice: rtp,
+		CandleDuration:         candleDuration,
+		PricePrecision:         i.TickSize,
+		QuantityPrecision:      float64(i.LotSize),
 	}, nil
 }

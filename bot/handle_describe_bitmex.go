@@ -23,7 +23,7 @@ func (b *Bot) HandleDescribeBitmex(u *tgbotapi.Update, ctx context.Context) {
 		}
 		b.MsgChan <- types.BotMessage{
 			ChatID: userID,
-			MsgStr: d.ToString(&t),
+			MsgStr: d.ToString(),
 		}
 	}()
 

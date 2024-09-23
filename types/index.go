@@ -12,17 +12,33 @@ type BotMessage struct {
 	MsgStr string
 }
 
+type BotError struct {
+	Msg string
+}
+
 const (
-	OrderIDTypeMain       OrderIDType = `main`
-	OrderIDTypeStopLoss   OrderIDType = `stop-loss`
-	OrderIDTypeTakeProfit OrderIDType = `take-profit`
-	OrderIDTypeNone       OrderIDType = `none`
+	OrderIDTypeMain              OrderIDType = `main`
+	OrderIDTypeStopLoss          OrderIDType = `stop-loss`
+	OrderIDTypeTakeProfit        OrderIDType = `take-profit`
+	OrderIDTypeReverseMain       OrderIDType = `reverse-main`
+	OrderIDTypeReverseStopLoss   OrderIDType = `reverse-stop-loss`
+	OrderIDTypeReverseTakeProfit OrderIDType = `reverse-take-profit`
+	OrderIDTypeNone              OrderIDType = `none`
 
 	ACCOUNT_B string = `Binance`
 	ACCOUNT_M string = `Bitmex`
 
 	SIDE_L string = `LONG`
 	SIDE_S string = `SHORT`
+
+	STATE_IDLE      string = `idle`
+	STATE_CANCELED  string = `canceled`
+	STATE_PLACED    string = `placed`
+	STATE_FILLED    string = `filled`
+	STATE_REVERTING string = `reverting`
+	STATE_STOPPED   string = `stopped`
+	STATE_PROFITED  string = `profited`
+	STATE_CLOSED    string = `closed`
 
 	CANDLE_1MIN  string = `1m`
 	CANDLE_3MIN  string = `3m`
@@ -39,15 +55,6 @@ const (
 	CANDLE_3D    string = `3d`
 	CANDLE_1W    string = `1w`
 	CANDLE_1M    string = `1M`
-
-	STATE_IDLE      string = `idle`
-	STATE_CANCELED  string = `canceled`
-	STATE_PLACED    string = `placed`
-	STATE_FILLED    string = `filled`
-	STATE_REVERTING string = `reverting`
-	STATE_STOPPED   string = `stopped`
-	STATE_PROFITED  string = `profited`
-	STATE_CLOSED    string = `closed`
 )
 
 var ExpireDuration = map[string]time.Duration{

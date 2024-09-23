@@ -3,7 +3,6 @@ package bitmex
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/antihax/optional"
 	"github.com/shahinrahimi/teletradebot/models"
@@ -76,14 +75,14 @@ func (mc *BitmexClient) GetBalanceUSDt(ctx context.Context) (float64, error) {
 	return mc.GetBalance(ctx, currency)
 }
 
-func (mc *BitmexClient) GetInstrument(ctx context.Context, t *models.Trade) (*swagger.Instrument, error) {
+func (mc *BitmexClient) GetInstrument(ctx context.Context, symbol string) (*swagger.Instrument, error) {
 	ctx = mc.GetAuthContext(ctx)
 	instruments, _, err := mc.client.InstrumentApi.InstrumentGetActive(ctx)
 	if err != nil {
 		return nil, err
 	}
 	for _, i := range instruments {
-		if i.Symbol == t.Symbol {
+		if i.Symbol == symbol {
 			return &i, nil
 		}
 	}
@@ -106,45 +105,45 @@ func (mc *BitmexClient) GetMarketPrice(ctx context.Context, t *models.Trade) (fl
 	return 0, fmt.Errorf("no market data available for symbol: %s", t.Symbol)
 }
 
-func (mc *BitmexClient) GetLastClosedCandleOld(ctx context.Context, t *models.Trade) (*swagger.TradeBin, error) {
-	ctx = mc.GetAuthContext(ctx)
-	endTime := time.Now().UTC().Format("2006-01-02 15:04")
-	fitler := fmt.Sprintf(`{"endTime": "%s"}`, endTime)
-	// TODO the available bin size 1m,5m,1h,1d
-	// it should flexible and convert this binSiz to for example 1m => 3m or 5m or 5m to 15min
-	params := swagger.TradeApiTradeGetBucketedOpts{
-		BinSize: optional.NewString(t.Timeframe),
-		Symbol:  optional.NewString(t.Symbol),
-		Count:   optional.NewFloat32(1),
-		// Partial: optional.NewBool(true),
-		Reverse: optional.NewBool(true),
-		Filter:  optional.NewString(fitler),
-	}
-	// try until we get tradebucket with positive remaining time
-	for i := 0; i < 10; i++ {
-		tradeBins, _, err := mc.client.TradeApi.TradeGetBucketed(ctx, &params)
-		if err != nil {
-			mc.l.Printf("error: %v", err)
-			mc.l.Printf("err type: %T", err)
-			if ApiErr, ok := (err).(swagger.GenericSwaggerError); ok {
-				mc.l.Printf("error creating a order: %s , errof: %s", string(ApiErr.Body()), ApiErr.Error())
-			}
-			return nil, err
-		}
-		for _, bin := range tradeBins {
-			expiration, err := mc.calculateExpiration(t, bin.Timestamp)
-			if err != nil && expiration == 0 {
-				// lets try with delay sleep
-				mc.l.Printf("retrying getting last closed candle with delay sleep 5s")
-				time.Sleep(time.Second * 5)
-				break
-			} else if err != nil && expiration == -1 {
-				return nil, err
-			} else {
-				return &bin, nil
-			}
-		}
-	}
-	return nil, fmt.Errorf("failed to get last closed candle")
+// func (mc *BitmexClient) GetLastClosedCandleOld(ctx context.Context, t *models.Trade) (*swagger.TradeBin, error) {
+// 	ctx = mc.GetAuthContext(ctx)
+// 	endTime := time.Now().UTC().Format("2006-01-02 15:04")
+// 	fitler := fmt.Sprintf(`{"endTime": "%s"}`, endTime)
+// 	// TODO the available bin size 1m,5m,1h,1d
+// 	// it should flexible and convert this binSiz to for example 1m => 3m or 5m or 5m to 15min
+// 	params := swagger.TradeApiTradeGetBucketedOpts{
+// 		BinSize: optional.NewString(t.Timeframe),
+// 		Symbol:  optional.NewString(t.Symbol),
+// 		Count:   optional.NewFloat32(1),
+// 		// Partial: optional.NewBool(true),
+// 		Reverse: optional.NewBool(true),
+// 		Filter:  optional.NewString(fitler),
+// 	}
+// 	// try until we get tradebucket with positive remaining time
+// 	for i := 0; i < 10; i++ {
+// 		tradeBins, _, err := mc.client.TradeApi.TradeGetBucketed(ctx, &params)
+// 		if err != nil {
+// 			mc.l.Printf("error: %v", err)
+// 			mc.l.Printf("err type: %T", err)
+// 			if ApiErr, ok := (err).(swagger.GenericSwaggerError); ok {
+// 				mc.l.Printf("error creating a order: %s , errof: %s", string(ApiErr.Body()), ApiErr.Error())
+// 			}
+// 			return nil, err
+// 		}
+// 		for _, bin := range tradeBins {
+// 			expiration, err := mc.calculateExpiration(t, bin.Timestamp)
+// 			if err != nil && expiration == 0 {
+// 				// lets try with delay sleep
+// 				mc.l.Printf("retrying getting last closed candle with delay sleep 5s")
+// 				time.Sleep(time.Second * 5)
+// 				break
+// 			} else if err != nil && expiration == -1 {
+// 				return nil, err
+// 			} else {
+// 				return &bin, nil
+// 			}
+// 		}
+// 	}
+// 	return nil, fmt.Errorf("failed to get last closed candle")
 
-}
+// }
