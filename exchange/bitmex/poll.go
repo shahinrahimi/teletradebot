@@ -6,39 +6,19 @@ import (
 )
 
 func (mc *BitmexClient) StartPolling(ctx context.Context) {
-	//go mc.pollInstruments(ctx, time.Minute)
-	//go mc.pollMargin(ctx, time.Minute)
+	// Weight: 1
+	// info like symbol price and symbol availability
+	go mc.pollActiveInstruments(ctx, time.Hour)
 }
 
-func (mc *BitmexClient) pollInstruments(ctx context.Context, interval time.Duration) {
+func (mc *BitmexClient) pollActiveInstruments(ctx context.Context, interval time.Duration) {
 	for {
-		instruments, _, err := mc.client.InstrumentApi.InstrumentGet(mc.auth, nil)
+		instruments, _, err := mc.client.InstrumentApi.InstrumentGetActive(mc.auth)
 		if err != nil {
-			mc.l.Panicf("error fetching instruments: %v", err)
+			mc.l.Printf("Error fetching exchange info: %v", err)
 			continue
 		}
-		// Access the rate limit headers
-		// rateLimitRemaining := res.Header.Get("X-RateLimit-Remaining")
-		// rateLimitReset := res.Header.Get("X-RateLimit-Reset")
-		// mc.l.Printf("Remaining requests: %s, Resets in: %s seconds\n", rateLimitRemaining, rateLimitReset)
-		mc.l.Printf("instruments length: %d", len(instruments))
+		mc.activeInstruments = instruments
 		time.Sleep(interval)
-
-	}
-}
-
-func (mc *BitmexClient) pollMargin(ctx context.Context, interval time.Duration) {
-	for {
-		_, _, err := mc.client.UserApi.UserGetMargin(mc.auth, nil)
-		if err != nil {
-			mc.l.Panicf("error fetching instruments: %v", err)
-			continue
-		}
-		// Access the rate limit headers
-		// rateLimitRemaining := res.Header.Get("X-RateLimit-Remaining")
-		// rateLimitReset := res.Header.Get("X-RateLimit-Reset")
-		// mc.l.Printf("Remaining requests: %s, Resets in: %s seconds\n", rateLimitRemaining, rateLimitReset)
-		time.Sleep(interval)
-
 	}
 }

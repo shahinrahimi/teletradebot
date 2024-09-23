@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shahinrahimi/teletradebot/timeframe"
 	"github.com/shahinrahimi/teletradebot/types"
 )
 
@@ -24,17 +23,17 @@ type Trade struct {
 
 	State string // Current state of the trade.
 
-	Account           string    // Trading account associated with the trade.
-	Side              string    // Side of the trade (e.g., buy or sell).
-	Symbol            string    // Trading pair symbol (e.g., BTCUSDT).
-	Timeframe         string    // Timeframe of the candle (e.g., 1h, 4h, 15m).
-	Offset            float64   // Offset for placing the order, defined in USDT amount (e.g., 1 for $1, 0.1 for $0.1).
-	Size              int       // Size of the trade as percentage (e.g., 1, 2, 3, or 5).
-	StopLossSize      int       // Stop Loss percentage based on the range of the candle before the last (e.g., 100 for 100% of the range).
-	TakeProfitSize    int       // Take Profit percentage based on the range of the candle before the last (e.g., 105 for 105% of the range).
-	ReverseMultiplier int       // Multiplier used for reversing the trade.
-	CreatedAt         time.Time // Timestamp when the trade was created.
-	UpdatedAt         time.Time // Timestamp when the trade was last updated.
+	Account           string        // Trading account associated with the trade.
+	Side              string        // Side of the trade (e.g., buy or sell).
+	Symbol            string        // Trading pair symbol (e.g., BTCUSDT).
+	Timeframe         TimeframeType // Timeframe of the candle (e.g., 1h, 4h, 15m).
+	Offset            float64       // Offset for placing the order, defined in USDT amount (e.g., 1 for $1, 0.1 for $0.1).
+	Size              int           // Size of the trade as percentage (e.g., 1, 2, 3, or 5).
+	StopLossSize      int           // Stop Loss percentage based on the range of the candle before the last (e.g., 100 for 100% of the range).
+	TakeProfitSize    int           // Take Profit percentage based on the range of the candle before the last (e.g., 105 for 105% of the range).
+	ReverseMultiplier int           // Multiplier used for reversing the trade.
+	CreatedAt         time.Time     // Timestamp when the trade was created.
+	UpdatedAt         time.Time     // Timestamp when the trade was last updated.
 }
 
 type KeyTrade struct{}
@@ -186,10 +185,10 @@ func ParseTrade(tradeArgs []string) (*Trade, error) {
 	}
 	// candle
 	part4 := strings.TrimSpace(tradeArgs[3])
-	if !timeframe.IsValidTimeframe(part4) {
-		return nil, fmt.Errorf("invalid timeframe; valid values are: %s", timeframe.GetValidTimeframesString())
+	if !IsValidTimeframe(part4) {
+		return nil, fmt.Errorf("invalid timeframe; valid values are: %s", GetValidTimeframesString())
 	} else {
-		t.Timeframe = part4
+		t.Timeframe = TimeframeType(part4)
 	}
 	// offset
 	part5 := strings.TrimSpace(tradeArgs[4])

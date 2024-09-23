@@ -9,7 +9,7 @@ import (
 )
 
 func (mc *BitmexClient) PlaceOrder(ctx context.Context, po *PreparedOrder) (*swagger.Order, error) {
-	ctx = mc.GetAuthContext(ctx)
+	ctx = mc.getAuthContext(ctx)
 	params := &swagger.OrderApiOrderNewOpts{
 		Side:     optional.NewString(string(po.Side)),
 		OrderQty: optional.NewFloat32(float32(po.Quantity)),
@@ -21,7 +21,7 @@ func (mc *BitmexClient) PlaceOrder(ctx context.Context, po *PreparedOrder) (*swa
 }
 
 func (mc *BitmexClient) PlaceSLOrder(ctx context.Context, po *PreparedOrder) (*swagger.Order, error) {
-	ctx = mc.GetAuthContext(ctx)
+	ctx = mc.getAuthContext(ctx)
 	params := &swagger.OrderApiOrderNewOpts{
 		Side:     optional.NewString(string(po.Side)),
 		OrderQty: optional.NewFloat32(float32(po.Quantity)),
@@ -33,7 +33,7 @@ func (mc *BitmexClient) PlaceSLOrder(ctx context.Context, po *PreparedOrder) (*s
 }
 
 func (mc *BitmexClient) PlaceTPOrder(ctx context.Context, po *PreparedOrder) (*swagger.Order, error) {
-	ctx = mc.GetAuthContext(ctx)
+	ctx = mc.getAuthContext(ctx)
 	params := &swagger.OrderApiOrderNewOpts{
 		Side:     optional.NewString(string(po.Side)),
 		OrderQty: optional.NewFloat32(float32(po.Quantity)),
@@ -46,7 +46,7 @@ func (mc *BitmexClient) PlaceTPOrder(ctx context.Context, po *PreparedOrder) (*s
 }
 
 func (mc *BitmexClient) GetOrder(ctx context.Context, symbol string, orderID string) (*swagger.Order, error) {
-	ctx = mc.GetAuthContext(ctx)
+	ctx = mc.getAuthContext(ctx)
 	params := &swagger.OrderApiOrderGetOrdersOpts{
 		Symbol: optional.NewString(symbol),
 	}
@@ -63,7 +63,7 @@ func (mc *BitmexClient) GetOrder(ctx context.Context, symbol string, orderID str
 }
 
 func (mc *BitmexClient) CancelOrder(ctx context.Context, orderID string) (*swagger.Order, error) {
-	ctx = mc.GetAuthContext(ctx)
+	ctx = mc.getAuthContext(ctx)
 	params := &swagger.OrderApiOrderCancelOpts{
 		OrderID: optional.NewString(orderID),
 	}
@@ -80,7 +80,7 @@ func (mc *BitmexClient) CancelOrder(ctx context.Context, orderID string) (*swagg
 }
 
 func (mc *BitmexClient) CloseOrder(ctx context.Context, symbol string, orderID string) (*swagger.Order, error) {
-	ctx = mc.GetAuthContext(ctx)
+	ctx = mc.getAuthContext(ctx)
 	params := &swagger.OrderApiOrderNewOpts{
 		// Symbol:  optional.NewString(symbol),
 		ExecInst: optional.NewString("Close"),

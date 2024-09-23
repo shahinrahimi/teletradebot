@@ -58,10 +58,14 @@ func (b *Bot) HandleBulkAdd(u *tgbotapi.Update, ctx context.Context) error {
 			// check for symbol availability
 			var isAvailable bool = false
 			if t.Account == types.ACCOUNT_B {
-				isAvailable = b.bc.CheckSymbol(t.Symbol)
+				if _, err := b.bc.GetSymbol(t.Symbol); err == nil {
+					isAvailable = true
+				}
 			}
 			if t.Account == types.ACCOUNT_M {
-				isAvailable = b.mc.CheckSymbol(t.Symbol)
+				if _, err := b.mc.GetSymbol(t.Symbol); err == nil {
+					isAvailable = true
+				}
 			}
 			if !isAvailable {
 				msg := fmt.Sprintf("Symbol %s not available for account %s", t.Symbol, t.Account)

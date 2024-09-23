@@ -11,6 +11,10 @@ type BotError struct {
 	Msg string
 }
 
+func (b *BotError) Error() string {
+	return b.Msg
+}
+
 const (
 	OrderIDTypeMain              OrderIDType = `main`
 	OrderIDTypeStopLoss          OrderIDType = `stop-loss`

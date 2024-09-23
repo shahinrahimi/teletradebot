@@ -6,24 +6,9 @@ import (
 )
 
 func (bc *BinanceClient) StartPolling(ctx context.Context) {
-	// Weight: 5
-	go bc.pollAccount(ctx, time.Minute)
 	// Weight: 1
-	go bc.pollExchangeInfo(ctx, time.Minute)
-	// Weight: 2
-	go bc.pollSymbolPrices(ctx, time.Minute)
-}
-
-func (bc *BinanceClient) pollSymbolPrices(ctx context.Context, interval time.Duration) {
-	for {
-		res, err := bc.Client.NewListPricesService().Do(ctx)
-		if err != nil {
-			bc.l.Printf("error fetching symbol prices: %v", err)
-			continue
-		}
-		bc.lastSymbolPrices = res
-		time.Sleep(interval)
-	}
+	// info like symbol price and symbol availability
+	go bc.pollExchangeInfo(ctx, time.Hour)
 }
 
 func (bc *BinanceClient) pollExchangeInfo(ctx context.Context, interval time.Duration) {
@@ -34,18 +19,6 @@ func (bc *BinanceClient) pollExchangeInfo(ctx context.Context, interval time.Dur
 			continue
 		}
 		bc.lastExchangeInfo = res
-		time.Sleep(interval)
-	}
-}
-
-func (bc *BinanceClient) pollAccount(ctx context.Context, interval time.Duration) {
-	for {
-		res, err := bc.Client.NewGetAccountService().Do(ctx)
-		if err != nil {
-			bc.l.Printf("Error fetching exchange info: %v", err)
-			continue
-		}
-		bc.lastAccount = res
 		time.Sleep(interval)
 	}
 }

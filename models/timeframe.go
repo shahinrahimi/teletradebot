@@ -1,29 +1,31 @@
-package timeframe
+package models
 
 import (
 	"fmt"
 	"time"
 )
 
+type TimeframeType string
+
 const (
-	TIMEFRAME_1MIN  string = `1m`
-	TIMEFRAME_3MIN  string = `3m`
-	TIMEFRAME_5MIN  string = `5m`
-	TIMEFRAME_15MIN string = `15m`
-	TIMEFRAME_30MIN string = `30m`
-	TIMEFRAME_1H    string = `1h`
-	TIMEFRAME_2H    string = `2h`
-	TIMEFRAME_4H    string = `4h`
-	TIMEFRAME_6H    string = `6h`
-	TIMEFRAME_8H    string = `8h`
-	TIMEFRAME_12H   string = `12h`
-	TIMEFRAME_1D    string = `1d`
-	TIMEFRAME_3D    string = `3d`
-	TIMEFRAME_1W    string = `1w`
-	TIMEFRAME_1M    string = `1M`
+	TIMEFRAME_1MIN  TimeframeType = `1m`
+	TIMEFRAME_3MIN  TimeframeType = `3m`
+	TIMEFRAME_5MIN  TimeframeType = `5m`
+	TIMEFRAME_15MIN TimeframeType = `15m`
+	TIMEFRAME_30MIN TimeframeType = `30m`
+	TIMEFRAME_1H    TimeframeType = `1h`
+	TIMEFRAME_2H    TimeframeType = `2h`
+	TIMEFRAME_4H    TimeframeType = `4h`
+	TIMEFRAME_6H    TimeframeType = `6h`
+	TIMEFRAME_8H    TimeframeType = `8h`
+	TIMEFRAME_12H   TimeframeType = `12h`
+	TIMEFRAME_1D    TimeframeType = `1d`
+	TIMEFRAME_3D    TimeframeType = `3d`
+	TIMEFRAME_1W    TimeframeType = `1w`
+	TIMEFRAME_1M    TimeframeType = `1M`
 )
 
-var Timeframes = map[string]time.Duration{
+var Timeframes = map[TimeframeType]time.Duration{
 	TIMEFRAME_1MIN:  time.Minute * 1,
 	TIMEFRAME_3MIN:  time.Minute * 3,
 	TIMEFRAME_5MIN:  time.Minute * 5,
@@ -41,7 +43,7 @@ var Timeframes = map[string]time.Duration{
 	TIMEFRAME_1M:    time.Hour * 24 * 30, // Approximation, as months vary in length
 }
 
-func GetDuration(timeframe string) (time.Duration, error) {
+func GetDuration(timeframe TimeframeType) (time.Duration, error) {
 	if duration, exists := Timeframes[timeframe]; exists {
 		return duration, nil
 	} else {
@@ -49,8 +51,8 @@ func GetDuration(timeframe string) (time.Duration, error) {
 	}
 }
 
-func getValidTimeframes() []string {
-	validCandles := []string{
+func GetValidTimeframes() []TimeframeType {
+	validCandles := []TimeframeType{
 		TIMEFRAME_1MIN,
 		TIMEFRAME_3MIN,
 		TIMEFRAME_5MIN,
@@ -71,23 +73,23 @@ func getValidTimeframes() []string {
 }
 
 func GetValidTimeframesString() string {
-	var candleStr string = ""
+	var timeframeStr string = ""
 	var plusStr string
-	validCandles := getValidTimeframes()
-	for index, c := range validCandles {
-		if index == len(validCandles)-1 {
+	validTimeframes := GetValidTimeframes()
+	for index, t := range validTimeframes {
+		if index == len(validTimeframes)-1 {
 			plusStr = ", "
 		} else {
 			plusStr = " and "
 		}
-		candleStr = candleStr + plusStr + c
+		timeframeStr = timeframeStr + plusStr + string(t)
 	}
-	return candleStr
+	return timeframeStr
 }
 
-func IsValidTimeframe(candle string) bool {
-	for _, c := range getValidTimeframes() {
-		if candle == c {
+func IsValidTimeframe(timeframeStr string) bool {
+	for _, c := range GetValidTimeframes() {
+		if timeframeStr == string(c) {
 			return true
 		}
 	}

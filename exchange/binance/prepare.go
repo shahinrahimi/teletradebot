@@ -2,6 +2,7 @@ package binance
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/adshao/go-binance/v2/futures"
 	"github.com/shahinrahimi/teletradebot/models"
@@ -24,11 +25,11 @@ func (bc *BinanceClient) prepareMainOrder(ctx context.Context, d *models.Describ
 		side = futures.SideTypeSell
 	}
 
-	balance, err := bc.getAvailableBalance()
+	balance, err := bc.fetchBalance(ctx)
 	if err != nil {
 		return nil, err
 	}
-	price, err := bc.getLatestPrice(d.Symbol)
+	price, err := bc.fetchPrice(ctx, d.Symbol)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +48,7 @@ func (bc *BinanceClient) prepareMainOrder(ctx context.Context, d *models.Describ
 	return &po, nil
 }
 
-func (bc *BinanceClient) prepareStopLossOrder(ctx context.Context, d *models.Describer, ou *futures.WsOrderTradeUpdate) *PreparedOrder {
+func (bc *BinanceClient) prepareStopLossOrder(d *models.Describer, ou *futures.WsOrderTradeUpdate) *PreparedOrder {
 	var po PreparedOrder
 	var side futures.SideType
 	if d.Side == types.SIDE_L {
@@ -64,7 +65,7 @@ func (bc *BinanceClient) prepareStopLossOrder(ctx context.Context, d *models.Des
 	return &po
 }
 
-func (bc *BinanceClient) prepareTakeProfitOrder(ctx context.Context, d *models.Describer, ou *futures.WsOrderTradeUpdate) *PreparedOrder {
+func (bc *BinanceClient) prepareTakeProfitOrder(d *models.Describer, ou *futures.WsOrderTradeUpdate) *PreparedOrder {
 	var po PreparedOrder
 	var side futures.SideType
 	if d.Side == types.SIDE_L {
@@ -80,128 +81,56 @@ func (bc *BinanceClient) prepareTakeProfitOrder(ctx context.Context, d *models.D
 	return &po
 }
 
-// func (bc *BinanceClient) prepareDescriberForMainOrder(ctx context.Context, d *models.Describer, t *models.Trade) (*PreparedOrder, error) {
-// 	var po PreparedOrder
-// 	var side futures.SideType
-// 	if t.Side == types.SIDE_L {
-// 		side = futures.SideTypeBuy
-// 	} else {
-// 		side = futures.SideTypeSell
-// 	}
+func (bc *BinanceClient) prepareReverseMainOrder(d *models.Describer, ou *futures.WsOrderTradeUpdate) (*PreparedOrder, error) {
+	var po PreparedOrder
+	var side futures.SideType
+	if d.Side == types.SIDE_L {
+		side = futures.SideTypeSell
+	} else {
+		side = futures.SideTypeBuy
+	}
+	p := d.GetValueWithPricePrecisionString(d.StopLossPrice)
+	originalQty, err := strconv.ParseFloat(ou.OriginalQty, 64)
+	if err != nil {
+		return nil, err
+	}
+	quantity := originalQty * float64(d.ReverseMultiplier)
+	q := d.GetValueWithPricePrecisionString(quantity)
+	po.Symbol = d.Symbol
+	po.Side = side
+	po.Quantity = q
+	po.StopPrice = p
+	return &po, err
+}
 
-// 	balance, err := bc.getAvailableBalance()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	price, err := bc.getLatestPrice(t)
-// 	if err != nil {
-// 		return nil, err
-// 	}
+func (bc *BinanceClient) prepareReverseStopLossOrder(d *models.Describer, ou *futures.WsOrderTradeUpdate) *PreparedOrder {
+	var po PreparedOrder
+	var side futures.SideType
+	if d.Side == types.SIDE_L {
+		side = futures.SideTypeBuy
+	} else {
+		side = futures.SideTypeSell
+	}
+	p := d.GetValueWithPricePrecisionString(d.ReverseStopLossPrice)
+	po.Symbol = d.Symbol
+	po.Side = side
+	po.Quantity = ou.OriginalQty
+	po.StopPrice = p
+	return &po
+}
 
-// 	size := balance * float64(t.Size) / 100
-// 	quantity := size / price
-
-// 	// adjust quantity based on symbol quantity precision
-// 	quantityPrecision := math.Pow10(int(-d.QuantityPrecision))
-// 	quantity = math.Floor(quantity/quantityPrecision) * quantityPrecision
-// 	q := fmt.Sprintf("%.*f", d.QuantityPrecision, quantity)
-
-// 	// adjust price based on symbol price precision
-// 	pricePrecision := math.Pow10(int(-d.PricePrecision))
-// 	stopPrice := math.Floor(d.StopPrice/pricePrecision) * pricePrecision
-// 	p := fmt.Sprintf("%.*f", d.PricePrecision, stopPrice)
-
-// 	po.Symbol = t.Symbol
-// 	po.Side = side
-// 	po.Quantity = q
-// 	po.StopPrice = p
-
-// 	return &po, nil
-// }
-
-// func (bc *BinanceClient) prepareDescriberForStopLossOrder(ctx context.Context, d *models.Describer, t *models.Trade, ou *futures.WsOrderTradeUpdate) *PreparedOrder {
-// 	var po PreparedOrder
-// 	var side futures.SideType
-// 	if t.Side == types.SIDE_L {
-// 		side = futures.SideTypeSell
-// 	} else {
-// 		side = futures.SideTypeBuy
-// 	}
-
-// 	// adjust price based on symbol price precision
-// 	pricePrecision := math.Pow10(int(-d.PricePrecision))
-// 	stopPrice := math.Floor(d.StopLossPrice/pricePrecision) * pricePrecision
-// 	p := fmt.Sprintf("%.*f", d.PricePrecision, stopPrice)
-
-// 	po.Symbol = t.Symbol
-// 	po.Side = side
-// 	po.Quantity = ou.OriginalQty
-// 	po.StopPrice = p
-
-// 	return &po
-// }
-
-// func (bc *BinanceClient) prepareDescriberForTakeProfitOrder(ctx context.Context, d *models.Describer, t *models.Trade, ou *futures.WsOrderTradeUpdate) *PreparedOrder {
-// 	var po PreparedOrder
-// 	var side futures.SideType
-// 	if t.Side == types.SIDE_L {
-// 		side = futures.SideTypeSell
-// 	} else {
-// 		side = futures.SideTypeBuy
-// 	}
-
-// 	// adjust price based on symbol price precision
-// 	pricePrecision := math.Pow10(int(-d.PricePrecision))
-// 	stopPrice := math.Floor(d.TakeProfitPrice/pricePrecision) * pricePrecision
-// 	p := fmt.Sprintf("%.*f", d.PricePrecision, stopPrice)
-
-// 	po.Symbol = t.Symbol
-// 	po.Side = side
-// 	po.Quantity = ou.OriginalQty
-// 	po.StopPrice = p
-
-// 	return &po
-// }
-
-// func (bc *BinanceClient) prepareDescriberForReverseStopLossOrder(ctx context.Context, d *models.Describer, t *models.Trade) *PreparedOrder {
-// 	var po PreparedOrder
-// 	var side futures.SideType
-// 	if t.Side == types.SIDE_L {
-// 		side = futures.SideTypeBuy
-// 	} else {
-// 		side = futures.SideTypeSell
-// 	}
-
-// 	// adjust price based on symbol price precision
-// 	pricePrecision := math.Pow10(int(-d.PricePrecision))
-// 	stopPrice := math.Floor(d.ReverseStopLossPrice/pricePrecision) * pricePrecision
-// 	p := fmt.Sprintf("%.*f", d.PricePrecision, stopPrice)
-
-// 	po.Symbol = t.Symbol
-// 	po.Side = side
-// 	po.Quantity = "0" //ou.OriginalQty
-// 	po.StopPrice = p
-
-// 	return &po
-// }
-
-// func (bc *BinanceClient) prepareDescriberForReverseTakeProfitOrder(ctx context.Context, d *models.Describer, t *models.Trade, ou *futures.WsOrderTradeUpdate) *PreparedOrder {
-// 	var po PreparedOrder
-// 	var side futures.SideType
-// 	if t.Side == types.SIDE_L {
-// 		side = futures.SideTypeBuy
-// 	} else {
-// 		side = futures.SideTypeSell
-// 	}
-// 	// adjust price based on symbol price precision
-// 	pricePrecision := math.Pow10(int(-d.PricePrecision))
-// 	stopPrice := math.Floor(d.ReverseTakeProfitPrice/pricePrecision) * pricePrecision
-// 	p := fmt.Sprintf("%.*f", d.PricePrecision, stopPrice)
-
-// 	po.Symbol = t.Symbol
-// 	po.Side = side
-// 	po.Quantity = ou.OriginalQty
-// 	po.StopPrice = p
-
-// 	return &po
-// }
+func (bc *BinanceClient) prepareReverseTakeProfitOrder(d *models.Describer, ou *futures.WsOrderTradeUpdate) *PreparedOrder {
+	var po PreparedOrder
+	var side futures.SideType
+	if d.Side == types.SIDE_L {
+		side = futures.SideTypeBuy
+	} else {
+		side = futures.SideTypeSell
+	}
+	p := d.GetValueWithPricePrecisionString(d.ReverseTakeProfitPrice)
+	po.Symbol = d.Symbol
+	po.Side = side
+	po.Quantity = ou.OriginalQty
+	po.StopPrice = p
+	return &po
+}

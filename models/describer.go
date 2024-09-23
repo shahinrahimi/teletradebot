@@ -10,13 +10,14 @@ import (
 
 type Describer struct {
 	// these fields copy from trade
-	TradeID        int64
-	Symbol         string
-	Side           string
-	Size           int
-	StopLossSize   int
-	TakeProfitSize int
-	TimeFrame      time.Duration
+	TradeID           int64
+	Symbol            string
+	Side              string
+	Size              int
+	StopLossSize      int
+	TakeProfitSize    int
+	ReverseMultiplier int
+	TimeFrame         time.Duration
 
 	// these fields fetched from exchange
 	OpenTime  time.Time
@@ -44,18 +45,6 @@ type Describer struct {
 func (d *Describer) CalculateExpiration() time.Duration {
 	return d.TimeFrame + time.Until(d.CloseTime)
 }
-
-// func (d *Describer) getPriceString(price float64) string {
-// 	var priceStr string
-// 	if d.PricePrecision > 0 {
-// 		p := math.Floor(price/d.PricePrecision) * d.PricePrecision
-// 		precision := int(math.Abs(math.Log10(d.PricePrecision)))
-// 		priceStr = fmt.Sprintf("%.*f", precision, p)
-// 	} else {
-// 		priceStr = fmt.Sprintf("%f", price)
-// 	}
-// 	return priceStr
-// }
 
 func (d *Describer) GetValueWithPricePrecision(value float64) float64 {
 	return math.Floor(value/d.PricePrecision) * d.PricePrecision
