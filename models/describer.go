@@ -16,7 +16,7 @@ type Describer struct {
 	Size           int
 	StopLossSize   int
 	TakeProfitSize int
-	CandleDuration time.Duration
+	TimeFrame      time.Duration
 
 	// these fields fetched from exchange
 	OpenTime  time.Time
@@ -42,7 +42,7 @@ type Describer struct {
 }
 
 func (d *Describer) CalculateExpiration() time.Duration {
-	return d.CandleDuration + time.Until(d.CloseTime)
+	return d.TimeFrame + time.Until(d.CloseTime)
 }
 
 // func (d *Describer) getPriceString(price float64) string {

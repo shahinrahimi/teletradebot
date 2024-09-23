@@ -6,11 +6,15 @@ import (
 	"time"
 
 	"github.com/shahinrahimi/teletradebot/models"
-	"github.com/shahinrahimi/teletradebot/types"
+	"github.com/shahinrahimi/teletradebot/timeframe"
 	"github.com/shahinrahimi/teletradebot/utils"
 )
 
 func (bc *BinanceClient) FetchDescriber(ctx context.Context, t *models.Trade) (*models.Describer, error) {
+	timeframeDur, err := timeframe.GetDuration(t.Timeframe)
+	if err != nil {
+		return nil, err
+	}
 	k, err := bc.getLastClosedKline(ctx, t)
 	if err != nil {
 		return nil, err
@@ -56,17 +60,13 @@ func (bc *BinanceClient) FetchDescriber(ctx context.Context, t *models.Trade) (*
 		return nil, err
 	}
 
-	candleDuration, err := types.GetDuration(t.Timeframe)
-	if err != nil {
-		return nil, err
-	}
-
 	return &models.Describer{
 		TradeID:        t.ID,
 		Symbol:         t.Symbol,
 		Size:           t.Size,
 		TakeProfitSize: t.TakeProfitSize,
 		StopLossSize:   t.StopLossSize,
+		TimeFrame:      timeframeDur,
 
 		OpenTime:               utils.ConvertTime(k.OpenTime),
 		CloseTime:              utils.ConvertTime(k.CloseTime).Add(time.Second),
@@ -79,7 +79,6 @@ func (bc *BinanceClient) FetchDescriber(ctx context.Context, t *models.Trade) (*
 		TakeProfitPrice:        tp,
 		ReverseStopLossPrice:   rsl,
 		ReverseTakeProfitPrice: rtp,
-		CandleDuration:         candleDuration,
 		PricePrecision:         float64(s.PricePrecision),
 		QuantityPrecision:      float64(s.QuantityPrecision),
 	}, nil

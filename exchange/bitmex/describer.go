@@ -4,15 +4,15 @@ import (
 	"context"
 
 	"github.com/shahinrahimi/teletradebot/models"
-	"github.com/shahinrahimi/teletradebot/types"
+	"github.com/shahinrahimi/teletradebot/timeframe"
 )
 
 func (mc *BitmexClient) FetchDescriber(ctx context.Context, t *models.Trade) (*models.Describer, error) {
-	candleDuration, err := types.GetDuration(t.Timeframe)
+	timeframeDur, err := timeframe.GetDuration(t.Timeframe)
 	if err != nil {
 		return nil, err
 	}
-	k, err := mc.GetLastClosedCandle(t.Symbol, candleDuration)
+	k, err := mc.GetLastClosedCandle(t.Symbol, timeframeDur)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func (mc *BitmexClient) FetchDescriber(ctx context.Context, t *models.Trade) (*m
 		StopLossPrice:          sl,
 		ReverseStopLossPrice:   rsl,
 		ReverseTakeProfitPrice: rtp,
-		CandleDuration:         candleDuration,
+		TimeFrame:              timeframeDur,
 		PricePrecision:         i.TickSize,
 		QuantityPrecision:      float64(i.LotSize),
 	}, nil

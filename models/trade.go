@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/shahinrahimi/teletradebot/timeframe"
 	"github.com/shahinrahimi/teletradebot/types"
 )
 
@@ -185,8 +186,8 @@ func ParseTrade(tradeArgs []string) (*Trade, error) {
 	}
 	// candle
 	part4 := strings.TrimSpace(tradeArgs[3])
-	if !types.IsValidCandle(part4) {
-		return nil, fmt.Errorf("invalid timeframe; valid values are: %s", types.GetValidCandlesString())
+	if !timeframe.IsValidTimeframe(part4) {
+		return nil, fmt.Errorf("invalid timeframe; valid values are: %s", timeframe.GetValidTimeframesString())
 	} else {
 		t.Timeframe = part4
 	}
