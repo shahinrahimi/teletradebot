@@ -5,6 +5,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/shahinrahimi/teletradebot/types"
 	"github.com/shahinrahimi/teletradebot/utils"
 )
 
@@ -36,8 +37,9 @@ type Describer struct {
 	PricePrecision    int // use in binance exchange
 	QuantityPrecision int // use in binance exchange
 
-	TickSize float64 // use in bitmex exchange
-	LotSize  float64 // use in bitmex exchange
+	TickSize    float64 // use in bitmex exchange
+	LotSize     float64 // use in bitmex exchange
+	MaxOrderQty float64 // use in bitmex exchange
 }
 
 func (d *Describer) AdjustPriceForBinance(value float64) string {
@@ -80,6 +82,7 @@ func (d *Describer) ToString() string {
 	till := d.CloseTime.Local().Format(format)
 
 	size := fmt.Sprintf("%.1f%%", float64(d.Size))
+	reverseSize := fmt.Sprintf("%.1f%%", float64(d.ReverseMultiplier)*float64(d.Size))
 	stopLossSize := fmt.Sprintf("%.1f%%", float64((d.StopLossSize - 100)))
 	takeProfitSize := fmt.Sprintf("%.1f%%", float64((d.TakeProfitSize - 100)))
 
@@ -91,6 +94,15 @@ func (d *Describer) ToString() string {
 	stopPrice := d.getPriceString(d.StopPrice)
 	stopLossPrice := d.getPriceString(d.StopLossPrice)
 	takeProfitPrice := d.getPriceString(d.TakeProfitPrice)
+	reverseStopLossPrice := d.getPriceString(d.ReverseStopLossPrice)
+	reverseTakeProfitPrice := d.getPriceString(d.ReverseTakeProfitPrice)
+
+	var reverseSide string
+	if d.Side == types.SIDE_L {
+		reverseSide = types.SIDE_S
+	} else {
+		reverseSide = types.SIDE_L
+	}
 
 	var expiration string
 	if d.CalculateExpiration() > 0 {
@@ -105,6 +117,12 @@ func (d *Describer) ToString() string {
 	msg = fmt.Sprintf("%sEntry %s at %s with %s of balance.\n", msg, d.Side, stopPrice, size)
 	msg = fmt.Sprintf("%sTP at %s with %s.\n", msg, takeProfitPrice, takeProfitSize)
 	msg = fmt.Sprintf("%sSL at %s with %s.\n\n", msg, stopLossPrice, stopLossSize)
+	if d.ReverseMultiplier > 0 {
+		msg = fmt.Sprintf("%sReverse:\n", msg)
+		msg = fmt.Sprintf("%sEntry %s at %s with %s of balance.\n", msg, reverseSide, stopLossPrice, reverseSize)
+		msg = fmt.Sprintf("%sTP at %s with %s.\n", msg, reverseTakeProfitPrice, takeProfitSize)
+		msg = fmt.Sprintf("%sSL at %s with %s.\n\n", msg, reverseStopLossPrice, stopLossSize)
+	}
 	msg = fmt.Sprintf("%sExpiration: %s", msg, expiration)
 	return msg
 }

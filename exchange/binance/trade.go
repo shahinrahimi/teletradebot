@@ -25,22 +25,22 @@ func (bc *BinanceClient) PlaceTrade(ctx context.Context, t *models.Trade) (*futu
 	return res, d, err
 }
 
-func (bc *BinanceClient) PlaceTradeSLOrder(ctx context.Context, t *models.Trade, d *models.Describer, f *futures.WsOrderTradeUpdate) (*futures.CreateOrderResponse, error) {
-	bc.l.Printf("executing stop-loss order for trade ID: %d", t.ID)
+func (bc *BinanceClient) PlaceTradeSLOrder(ctx context.Context, d *models.Describer, f *futures.WsOrderTradeUpdate) (*futures.CreateOrderResponse, error) {
+	bc.l.Printf("executing stop-loss order for trade ID: %d", d.TradeID)
 	po := bc.prepareStopLossOrder(d, f)
 	res, err := bc.PlaceSLOrder(ctx, po)
 	return res, err
 }
 
-func (bc *BinanceClient) PlaceTradeTPOrder(ctx context.Context, t *models.Trade, d *models.Describer, f *futures.WsOrderTradeUpdate) (*futures.CreateOrderResponse, error) {
-	bc.l.Printf("executing take-profit order for trade ID: %d", t.ID)
+func (bc *BinanceClient) PlaceTradeTPOrder(ctx context.Context, d *models.Describer, f *futures.WsOrderTradeUpdate) (*futures.CreateOrderResponse, error) {
+	bc.l.Printf("executing take-profit order for trade ID: %d", d.TradeID)
 	po := bc.prepareTakeProfitOrder(d, f)
 	res, err := bc.PlaceTPOrder(ctx, po)
 	return res, err
 }
 
-func (bc *BinanceClient) PlaceTradeReverseMainOrder(ctx context.Context, t *models.Trade, d *models.Describer, f *futures.WsOrderTradeUpdate) (*futures.CreateOrderResponse, error) {
-	bc.l.Printf("executing reverse main order for trade ID: %d", t.ID)
+func (bc *BinanceClient) PlaceTradeReverseMainOrder(ctx context.Context, d *models.Describer, f *futures.WsOrderTradeUpdate) (*futures.CreateOrderResponse, error) {
+	bc.l.Printf("executing reverse main order for trade ID: %d", d.TradeID)
 	po, err := bc.prepareReverseMainOrder(d, f)
 	if err != nil {
 		bc.l.Printf("error preparing reverse main order: %v", err)
@@ -50,15 +50,15 @@ func (bc *BinanceClient) PlaceTradeReverseMainOrder(ctx context.Context, t *mode
 	return res, err
 }
 
-func (bc *BinanceClient) PlaceTradeReverseStopLossOrder(ctx context.Context, t *models.Trade, d *models.Describer, f *futures.WsOrderTradeUpdate) (*futures.CreateOrderResponse, error) {
-	bc.l.Printf("executing reverse stop-loss order for trade ID: %d", t.ID)
+func (bc *BinanceClient) PlaceTradeReverseStopLossOrder(ctx context.Context, d *models.Describer, f *futures.WsOrderTradeUpdate) (*futures.CreateOrderResponse, error) {
+	bc.l.Printf("executing reverse stop-loss order for trade ID: %d", d.TradeID)
 	po := bc.prepareReverseStopLossOrder(d, f)
 	res, err := bc.PlaceSLOrder(ctx, po)
 	return res, err
 }
 
-func (bc *BinanceClient) PlaceTradeReverseTakeProfitOrder(ctx context.Context, t *models.Trade, d *models.Describer, f *futures.WsOrderTradeUpdate) (*futures.CreateOrderResponse, error) {
-	bc.l.Printf("executing reverse take-profit order for trade ID: %d", t.ID)
+func (bc *BinanceClient) PlaceTradeReverseTakeProfitOrder(ctx context.Context, d *models.Describer, f *futures.WsOrderTradeUpdate) (*futures.CreateOrderResponse, error) {
+	bc.l.Printf("executing reverse take-profit order for trade ID: %d", d.TradeID)
 	po := bc.prepareReverseTakeProfitOrder(d, f)
 	res, err := bc.PlaceTPOrder(ctx, po)
 	return res, err

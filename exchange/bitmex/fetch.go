@@ -69,36 +69,59 @@ func (mc *BitmexClient) fetchInstrument(ctx context.Context, symbol string) (*sw
 }
 
 func (mc *BitmexClient) FetchDescriber(ctx context.Context, t *models.Trade) (*models.Describer, error) {
+	errChan := make(chan error, 2)
+	candleChan := make(chan *Candle, 1)
+	symbolChan := make(chan *swagger.Instrument, 1)
+
+	go func() {
+		candle, err := mc.GetLastCompletedCandle(t.Symbol, t.Timeframe)
+		if err != nil {
+			errChan <- err
+		}
+		candleChan <- candle
+	}()
+	go func() {
+		symbol, err := mc.GetSymbol(t.Symbol)
+		if err != nil {
+			errChan <- err
+		}
+		symbolChan <- symbol
+	}()
+
+	var candle *Candle
+	var symbol *swagger.Instrument
+
+	for i := 0; i < 2; i++ {
+		select {
+		case err := <-errChan:
+			return nil, err
+		case candle = <-candleChan:
+		case symbol = <-symbolChan:
+		}
+	}
+
 	timeframeDur, err := models.GetDuration(t.Timeframe)
 	if err != nil {
 		return nil, err
 	}
-	k, err := mc.GetLastClosedCandle(t.Symbol, t.Timeframe)
+	sp, err := t.CalculateStopPrice(candle.High, candle.Low)
 	if err != nil {
 		return nil, err
 	}
-	i, err := mc.GetSymbol(t.Symbol)
+	sl, err := t.CalculateStopLossPrice(candle.High, candle.Low, sp, false)
 	if err != nil {
 		return nil, err
 	}
-	sp, err := t.CalculateStopPrice(k.High, k.Low)
-	if err != nil {
-		return nil, err
-	}
-	sl, err := t.CalculateStopLossPrice(k.High, k.Low, sp, false)
-	if err != nil {
-		return nil, err
-	}
-	tp, err := t.CalculateTakeProfitPrice(k.High, k.Low, sp, false)
+	tp, err := t.CalculateTakeProfitPrice(candle.High, candle.Low, sp, false)
 	if err != nil {
 		return nil, err
 	}
 
-	rsl, err := t.CalculateStopLossPrice(k.High, k.Low, sp, true)
+	rsl, err := t.CalculateStopLossPrice(candle.High, candle.Low, sl, true)
 	if err != nil {
 		return nil, err
 	}
-	rtp, err := t.CalculateTakeProfitPrice(k.High, k.Low, sp, true)
+	rtp, err := t.CalculateTakeProfitPrice(candle.High, candle.Low, sl, true)
 	if err != nil {
 		return nil, err
 	}
@@ -107,25 +130,25 @@ func (mc *BitmexClient) FetchDescriber(ctx context.Context, t *models.Trade) (*m
 		TradeID:           t.ID,
 		Symbol:            t.Symbol,
 		Size:              t.Size,
+		Side:              t.Side,
 		TakeProfitSize:    t.TakeProfitSize,
 		StopLossSize:      t.StopLossSize,
 		ReverseMultiplier: t.ReverseMultiplier,
 		TimeFrameDur:      timeframeDur,
 
-		// OpenTime:        k.Timestamp.Add(-dur),
-		// CloseTime:       k.Timestamp,
-		OpenTime:               k.OpenTime,
-		CloseTime:              k.CloseTime,
-		Open:                   k.Open,
-		Close:                  k.Close,
-		High:                   k.High,
-		Low:                    k.Low,
+		OpenTime:               candle.OpenTime,
+		CloseTime:              candle.CloseTime,
+		Open:                   candle.Open,
+		Close:                  candle.Close,
+		High:                   candle.High,
+		Low:                    candle.Low,
 		StopPrice:              sp,
 		TakeProfitPrice:        tp,
 		StopLossPrice:          sl,
 		ReverseStopLossPrice:   rsl,
 		ReverseTakeProfitPrice: rtp,
-		TickSize:               i.TickSize,
-		LotSize:                float64(i.LotSize),
+		TickSize:               symbol.TickSize,
+		LotSize:                float64(symbol.LotSize),
+		MaxOrderQty:            float64(symbol.MaxOrderQty),
 	}, nil
 }

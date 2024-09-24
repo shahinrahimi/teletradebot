@@ -59,31 +59,54 @@ func (bc *BinanceClient) fetchLastCompletedCandle(ctx context.Context, symbol st
 }
 
 func (bc *BinanceClient) FetchDescriber(ctx context.Context, t *models.Trade) (*models.Describer, error) {
+	errChan := make(chan error, 2)
+	candleChan := make(chan *futures.Kline, 1)
+	symbolChan := make(chan *futures.Symbol, 1)
+
+	go func() {
+		candle, err := bc.fetchLastCompletedCandle(ctx, t.Symbol, t.Timeframe)
+		if err != nil {
+			errChan <- err
+		}
+		candleChan <- candle
+	}()
+	go func() {
+		symbol, err := bc.GetSymbol(t.Symbol)
+		if err != nil {
+			errChan <- err
+		}
+		symbolChan <- symbol
+	}()
+
+	var candle *futures.Kline
+	var symbol *futures.Symbol
+
+	for i := 0; i < 2; i++ {
+		select {
+		case err := <-errChan:
+			return nil, err
+		case candle = <-candleChan:
+		case symbol = <-symbolChan:
+		}
+	}
+
 	timeframeDur, err := models.GetDuration(t.Timeframe)
 	if err != nil {
 		return nil, err
 	}
-	k, err := bc.fetchLastCompletedCandle(ctx, t.Symbol, t.Timeframe)
+	high, err := strconv.ParseFloat(candle.High, 64)
 	if err != nil {
 		return nil, err
 	}
-	high, err := strconv.ParseFloat(k.High, 64)
+	low, err := strconv.ParseFloat(candle.Low, 64)
 	if err != nil {
 		return nil, err
 	}
-	low, err := strconv.ParseFloat(k.Low, 64)
+	open, err := strconv.ParseFloat(candle.Open, 64)
 	if err != nil {
 		return nil, err
 	}
-	open, err := strconv.ParseFloat(k.Open, 64)
-	if err != nil {
-		return nil, err
-	}
-	close, err := strconv.ParseFloat(k.Close, 64)
-	if err != nil {
-		return nil, err
-	}
-	s, err := bc.GetSymbol(t.Symbol)
+	close, err := strconv.ParseFloat(candle.Close, 64)
 	if err != nil {
 		return nil, err
 	}
@@ -99,28 +122,27 @@ func (bc *BinanceClient) FetchDescriber(ctx context.Context, t *models.Trade) (*
 	if err != nil {
 		return nil, err
 	}
-	rsl, err := t.CalculateStopLossPrice(high, low, sp, true)
+	rsl, err := t.CalculateStopLossPrice(high, low, sl, true)
 	if err != nil {
 		return nil, err
 	}
-	rtp, err := t.CalculateTakeProfitPrice(high, low, sp, true)
+	rtp, err := t.CalculateTakeProfitPrice(high, low, sl, true)
 	if err != nil {
 		return nil, err
 	}
-
-	bc.l.Printf("fetching describer for trade ID: %d", t.ID)
 
 	d := &models.Describer{
 		TradeID:           t.ID,
 		Symbol:            t.Symbol,
 		Size:              t.Size,
+		Side:              t.Side,
 		TakeProfitSize:    t.TakeProfitSize,
 		StopLossSize:      t.StopLossSize,
 		ReverseMultiplier: t.ReverseMultiplier,
 		TimeFrameDur:      timeframeDur,
 
-		OpenTime:               utils.ConvertTime(k.OpenTime),
-		CloseTime:              utils.ConvertTime(k.CloseTime).Add(time.Second),
+		OpenTime:               utils.ConvertTime(candle.OpenTime),
+		CloseTime:              utils.ConvertTime(candle.CloseTime).Add(time.Second),
 		Open:                   open,
 		Close:                  close,
 		High:                   high,
@@ -130,11 +152,9 @@ func (bc *BinanceClient) FetchDescriber(ctx context.Context, t *models.Trade) (*
 		TakeProfitPrice:        tp,
 		ReverseStopLossPrice:   rsl,
 		ReverseTakeProfitPrice: rtp,
-		PricePrecision:         s.PricePrecision,
-		QuantityPrecision:      s.QuantityPrecision,
+		PricePrecision:         symbol.PricePrecision,
+		QuantityPrecision:      symbol.QuantityPrecision,
 	}
-
-	bc.l.Printf("describer fetched for trade ID: %+v", d)
 
 	return d, nil
 }

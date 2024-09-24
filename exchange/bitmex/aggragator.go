@@ -107,7 +107,7 @@ func (mc *BitmexClient) UpdateCandles(symbol string, markPrice float64, timestam
 	}
 }
 
-func (mc *BitmexClient) GetLastClosedCandle(symbol string, timeframe models.TimeframeType) (*Candle, error) {
+func (mc *BitmexClient) GetLastCompletedCandle(symbol string, timeframe models.TimeframeType) (*Candle, error) {
 	mu.RLock()
 	defer mu.RUnlock()
 	timeframeDur, err := models.GetDuration(timeframe)

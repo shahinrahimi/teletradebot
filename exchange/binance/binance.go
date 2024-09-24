@@ -17,16 +17,18 @@ type BinanceClient struct {
 	lastExchangeInfo *futures.ExchangeInfo
 	lastAccount      *futures.Account
 	MsgChan          chan types.BotMessage
+	ReverseEnabled   bool
 }
 
 func NewBinanceClient(l *log.Logger, apiKey string, secretKey string, useTestnet bool, msgChan chan types.BotMessage) *BinanceClient {
 	futures.UseTestnet = useTestnet
 	client := futures.NewClient(apiKey, secretKey)
 	return &BinanceClient{
-		l:          l,
-		Client:     client,
-		UseTestnet: useTestnet,
-		MsgChan:    msgChan,
+		l:              l,
+		Client:         client,
+		UseTestnet:     useTestnet,
+		MsgChan:        msgChan,
+		ReverseEnabled: true,
 	}
 }
 

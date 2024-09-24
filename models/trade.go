@@ -125,7 +125,7 @@ func (t *Trade) CalculateStopLossPrice(high, low, basePrice float64, reverse boo
 		if !reverse {
 			stopPrice = basePrice + rAmount
 		} else {
-			stopPrice = basePrice + rAmount
+			stopPrice = basePrice - rAmount
 		}
 	}
 	if stopPrice <= 0 {

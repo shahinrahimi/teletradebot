@@ -17,30 +17,51 @@ type PreparedOrder struct {
 }
 
 func (mc *BitmexClient) prepareMainOrder(ctx context.Context, d *models.Describer) (*PreparedOrder, error) {
+
+	balanceChan := make(chan float64)
+	priceChan := make(chan float64)
+	errChan := make(chan error, 2)
+
+	go func() {
+		balance, err := mc.fetchBalance(ctx)
+		if err != nil {
+			errChan <- err
+			return
+		}
+		balanceChan <- balance
+	}()
+
+	go func() {
+		price, err := mc.fetchPrice(ctx, d.Symbol)
+		if err != nil {
+			errChan <- err
+			return
+		}
+		priceChan <- price
+	}()
+
+	var balance float64
+	var price float64
+	var err error
+
+	select {
+	case balance = <-balanceChan:
+	case err = <-errChan:
+		return nil, err
+	}
+
+	select {
+	case price = <-priceChan:
+	case err = <-errChan:
+		return nil, err
+	}
+
 	var po PreparedOrder
 	var side SideType
 	if d.Side == types.SIDE_L {
 		side = SideTypeBuy
 	} else {
 		side = SideTypeSell
-	}
-
-	balance, err := mc.fetchBalance(ctx)
-	if err != nil {
-		mc.l.Printf("Error fetching balance: %v", err)
-		return nil, err
-	}
-
-	instrument, err := mc.fetchInstrument(ctx, d.Symbol)
-	if err != nil {
-		mc.l.Printf("Error fetching instrument: %v", err)
-		return nil, err
-	}
-
-	price, err := mc.fetchPrice(ctx, d.Symbol)
-	if err != nil {
-		mc.l.Printf("Error fetching price: %v", err)
-		return nil, err
 	}
 
 	contractSize, exist := config.ContractSizes[d.Symbol]
@@ -56,11 +77,11 @@ func (mc *BitmexClient) prepareMainOrder(ctx context.Context, d *models.Describe
 	p := d.AdjustPriceForBitmex(d.StopPrice)
 	q := d.AdjustQuantityForBitmex(quantity)
 
-	if q < float64(instrument.LotSize) {
-		return nil, fmt.Errorf("the calculated quantity (%.2f) less than the lotsize (%.1f)", q, instrument.LotSize)
+	if q < d.LotSize {
+		return nil, fmt.Errorf("the calculated quantity (%.2f) less than the lotsize (%.1f)", q, d.LotSize)
 	}
-	if q > float64(instrument.MaxOrderQty) {
-		return nil, fmt.Errorf("the calculated quantity (%.2f) greater than the max order quantity (%.1f)", q, instrument.MaxOrderQty)
+	if q > d.MaxOrderQty {
+		return nil, fmt.Errorf("the calculated quantity (%.2f) greater than the max order quantity (%.1f)", q, d.MaxOrderQty)
 	}
 
 	po.Symbol = d.Symbol

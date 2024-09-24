@@ -17,21 +17,49 @@ type PreparedOrder struct {
 }
 
 func (bc *BinanceClient) prepareMainOrder(ctx context.Context, d *models.Describer) (*PreparedOrder, error) {
+	balanceChan := make(chan float64)
+	priceChan := make(chan float64)
+	errChan := make(chan error, 2)
+
+	go func() {
+		balance, err := bc.fetchBalance(ctx)
+		if err != nil {
+			errChan <- err
+			return
+		}
+		balanceChan <- balance
+	}()
+
+	go func() {
+		price, err := bc.fetchPrice(ctx, d.Symbol)
+		if err != nil {
+			errChan <- err
+			return
+		}
+		priceChan <- price
+	}()
+
+	var balance float64
+	var price float64
+	var err error
+
+	select {
+	case balance = <-balanceChan:
+	case err = <-errChan:
+		return nil, err
+	}
+	select {
+	case price = <-priceChan:
+	case err = <-errChan:
+		return nil, err
+	}
+
 	var po PreparedOrder
 	var side futures.SideType
 	if d.Side == types.SIDE_L {
 		side = futures.SideTypeBuy
 	} else {
 		side = futures.SideTypeSell
-	}
-
-	balance, err := bc.fetchBalance(ctx)
-	if err != nil {
-		return nil, err
-	}
-	price, err := bc.fetchPrice(ctx, d.Symbol)
-	if err != nil {
-		return nil, err
 	}
 
 	size := balance * float64(d.Size) / 100
@@ -44,8 +72,6 @@ func (bc *BinanceClient) prepareMainOrder(ctx context.Context, d *models.Describ
 	po.Side = side
 	po.Quantity = q
 	po.StopPrice = p
-
-	bc.l.Printf("main order: %+v", po)
 
 	return &po, nil
 }
