@@ -35,8 +35,9 @@ func (bc *BinanceClient) pollExchangeInfo(ctx context.Context, interval time.Dur
 					}
 					continue
 				}
+			} else {
+				bc.l.Panicf("error fetching exchange info: %v", err)
 			}
-			continue
 		}
 		bc.lastExchangeInfo = res
 		time.Sleep(interval)
