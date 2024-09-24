@@ -18,11 +18,12 @@ func (b *Bot) HandleDescribeBinance(u *tgbotapi.Update, ctx context.Context) {
 		d, err := b.bc.FetchDescriber(ctx, &t)
 		if err != nil {
 			b.l.Printf("error fetching describer")
+			b.handleError(err, userID, t.ID)
 			return
 		}
 		b.MsgChan <- types.BotMessage{
 			ChatID: userID,
-			MsgStr: d.ToString(&t),
+			MsgStr: d.ToString(),
 		}
 	}()
 }

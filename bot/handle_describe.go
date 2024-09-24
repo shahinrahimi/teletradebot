@@ -18,7 +18,7 @@ func (b *Bot) HandleDescribe(u *tgbotapi.Update, ctx context.Context) error {
 	if d, exist := b.c.GetDescriber(t.ID); exist {
 		b.MsgChan <- types.BotMessage{
 			ChatID: userID,
-			MsgStr: d.ToString(&t),
+			MsgStr: d.ToString(),
 		}
 		return nil
 	}

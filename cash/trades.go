@@ -79,7 +79,7 @@ func (c *Cash) UpdateTradeIdle(ID int64) {
 	c.trades[ID] = t
 }
 
-func (c *Cash) UpdateTradePlaced(ID int64, orderID string) {
+func (c *Cash) UpdateTradeMainOrder(ID int64, orderID string) {
 	mu.Lock()
 	defer mu.Unlock()
 	t, exist := c.trades[ID]
@@ -112,6 +112,39 @@ func (c *Cash) UpdateTradeSLOrder(ID int64, orderID string) {
 	t.SLOrderID = orderID
 	c.trades[ID] = t
 
+}
+
+func (c *Cash) UpdateTradeReverseOrder(ID int64, orderID string) {
+	mu.Lock()
+	defer mu.Unlock()
+	t, exist := c.trades[ID]
+	if !exist {
+		c.l.Panicf("trade not found: %d", ID)
+	}
+	t.ReverseOrderID = orderID
+	c.trades[ID] = t
+}
+
+func (c *Cash) UpdateTradeReverseSLOrder(ID int64, orderID string) {
+	mu.Lock()
+	defer mu.Unlock()
+	t, exist := c.trades[ID]
+	if !exist {
+		c.l.Panicf("trade not found: %d", ID)
+	}
+	t.ReverseSLOrderID = orderID
+	c.trades[ID] = t
+}
+
+func (c *Cash) UpdateTradeReverseTPOrder(ID int64, orderID string) {
+	mu.Lock()
+	defer mu.Unlock()
+	t, exist := c.trades[ID]
+	if !exist {
+		c.l.Panicf("trade not found: %d", ID)
+	}
+	t.ReverseTPOrderID = orderID
+	c.trades[ID] = t
 }
 
 func (c *Cash) UpdateTradeFilled(ID int64) {
@@ -169,6 +202,17 @@ func (c *Cash) UpdateTradeClosed(ID int64) {
 	c.trades[ID] = t
 }
 
+func (c *Cash) UpdateTradeReverting(ID int64) {
+	mu.Lock()
+	defer mu.Unlock()
+	t, exist := c.trades[ID]
+	if !exist {
+		c.l.Panicf("trade not found: %d", ID)
+	}
+	t.State = types.STATE_REVERTING
+	c.trades[ID] = t
+}
+
 func (c *Cash) GetTradeByOrderID(orderID string) *models.Trade {
 	mu.RLock()
 	defer mu.RUnlock()
@@ -213,6 +257,12 @@ func (c *Cash) GetTradeByAnyOrderID(orderID string) (*models.Trade, types.OrderI
 			return t, types.OrderIDTypeStopLoss
 		case t.TPOrderID:
 			return t, types.OrderIDTypeTakeProfit
+		case t.ReverseOrderID:
+			return t, types.OrderIDTypeReverseMain
+		case t.ReverseSLOrderID:
+			return t, types.OrderIDTypeReverseStopLoss
+		case t.ReverseTPOrderID:
+			return t, types.OrderIDTypeReverseTakeProfit
 		default:
 			continue
 		}

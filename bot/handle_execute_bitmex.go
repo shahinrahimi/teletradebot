@@ -54,7 +54,7 @@ func (b *Bot) HandleExecuteBitmex(update *tgbotapi.Update, ctx context.Context) 
 		}
 
 		// update trade state
-		b.c.UpdateTradePlaced(t.ID, order.OrderID)
+		b.c.UpdateTradeMainOrder(t.ID, order.OrderID)
 	}()
 
 }

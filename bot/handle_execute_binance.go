@@ -50,6 +50,6 @@ func (b *Bot) HandleExecuteBinance(u *tgbotapi.Update, ctx context.Context) {
 			MsgStr: msg,
 		}
 		// update trade state
-		b.c.UpdateTradePlaced(t.ID, orderID)
+		b.c.UpdateTradeMainOrder(t.ID, orderID)
 	}()
 }

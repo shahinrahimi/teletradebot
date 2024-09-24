@@ -19,11 +19,12 @@ func (b *Bot) HandleDescribeBitmex(u *tgbotapi.Update, ctx context.Context) {
 		d, err := b.mc.FetchDescriber(ctx, &t)
 		if err != nil {
 			b.l.Printf("error fetching describer: %v", err)
+			b.handleError(err, userID, t.ID)
 			return
 		}
 		b.MsgChan <- types.BotMessage{
 			ChatID: userID,
-			MsgStr: d.ToString(&t),
+			MsgStr: d.ToString(),
 		}
 	}()
 

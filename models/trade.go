@@ -14,22 +14,26 @@ type Trade struct {
 	UserID int64 // ID of the Telegram user associated with the trade.
 	ChatID int64 // Chat ID in Telegram where trade created for communication.
 
-	OrderID   string // OrderID for the placed order from the Binance API or Bitmex API.
-	SLOrderID string // OrderID for the Stop Loss order.
-	TPOrderID string // OrderID for the Take Profit order.
-	State     string // Current state of the trade.
+	OrderID          string // OrderID for the placed order from the Binance API or Bitmex API.
+	SLOrderID        string // OrderID for the Stop Loss order.
+	TPOrderID        string // OrderID for the Take Profit order.
+	ReverseOrderID   string // OrderID for the Reverse order.
+	ReverseTPOrderID string // OrderID for the Reverse Take Profit order.
+	ReverseSLOrderID string // OrderID for the Reverse Stop Loss order.
 
-	Account           string    // Trading account associated with the trade.
-	Side              string    // Side of the trade (e.g., buy or sell).
-	Symbol            string    // Trading pair symbol (e.g., BTCUSDT).
-	Timeframe         string    // Timeframe of the candle (e.g., 1h, 4h, 15m).
-	Offset            float64   // Offset for placing the order, defined in USDT amount (e.g., 1 for $1, 0.1 for $0.1).
-	Size              int       // Size of the trade as percentage (e.g., 1, 2, 3, or 5).
-	StopLoss          int       // Stop Loss percentage based on the range of the candle before the last (e.g., 100 for 100% of the range).
-	TakeProfit        int       // Take Profit percentage based on the range of the candle before the last (e.g., 105 for 105% of the range).
-	ReverseMultiplier int       // Multiplier used for reversing the trade.
-	CreatedAt         time.Time // Timestamp when the trade was created.
-	UpdatedAt         time.Time // Timestamp when the trade was last updated.
+	State string // Current state of the trade.
+
+	Account           string        // Trading account associated with the trade.
+	Side              string        // Side of the trade (e.g., buy or sell).
+	Symbol            string        // Trading pair symbol (e.g., BTCUSDT).
+	Timeframe         TimeframeType // Timeframe of the candle (e.g., 1h, 4h, 15m).
+	Offset            float64       // Offset for placing the order, defined in USDT amount (e.g., 1 for $1, 0.1 for $0.1).
+	Size              int           // Size of the trade as percentage (e.g., 1, 2, 3, or 5).
+	StopLossSize      int           // Stop Loss percentage based on the range of the candle before the last (e.g., 100 for 100% of the range).
+	TakeProfitSize    int           // Take Profit percentage based on the range of the candle before the last (e.g., 105 for 105% of the range).
+	ReverseMultiplier int           // Multiplier used for reversing the trade.
+	CreatedAt         time.Time     // Timestamp when the trade was created.
+	UpdatedAt         time.Time     // Timestamp when the trade was last updated.
 }
 
 type KeyTrade struct{}
@@ -50,8 +54,8 @@ const (
 			timeframe TEXT NOT NULL,
 			offset REAL NOT NULL,
 			size INTEGER NOT NULL,
-			stop_loss INTEGER NOT NULL,
-			take_profit INTEGER NOT NULL,
+			stop_loss_size INTEGER NOT NULL,
+			take_profit_size INTEGER NOT NULL,
 			reverse_multiplier INTEGER NOT NULL,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -71,7 +75,7 @@ const (
 // ToArgs returns user_id, chat_id, state, account, symbol, side, timeframe, offset, size, stop_loss, take_profit and reverse_multiplier as value
 // use for inserting to DB
 func (t *Trade) ToArgs() []interface{} {
-	return []interface{}{t.UserID, t.ChatID, t.State, t.Account, t.Symbol, t.Side, t.Timeframe, t.Offset, t.Size, t.StopLoss, t.TakeProfit, t.ReverseMultiplier}
+	return []interface{}{t.UserID, t.ChatID, t.State, t.Account, t.Symbol, t.Side, t.Timeframe, t.Offset, t.Size, t.StopLossSize, t.TakeProfitSize, t.ReverseMultiplier}
 }
 
 // ToUpdatedArgs returns order_id, sl_order_id, tp_order_id, state, updated_at and id as value
@@ -83,7 +87,7 @@ func (t *Trade) ToUpdatedArgs() []interface{} {
 // ToFields returns id, user_id, chat_id, order_id, sl_order_id, tp_order_id, state, account, symbol, side, timeframe, offset, size, stop_loss, take_profit, reverse_multiplier, created_at and updated_at as reference
 // use for scanning from DB
 func (t *Trade) ToFelids() []interface{} {
-	return []interface{}{&t.ID, &t.UserID, &t.ChatID, &t.OrderID, &t.SLOrderID, &t.TPOrderID, &t.State, &t.Account, &t.Symbol, &t.Side, &t.Timeframe, &t.Offset, &t.Size, &t.StopLoss, &t.TakeProfit, &t.ReverseMultiplier, &t.CreatedAt, &t.UpdatedAt}
+	return []interface{}{&t.ID, &t.UserID, &t.ChatID, &t.OrderID, &t.SLOrderID, &t.TPOrderID, &t.State, &t.Account, &t.Symbol, &t.Side, &t.Timeframe, &t.Offset, &t.Size, &t.StopLossSize, &t.TakeProfitSize, &t.ReverseMultiplier, &t.CreatedAt, &t.UpdatedAt}
 }
 
 func (t *Trade) ToListString() string {
@@ -91,7 +95,7 @@ func (t *Trade) ToListString() string {
 }
 
 func (t *Trade) ToViewString() string {
-	return fmt.Sprintf("Trade ID: %d\n\nAccount: %s\nSymbol: %s\nSide: %s\nTimeframe: %s\nOffset: $%0.2f\nSize: %d\nSL: %d\nTP: %d\nRM: %d", t.ID, t.Account, t.Symbol, t.Side, t.Timeframe, t.Offset, t.Size, t.StopLoss, t.TakeProfit, t.ReverseMultiplier)
+	return fmt.Sprintf("Trade ID: %d\n\nAccount: %s\nSymbol: %s\nSide: %s\nTimeframe: %s\nOffset: $%0.2f\nSize: %d\nSL: %d\nTP: %d\nRM: %d", t.ID, t.Account, t.Symbol, t.Side, t.Timeframe, t.Offset, t.Size, t.StopLossSize, t.TakeProfitSize, t.ReverseMultiplier)
 }
 
 func (t *Trade) CalculateStopPrice(high, low float64) (float64, error) {
@@ -107,13 +111,22 @@ func (t *Trade) CalculateStopPrice(high, low float64) (float64, error) {
 	return stopPrice, nil
 }
 
-func (t *Trade) CalculateStopLossPrice(high, low, basePrice float64) (float64, error) {
+func (t *Trade) CalculateStopLossPrice(high, low, basePrice float64, reverse bool) (float64, error) {
 	var stopPrice float64
 	r := high - low
+	rAmount := (r * (float64(t.StopLossSize)) / 100)
 	if t.Side == types.SIDE_L {
-		stopPrice = basePrice - (r * (float64(t.StopLoss)) / 100)
+		if !reverse {
+			stopPrice = basePrice - rAmount
+		} else {
+			stopPrice = basePrice + rAmount
+		}
 	} else {
-		stopPrice = basePrice + (r * (float64(t.StopLoss)) / 100)
+		if !reverse {
+			stopPrice = basePrice + rAmount
+		} else {
+			stopPrice = basePrice - rAmount
+		}
 	}
 	if stopPrice <= 0 {
 		return 0, fmt.Errorf("price cannot be zero or negative")
@@ -121,16 +134,22 @@ func (t *Trade) CalculateStopLossPrice(high, low, basePrice float64) (float64, e
 	return stopPrice, nil
 }
 
-func (t *Trade) CalculateTakeProfitPrice(high, low, basePrice float64) (float64, error) {
+func (t *Trade) CalculateTakeProfitPrice(high, low, basePrice float64, reverse bool) (float64, error) {
 	var stopPrice float64
 	r := high - low
+	rAmount := (r * (float64(t.TakeProfitSize)) / 100)
 	if t.Side == types.SIDE_L {
-		stopPrice = basePrice + (r * (float64(t.TakeProfit)) / 100)
+		if !reverse {
+			stopPrice = basePrice + rAmount
+		} else {
+			stopPrice = basePrice - rAmount
+		}
 	} else {
-		stopPrice = basePrice - (r * (float64(t.TakeProfit)) / 100)
-	}
-	if stopPrice <= 0 {
-		return 0, fmt.Errorf("price cannot be zero or negative")
+		if !reverse {
+			stopPrice = basePrice - rAmount
+		} else {
+			stopPrice = basePrice + rAmount
+		}
 	}
 	return stopPrice, nil
 }
@@ -166,10 +185,10 @@ func ParseTrade(tradeArgs []string) (*Trade, error) {
 	}
 	// candle
 	part4 := strings.TrimSpace(tradeArgs[3])
-	if !types.IsValidCandle(part4) {
-		return nil, fmt.Errorf("invalid timeframe; valid values are: %s", types.GetValidCandlesString())
+	if !IsValidTimeframe(part4) {
+		return nil, fmt.Errorf("invalid timeframe; valid values are: %s", GetValidTimeframesString())
 	} else {
-		t.Timeframe = part4
+		t.Timeframe = TimeframeType(part4)
 	}
 	// offset
 	part5 := strings.TrimSpace(tradeArgs[4])
@@ -198,7 +217,7 @@ func ParseTrade(tradeArgs []string) (*Trade, error) {
 	} else if stop_percent < 10 {
 		return nil, fmt.Errorf("invalid stop-loss percent; must be 10 or greater")
 	} else {
-		t.StopLoss = stop_percent
+		t.StopLossSize = stop_percent
 	}
 
 	// target-point percent
@@ -209,7 +228,7 @@ func ParseTrade(tradeArgs []string) (*Trade, error) {
 	} else if target_percent < 10 {
 		return nil, fmt.Errorf("invalid target-point percent; must be 10 or greater")
 	} else {
-		t.TakeProfit = target_percent
+		t.TakeProfitSize = target_percent
 	}
 
 	// reverse-multiplier

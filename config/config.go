@@ -2,8 +2,10 @@ package config
 
 import "time"
 
-var UseBinanceTestnet bool = true
-var UseBitmexTestnet bool = true
+const (
+	UseBinanceTestnet bool = true
+	UseBitmexTestnet  bool = true
+)
 
 var Shortcuts = map[string]string{
 	"1":  "b BNBUSDT long 5m 0 1 105 105 1",
@@ -51,7 +53,7 @@ var Shortcuts = map[string]string{
 }
 
 var MaxTries int = 3
-var WaitForNextTries time.Duration = time.Second * 3 // seconds
+var WaitForNextTries time.Duration = time.Second * 3 // 3 seconds
 
 var UserIDs = []int64{
 	104196468,

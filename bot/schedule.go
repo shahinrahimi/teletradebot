@@ -94,7 +94,7 @@ func (b *Bot) scheduleOrderReplacementBinance(ctx context.Context, delay time.Du
 
 			// update trade order
 			orderIdStr := utils.ConvertBinanceOrderID(createOrder.OrderID)
-			b.c.UpdateTradePlaced(t.ID, orderIdStr)
+			b.c.UpdateTradeMainOrder(t.ID, orderIdStr)
 
 			// message the user
 			msg := fmt.Sprintf("Order replaced successfully\n\nNewOrder ID: %d\nTrade ID: %d", createOrder.OrderID, t.ID)
@@ -163,7 +163,7 @@ func (b *Bot) scheduleOrderReplacementBitmex(ctx context.Context, delay time.Dur
 			go b.scheduleOrderReplacementBitmex(ctx, expiration, createOrder.OrderID, t)
 
 			// update trade order
-			b.c.UpdateTradePlaced(t.ID, createOrder.OrderID)
+			b.c.UpdateTradeMainOrder(t.ID, createOrder.OrderID)
 
 			// message the user
 			msg := fmt.Sprintf("Order replaced successfully\n\nNewOrder ID: %s\nTrade ID: %d", createOrder.OrderID, t.ID)

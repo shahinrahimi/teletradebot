@@ -2,18 +2,20 @@ package bitmex
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	swagger "github.com/shahinrahimi/teletradebot/swagger"
 )
 
 type BitmexClient struct {
-	l       *log.Logger
-	client  *swagger.APIClient
-	auth    context.Context
-	Verbose bool
-	ApiKey  string
-	ApiSec  string
+	l                 *log.Logger
+	client            *swagger.APIClient
+	auth              context.Context
+	activeInstruments []swagger.Instrument
+	Verbose           bool
+	ApiKey            string
+	ApiSec            string
 }
 
 func NewBitmexClient(l *log.Logger, apiKey string, apiSec string, UseTestnet bool) *BitmexClient {
@@ -37,7 +39,19 @@ func NewBitmexClient(l *log.Logger, apiKey string, apiSec string, UseTestnet boo
 	}
 }
 
-func (mc *BitmexClient) GetAuthContext(ctx context.Context) context.Context {
+func (mc *BitmexClient) GetSymbol(symbol string) (*swagger.Instrument, error) {
+	if mc.activeInstruments == nil {
+		return nil, fmt.Errorf("exchange info not available right now")
+	}
+	for _, s := range mc.activeInstruments {
+		if s.Symbol == symbol {
+			return &s, nil
+		}
+	}
+	return nil, fmt.Errorf("symbol %s not found", symbol)
+}
+
+func (mc *BitmexClient) getAuthContext(ctx context.Context) context.Context {
 	return context.WithValue(ctx, swagger.ContextAPIKey, swagger.APIKey{
 		Key:    mc.ApiKey,
 		Secret: mc.ApiSec,

@@ -52,18 +52,19 @@ func main() {
 	token := os.Getenv("TELEGRAM_TOKEN")
 	if token == "" {
 		logger.Fatal("error wrong environmental variable")
+
 	}
 
 	// check environmental variable for binance api
-	apiKey := os.Getenv("BINANCE_API_KEY_FUTURES_TESTNET")
-	apiSec := os.Getenv("BINANCE_API_SEC_FUTURES_TESTNET")
+	apiKey := os.Getenv("BINANCE_API_KEY")
+	apiSec := os.Getenv("BINANCE_API_SEC")
 	if apiKey == "" || apiSec == "" {
 		logger.Fatal("error wrong environmental variable for binance client")
 	}
 
 	// check environmental variable for binance api
-	apiKey2 := os.Getenv("BITMEX_API_ID_TESTNET")
-	apiSec2 := os.Getenv("BITMEX_APY_KEY_TESTEST")
+	apiKey2 := os.Getenv("BITMEX_API_ID")
+	apiSec2 := os.Getenv("BITMEX_APY_KEY")
 	if apiKey2 == "" || apiSec2 == "" {
 		logger.Fatal("error wrong environmental variable for bitmex client")
 	}
