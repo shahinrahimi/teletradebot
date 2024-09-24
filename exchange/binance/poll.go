@@ -3,6 +3,14 @@ package binance
 import (
 	"context"
 	"time"
+
+	"github.com/adshao/go-binance/v2/common"
+)
+
+var (
+	initialBackoff = 5 * time.Second
+	maxBackOff     = 5 * time.Minute
+	backoff        = initialBackoff
 )
 
 func (bc *BinanceClient) StartPolling(ctx context.Context) {
@@ -16,6 +24,18 @@ func (bc *BinanceClient) pollExchangeInfo(ctx context.Context, interval time.Dur
 		res, err := bc.Client.NewExchangeInfoService().Do(ctx)
 		if err != nil {
 			bc.l.Printf("Error fetching exchange info: %v", err)
+			if apiErr, ok := err.(*common.APIError); ok {
+				if apiErr.Code == 429 {
+					bc.l.Printf("hit binance rate limit: %+v", apiErr.Response)
+					time.Sleep(backoff)
+					if backoff > maxBackOff {
+						backoff = maxBackOff
+					} else {
+						backoff *= 2
+					}
+					continue
+				}
+			}
 			continue
 		}
 		bc.lastExchangeInfo = res
