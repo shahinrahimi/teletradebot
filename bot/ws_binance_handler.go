@@ -7,11 +7,11 @@ import (
 	"github.com/adshao/go-binance/v2/futures"
 )
 
-func (b *Bot) wsHandler(event *futures.WsUserDataEvent) {
+func (b *Bot) WsHandler(event *futures.WsUserDataEvent) {
 	b.handleOrderTradeUpdate(context.Background(), event.OrderTradeUpdate)
 }
 
-func (b *Bot) errHandler(err error) {
+func (b *Bot) WsErrHandler(err error) {
 	b.l.Printf("WebSocket error: %v", err)
 }
 

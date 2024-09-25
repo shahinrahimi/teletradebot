@@ -2,6 +2,7 @@ package types
 
 type OrderIDType string
 type ExecutionType string
+type AccountType string
 
 type BotMessage struct {
 	ChatID int64
@@ -17,8 +18,10 @@ func (b *BotError) Error() string {
 }
 
 const (
-	ACCOUNT_B string = `Binance`
-	ACCOUNT_M string = `Bitmex`
+	Account_binance AccountType = "Binance"
+	Account_bitmex  AccountType = "Bitmex"
+	ACCOUNT_B       string      = `Binance`
+	ACCOUNT_M       string      = `Bitmex`
 
 	SIDE_L string = `LONG`
 	SIDE_S string = `SHORT`

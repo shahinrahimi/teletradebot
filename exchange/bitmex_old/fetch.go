@@ -1,13 +1,12 @@
-package bitmexc
+package bitmexold
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/antihax/optional"
-	"github.com/shahinrahimi/teletradebot/config"
 	"github.com/shahinrahimi/teletradebot/models"
-	"github.com/shahinrahimi/teletradebot/swagger"
+	swagger "github.com/shahinrahimi/teletradebot/swagger"
 )
 
 func (mc *BitmexClient) fetchMargins(ctx context.Context) ([]swagger.Margin, error) {
@@ -69,10 +68,8 @@ func (mc *BitmexClient) fetchInstrument(ctx context.Context, symbol string) (*sw
 	return nil, fmt.Errorf("could not find instrument")
 }
 
-func (mc *BitmexClient) FetchInterpreter(ctx context.Context, t *models.Trade) (*models.Interpreter, error) {
-	errChan := make(chan error, 4)
-	balanceChan := make(chan float64, 1)
-	priceChan := make(chan float64, 1)
+func (mc *BitmexClient) FetchDescriber(ctx context.Context, t *models.Trade) (*models.Describer, error) {
+	errChan := make(chan error, 2)
 	candleChan := make(chan *Candle, 1)
 	symbolChan := make(chan *swagger.Instrument, 1)
 
@@ -90,33 +87,16 @@ func (mc *BitmexClient) FetchInterpreter(ctx context.Context, t *models.Trade) (
 		}
 		symbolChan <- symbol
 	}()
-	go func() {
-		balance, err := mc.fetchBalance(ctx)
-		if err != nil {
-			errChan <- err
-		}
-		balanceChan <- balance
-	}()
-	go func() {
-		price, err := mc.fetchPrice(ctx, t.Symbol)
-		if err != nil {
-			errChan <- err
-		}
-		priceChan <- price
-	}()
 
 	var candle *Candle
 	var symbol *swagger.Instrument
-	var balance float64
-	var price float64
-	for i := 0; i < 4; i++ {
+
+	for i := 0; i < 2; i++ {
 		select {
 		case err := <-errChan:
 			return nil, err
 		case candle = <-candleChan:
 		case symbol = <-symbolChan:
-		case balance = <-balanceChan:
-		case price = <-priceChan:
 		}
 	}
 
@@ -124,15 +104,15 @@ func (mc *BitmexClient) FetchInterpreter(ctx context.Context, t *models.Trade) (
 	if err != nil {
 		return nil, err
 	}
-	ep, err := t.CalculateEntryPrice(candle.High, candle.Low)
+	sp, err := t.CalculateEntryPrice(candle.High, candle.Low)
 	if err != nil {
 		return nil, err
 	}
-	sl, err := t.CalculateStopLossPrice(candle.High, candle.Low, ep, false)
+	sl, err := t.CalculateStopLossPrice(candle.High, candle.Low, sp, false)
 	if err != nil {
 		return nil, err
 	}
-	tp, err := t.CalculateTakeProfitPrice(candle.High, candle.Low, ep, false)
+	tp, err := t.CalculateTakeProfitPrice(candle.High, candle.Low, sp, false)
 	if err != nil {
 		return nil, err
 	}
@@ -146,22 +126,7 @@ func (mc *BitmexClient) FetchInterpreter(ctx context.Context, t *models.Trade) (
 		return nil, err
 	}
 
-	contractSize, exist := config.ContractSizes[t.Symbol]
-	if !exist {
-		return nil, fmt.Errorf("contract size not found for symbol %s", t.Symbol)
-	}
-
-	balance = balance / 1000000 // balance in USDT
-
-	size := balance * (float64(t.Size) / 100)
-	quantity := size / (price * contractSize)
-	rQuantity := quantity * float64(t.ReverseMultiplier)
-
-	return &models.Interpreter{
-		Balance:         balance,
-		Price:           price,
-		Quantity:        quantity,
-		ReverseQuantity: rQuantity,
+	return &models.Describer{
 
 		TradeID:           t.ID,
 		Symbol:            t.Symbol,
@@ -178,10 +143,9 @@ func (mc *BitmexClient) FetchInterpreter(ctx context.Context, t *models.Trade) (
 		Close:                  candle.Close,
 		High:                   candle.High,
 		Low:                    candle.Low,
-		EntryPrice:             ep,
+		StopPrice:              sp,
 		TakeProfitPrice:        tp,
 		StopLossPrice:          sl,
-		ReverseEntryPrice:      sl,
 		ReverseStopLossPrice:   rsl,
 		ReverseTakeProfitPrice: rtp,
 		TickSize:               symbol.TickSize,

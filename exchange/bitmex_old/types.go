@@ -1,4 +1,4 @@
-package bitmexc
+package bitmexold
 
 import "time"
 

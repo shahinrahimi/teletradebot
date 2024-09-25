@@ -1,4 +1,4 @@
-package binancec
+package binance
 
 import (
 	"fmt"
@@ -13,9 +13,7 @@ type BinanceClient struct {
 	client           *futures.Client
 	ListenKey        string
 	UseTestnet       bool
-	lastSymbolPrices []*futures.SymbolPrice
 	lastExchangeInfo *futures.ExchangeInfo
-	lastAccount      *futures.Account
 	MsgChan          chan types.BotMessage
 	ReverseEnabled   bool
 }

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	swagger "github.com/shahinrahimi/teletradebot/swagger"
+	"github.com/shahinrahimi/teletradebot/swagger"
 )
 
 type BitmexClient struct {

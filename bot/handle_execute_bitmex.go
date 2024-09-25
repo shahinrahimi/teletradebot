@@ -4,57 +4,47 @@ import (
 	"context"
 	"fmt"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/adshao/go-binance/v2/futures"
 	"github.com/shahinrahimi/teletradebot/config"
+	"github.com/shahinrahimi/teletradebot/exchange"
 	"github.com/shahinrahimi/teletradebot/models"
-	"github.com/shahinrahimi/teletradebot/swagger"
 	"github.com/shahinrahimi/teletradebot/types"
 	"github.com/shahinrahimi/teletradebot/utils"
 )
 
-func (b *Bot) HandleExecuteBitmex(update *tgbotapi.Update, ctx context.Context) {
+func (b *Bot) HandleExecuteBitmex(ctx context.Context, t *models.Trade, userID int64, ex exchange.Exchange) {
 
-	t, ok := ctx.Value(models.KeyTrade{}).(models.Trade)
+	i, err := b.retry2(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
+		return ex.FetchInterpreter(ctx, t)
+	})
+	interpreter, ok := i.(*models.Interpreter)
 	if !ok {
-		b.l.Panic("error getting trade from context")
+		b.l.Panicf("unexpected error happened in casting error to *models.Interpreter: %T", interpreter)
 	}
-	userID := update.Message.From.ID
+	oe := interpreter.GetOrderExecutionBitmex(types.StopPriceExecution, t.OrderID)
+	res, err := b.retry2(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
+		return ex.PlaceStopOrder(ctx, oe)
+	})
+	if err != nil {
+		b.l.Printf("error placing stop-order: %v", err)
+		b.handleError(err, userID, t.ID)
+		return
+	}
+	order, ok := res.(*futures.CreateOrderResponse)
+	if !ok {
+		b.l.Panicf("unexpected error happened in casting error to futures.CreateOrderResponse: %T", order)
+	}
 
-	go func() {
-		res, d, err := b.retry(config.MaxTries, config.WaitForNextTries, &t, func() (interface{}, interface{}, error) {
-			return b.mc.PlaceTrade(ctx, &t)
-		})
-		if err != nil {
-			b.l.Printf("error executing trade: %v", err)
-			b.handleError(err, userID, t.ID)
-			return
-		}
+	orderID := utils.ConvertBinanceOrderID(order.OrderID)
+	// schedule for replacement
+	go b.scheduleOrderReplacementBitmex(ctx, interpreter, t, ex)
 
-		order, ok := res.(*swagger.Order)
-		if !ok {
-			b.l.Printf("unexpected error happened in casting error to *bitmex.Order: %T", order)
-			return
-		}
-
-		describer, ok := d.(*models.Describer)
-		if !ok {
-			b.l.Printf("unexpected error happened in casting interface to *models.Describer: %T", describer)
-			return
-		}
-		b.c.SetDescriber(describer, t.ID)
-		expiration := describer.CalculateExpiration()
-		b.l.Printf("expiration: %v", utils.FriendlyDuration(expiration))
-		// schedule for replacement
-		go b.scheduleOrderReplacementBitmex(ctx, expiration, order.OrderID, &t)
-
-		msg := fmt.Sprintf("Order placed successfully\n\nOrder ID: %s\nTrade ID: %d", order.OrderID, t.ID)
-		b.MsgChan <- types.BotMessage{
-			ChatID: t.UserID,
-			MsgStr: msg,
-		}
-
-		// update trade state
-		b.c.UpdateTradeMainOrder(t.ID, order.OrderID)
-	}()
+	msg := fmt.Sprintf("Order placed successfully\n\nOrder ID: %s\nTrade ID: %d", orderID, t.ID)
+	b.MsgChan <- types.BotMessage{
+		ChatID: t.UserID,
+		MsgStr: msg,
+	}
+	// update trade state
+	b.c.UpdateTradeMainOrder(t.ID, orderID)
 
 }

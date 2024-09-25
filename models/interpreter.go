@@ -119,7 +119,9 @@ func (i *Interpreter) Describe() string {
 		expiration = "∞"
 	}
 
-	msg := fmt.Sprintf("Trade ID %d\n\n", i.TradeID)
+	msg := ""
+
+	msg = fmt.Sprintf("Trade ID %d\n\n", i.TradeID)
 	msg = fmt.Sprintf("%sFrom:  %s\nTill:  %s\nOpen:  %s\nHigh:  %s\nLow:  %s\nClose:  %s\n\n", msg, from, till, open, high, low, close)
 	msg = fmt.Sprintf("%sTrading:\n", msg)
 	msg = fmt.Sprintf("%sEntry %s at %s with %s of balance.\n", msg, i.Side, entryPrice, size)

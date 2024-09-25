@@ -12,7 +12,7 @@ import (
 )
 
 func (bc *BinanceClient) fetchBalance(ctx context.Context) (float64, error) {
-	res, err := bc.Client.NewGetBalanceService().Do(ctx)
+	res, err := bc.client.NewGetBalanceService().Do(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -21,11 +21,11 @@ func (bc *BinanceClient) fetchBalance(ctx context.Context) (float64, error) {
 			return strconv.ParseFloat(balance.Balance, 64)
 		}
 	}
-	return 0, fmt.Errorf("Asset USDT not found")
+	return 0, fmt.Errorf("asset USDT not found")
 }
 
 func (bc *BinanceClient) fetchPrice(ctx context.Context, symbol string) (float64, error) {
-	res, err := bc.Client.NewListPricesService().Do(ctx)
+	res, err := bc.client.NewListPricesService().Do(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -34,11 +34,11 @@ func (bc *BinanceClient) fetchPrice(ctx context.Context, symbol string) (float64
 			return strconv.ParseFloat(sp.Price, 64)
 		}
 	}
-	return 0, fmt.Errorf("Symbol %s not found", symbol)
+	return 0, fmt.Errorf("symbol %s not found", symbol)
 }
 
 func (bc *BinanceClient) fetchLastCompletedCandle(ctx context.Context, symbol string, t models.TimeframeType) (*futures.Kline, error) {
-	klines, err := bc.Client.NewMarkPriceKlinesService().
+	klines, err := bc.client.NewMarkPriceKlinesService().
 		Limit(100).
 		Interval(string(t)).
 		Symbol(symbol).
@@ -58,8 +58,10 @@ func (bc *BinanceClient) fetchLastCompletedCandle(ctx context.Context, symbol st
 	return nil, fmt.Errorf("failed to locate before last candle")
 }
 
-func (bc *BinanceClient) FetchDescriber(ctx context.Context, t *models.Trade) (*models.Describer, error) {
+func (bc *BinanceClient) FetchInterpreter(ctx context.Context, t *models.Trade) (*models.Interpreter, error) {
 	errChan := make(chan error, 2)
+	balanceChan := make(chan float64, 1)
+	priceChan := make(chan float64, 1)
 	candleChan := make(chan *futures.Kline, 1)
 	symbolChan := make(chan *futures.Symbol, 1)
 
@@ -77,16 +79,37 @@ func (bc *BinanceClient) FetchDescriber(ctx context.Context, t *models.Trade) (*
 		}
 		symbolChan <- symbol
 	}()
+	go func() {
+		balance, err := bc.fetchBalance(ctx)
+		if err != nil {
+			errChan <- err
+		}
+		balanceChan <- balance
+	}()
+	go func() {
+		price, err := bc.fetchPrice(ctx, t.Symbol)
+		if err != nil {
+			errChan <- err
+		}
+		priceChan <- price
+	}()
 
 	var candle *futures.Kline
 	var symbol *futures.Symbol
+	var balance float64
+	var price float64
+	var err error
 
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 4; i++ {
 		select {
-		case err := <-errChan:
-			return nil, err
 		case candle = <-candleChan:
+		case err = <-errChan:
+		case balance = <-balanceChan:
+		case price = <-priceChan:
 		case symbol = <-symbolChan:
+		}
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -110,15 +133,15 @@ func (bc *BinanceClient) FetchDescriber(ctx context.Context, t *models.Trade) (*
 	if err != nil {
 		return nil, err
 	}
-	sp, err := t.CalculateEntryPrice(high, low)
+	ep, err := t.CalculateEntryPrice(high, low)
 	if err != nil {
 		return nil, err
 	}
-	sl, err := t.CalculateStopLossPrice(high, low, sp, false)
+	sl, err := t.CalculateStopLossPrice(high, low, ep, false)
 	if err != nil {
 		return nil, err
 	}
-	tp, err := t.CalculateTakeProfitPrice(high, low, sp, false)
+	tp, err := t.CalculateTakeProfitPrice(high, low, ep, false)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +154,16 @@ func (bc *BinanceClient) FetchDescriber(ctx context.Context, t *models.Trade) (*
 		return nil, err
 	}
 
-	d := &models.Describer{
+	size := balance * float64(t.Size) / 100
+	quantity := size / price
+	rQuantity := quantity * float64(t.ReverseMultiplier)
+
+	return &models.Interpreter{
+		Balance:         balance,
+		Price:           price,
+		Quantity:        quantity,
+		ReverseQuantity: rQuantity,
+
 		TradeID:           t.ID,
 		Symbol:            t.Symbol,
 		Size:              t.Size,
@@ -147,14 +179,13 @@ func (bc *BinanceClient) FetchDescriber(ctx context.Context, t *models.Trade) (*
 		Close:                  close,
 		High:                   high,
 		Low:                    low,
-		StopPrice:              sp,
+		EntryPrice:             ep,
 		StopLossPrice:          sl,
 		TakeProfitPrice:        tp,
+		ReverseEntryPrice:      sl,
 		ReverseStopLossPrice:   rsl,
 		ReverseTakeProfitPrice: rtp,
 		PricePrecision:         symbol.PricePrecision,
 		QuantityPrecision:      symbol.QuantityPrecision,
-	}
-
-	return d, nil
+	}, nil
 }

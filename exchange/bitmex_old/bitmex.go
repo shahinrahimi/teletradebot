@@ -1,11 +1,11 @@
-package bitmexc
+package bitmexold
 
 import (
 	"context"
 	"fmt"
 	"log"
 
-	"github.com/shahinrahimi/teletradebot/swagger"
+	swagger "github.com/shahinrahimi/teletradebot/swagger"
 )
 
 type BitmexClient struct {
