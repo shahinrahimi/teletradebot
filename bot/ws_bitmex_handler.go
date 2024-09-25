@@ -15,7 +15,7 @@ func (b *Bot) WsHandlerBitmex(ctx context.Context, od []swagger.OrderData) {
 			b.l.Println("New order received.")
 		case swagger.OrderStatusTypeFilled:
 			time.Sleep(time.Second)
-			b.handleFilledBitmex(ctx, o)
+			b.handleFilledExchange(ctx, o)
 		default:
 			b.l.Println("Unknown order status received.")
 		}

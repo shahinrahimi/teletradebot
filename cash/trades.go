@@ -267,6 +267,7 @@ func (c *Cash) GetTradeByOrderID(orderID string) *models.Trade {
 }
 
 func (c *Cash) GetTradeBySLOrderID(orderID string) *models.Trade {
+
 	mu.RLock()
 	defer mu.RUnlock()
 	for _, t := range c.trades {
@@ -278,6 +279,7 @@ func (c *Cash) GetTradeBySLOrderID(orderID string) *models.Trade {
 }
 
 func (c *Cash) GetTradeByTPOrderID(orderID string) *models.Trade {
+
 	mu.RLock()
 	defer mu.RUnlock()
 	for _, t := range c.trades {
@@ -288,11 +290,12 @@ func (c *Cash) GetTradeByTPOrderID(orderID string) *models.Trade {
 	return nil
 }
 
-func (c *Cash) GetTradeByAnyOrderID(orderID string) (*models.Trade, types.OrderIDType) {
+func (c *Cash) GetTradeByAnyOrderID(orderID interface{}) (*models.Trade, types.OrderIDType) {
+	orderIDStr := utils.ExtractOrderIDStr(orderID)
 	mu.RLock()
 	defer mu.RUnlock()
 	for _, t := range c.trades {
-		switch orderID {
+		switch orderIDStr {
 		case t.OrderID:
 			return t, types.OrderIDTypeMain
 		case t.SLOrderID:

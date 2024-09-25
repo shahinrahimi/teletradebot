@@ -51,6 +51,8 @@ const (
 	VerbReplaced VerbType = `replaced`
 	VerbCanceled VerbType = `canceled`
 	VerbClosed   VerbType = `closed`
+	VerbFilled   VerbType = `filled`
+	VerbExecuted VerbType = `executed`
 	// ActionReverted     ActionType = `reverted`
 	// ActionRevertedMain ActionType = `reverted-main`
 	// ActionRevertedSL   ActionType = `reverted-stop-loss`
