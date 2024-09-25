@@ -111,7 +111,7 @@ func (b *Bot) handleMainFilledExchange(ctx context.Context, t *models.Trade, i *
 	go func() {
 		oe := i.GetOrderExecution(types.ReverseStopPriceExecution, "")
 		res, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
-			return b.bc.PlaceStopOrder(ctx, oe)
+			return ex.PlaceStopOrder(ctx, oe)
 		})
 		if err != nil {
 			b.l.Printf("error executing reverse order: %v", err)
@@ -188,11 +188,16 @@ func (b *Bot) handleTakeProfitFilledExchange(ctx context.Context, t *models.Trad
 	// update trade state
 	b.c.UpdateTradeProfited(t.ID)
 	// message user
-	msg := b.getMessageStopped(types.OrderTitleTakeProfit, types.VerbFilled, t.ID)
+	msg := b.getMessageProfited(types.OrderTitleTakeProfit, types.VerbFilled, t.ID)
 	b.MsgChan <- types.BotMessage{ChatID: t.UserID, MsgStr: msg}
 
 	// cancel stop-loss order
 	go b.handleCancelExchange(ctx, t, i, types.OrderTitleStopLoss, ex, t.SLOrderID)
+	if t.ReverseMultiplier == 0 {
+		return
+	}
+	// cancel reverse-main order
+	go b.handleCancelExchange(ctx, t, i, types.OrderTitleReverseMain, ex, t.ReverseOrderID)
 }
 
 func (b *Bot) handleReverseStopLossFilledExchange(ctx context.Context, t *models.Trade, i *models.Interpreter, ex exchange.Exchange) {
@@ -209,7 +214,7 @@ func (b *Bot) handleReverseTakeProfitFilledExchange(ctx context.Context, t *mode
 	// update trade state
 	b.c.UpdateTradeProfited(t.ID)
 	// message user
-	msg := b.getMessageStopped(types.OrderTitleReverseTakeProfit, types.VerbFilled, t.ID)
+	msg := b.getMessageProfited(types.OrderTitleReverseTakeProfit, types.VerbFilled, t.ID)
 	b.MsgChan <- types.BotMessage{ChatID: t.UserID, MsgStr: msg}
 	// cancel stop-loss order
 	go b.handleCancelExchange(ctx, t, i, types.OrderTitleReverseStopLoss, ex, t.ReverseSLOrderID)

@@ -77,9 +77,9 @@ func main() {
 	mc := bitmex.NewBitmexClient(logger, apiKey2, apiSec2, config.UseBitmexTestnet)
 
 	// start polling for binance
-	//bc.StartPolling(ctx)
+	bc.StartPolling(ctx)
 	// start polling for bitmex
-	//mc.StartPolling(ctx)
+	mc.StartPolling(ctx)
 
 	b, err := bot.NewBot(logger, c, bc, mc, token, msgChan)
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 
 	"github.com/adshao/go-binance/v2/common"
 	"github.com/shahinrahimi/teletradebot/models"
+	"github.com/shahinrahimi/teletradebot/swagger"
 	"github.com/shahinrahimi/teletradebot/types"
 	"github.com/shahinrahimi/teletradebot/utils"
 )
@@ -28,6 +29,10 @@ func (b *Bot) retry(attempts int, delay time.Duration, t *models.Trade, f func()
 				default:
 					return nil, err
 				}
+			} else if _, ok := err.(swagger.GenericSwaggerError); ok {
+				return nil, err
+			} else if _, ok := err.(*types.BotError); ok {
+				return nil, err
 			} else {
 				b.l.Printf("unexpected error happened in retrying function: %v", err)
 				return nil, err
@@ -60,6 +65,10 @@ func (b *Bot) retryDenyNotFound(attempts int, delay time.Duration, t *models.Tra
 				default:
 					return nil, err
 				}
+			} else if _, ok := err.(swagger.GenericSwaggerError); ok {
+				return nil, err
+			} else if _, ok := err.(*types.BotError); ok {
+				return nil, err
 			} else {
 				b.l.Printf("unexpected error happened in retrying function: %v", err)
 				return nil, err

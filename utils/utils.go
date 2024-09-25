@@ -5,11 +5,21 @@ import (
 	"log"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/adshao/go-binance/v2/futures"
 	"github.com/shahinrahimi/teletradebot/swagger"
 )
+
+func Capitalize(str string) string {
+	if len(str) == 0 {
+		return str
+	}
+
+	// Convert first letter to uppercase, and append the rest of the string as is.
+	return strings.ToUpper(string(str[0])) + str[1:]
+}
 
 func ConvertBinanceOrderID(orderID int64) string {
 	return strconv.FormatInt(orderID, 10)

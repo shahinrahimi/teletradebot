@@ -67,7 +67,7 @@ const (
 	SELECT_TRADE_BY_ORDER_ID    string = `SELECT * FROM trades WHERE order_id = ?`
 	SELECT_TRADE_BY_SL_ORDER_ID string = `SELECT * FROM trades WHERE sl_order_id = ?`
 	SELECT_TRADE_BY_TP_ORDER_ID string = `SELECT * FROM trades WHERE tp_order_id = ?`
-	INSERT_TRADE                string = `INSERT INTO trades (user_id, chat_id, state, account, symbol, side, timeframe, offset, size, stop_loss, take_profit, reverse_multiplier) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?)`
+	INSERT_TRADE                string = `INSERT INTO trades (user_id, chat_id, state, account, symbol, side, timeframe, offset, size, stop_loss_size, take_profit_size, reverse_multiplier) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?)`
 	DELETE_TRADE                string = `DELETE FROM trades WHERE id = ?`
 	UPDATE_TRADE                string = `UPDATE trades SET order_id = ?, sl_order_id = ?, tp_order_id = ?, state = ?, updated_at = ? WHERE id = ?`
 )

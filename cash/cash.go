@@ -25,9 +25,10 @@ func NewCash(s store.Storage, l *log.Logger) *Cash {
 		trades[t.ID] = t
 	}
 	return &Cash{
-		trades:     trades,
-		describers: make(map[int64]*models.Describer, 0),
-		l:          l,
-		s:          s,
+		trades:       trades,
+		describers:   make(map[int64]*models.Describer, 0),
+		interpreters: make(map[int64]*models.Interpreter, 0),
+		l:            l,
+		s:            s,
 	}
 }

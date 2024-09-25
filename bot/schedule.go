@@ -13,11 +13,12 @@ import (
 	"github.com/shahinrahimi/teletradebot/utils"
 )
 
-func (b *Bot) ScheduleOrderReplacement(ctx context.Context, i *models.Interpreter, t *models.Trade, ex exchange.Exchange) {
-	b.c.SetInterpreter(i, t.ID)
+func (b *Bot) ScheduleOrderReplacement(ctx context.Context, i *models.Interpreter, tradeID int64, ex exchange.Exchange) {
+	b.c.SetInterpreter(i, tradeID)
 	delay := i.CalculateExpiration()
-	b.l.Printf("schedule order replacement: delay: %s, TradeID: %d", delay, t.ID)
+	b.l.Printf("schedule order replacement: delay: %s , TradeID: %d", utils.FriendlyDuration(delay), tradeID)
 	time.AfterFunc(delay, func() {
+		t := b.c.GetTrade(tradeID)
 		oe := i.GetOrderExecution(types.GetOrderExecution, t.OrderID)
 		res, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
 			return ex.GetOrder(ctx, oe)
@@ -42,7 +43,7 @@ func (b *Bot) ScheduleOrderReplacement(ctx context.Context, i *models.Interprete
 			}
 			time.Sleep(config.WaitForReplacement)
 			// fetch new interpreter
-			i, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
+			resI, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
 				return ex.FetchInterpreter(ctx, t)
 			})
 			if err != nil {
@@ -50,7 +51,7 @@ func (b *Bot) ScheduleOrderReplacement(ctx context.Context, i *models.Interprete
 				b.handleError(err, t.UserID, t.ID)
 				return
 			}
-			interpreter, ok := i.(*models.Interpreter)
+			interpreter, ok := resI.(*models.Interpreter)
 			if !ok {
 				b.l.Panicf("unexpected error happened in casting error to *models.Interpreter: %T", interpreter)
 			}
@@ -71,9 +72,9 @@ func (b *Bot) ScheduleOrderReplacement(ctx context.Context, i *models.Interprete
 			msg := b.getMessagePlacedOrder(types.OrderTitleMain, types.VerbReplaced, t.ID, res)
 			b.MsgChan <- types.BotMessage{ChatID: t.UserID, MsgStr: msg}
 			// new schedule
-			b.ScheduleOrderReplacement(ctx, interpreter, t, ex)
+			go b.ScheduleOrderReplacement(ctx, interpreter, tradeID, ex)
 		default:
-			b.l.Printf("Schedule order replacement canceled due to status: %s, TradeID: %d", status, t.ID)
+			b.l.Printf("Schedule order replacement canceled due to status: %s, TradeID: %d", status, tradeID)
 		}
 	})
 }
