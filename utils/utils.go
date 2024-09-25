@@ -2,10 +2,24 @@ package utils
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
+
+	"github.com/adshao/go-binance/v2/futures"
+	"github.com/shahinrahimi/teletradebot/swagger"
 )
+
+func Capitalize(str string) string {
+	if len(str) == 0 {
+		return str
+	}
+
+	// Convert first letter to uppercase, and append the rest of the string as is.
+	return strings.ToUpper(string(str[0])) + str[1:]
+}
 
 func ConvertBinanceOrderID(orderID int64) string {
 	return strconv.FormatInt(orderID, 10)
@@ -78,4 +92,31 @@ func PrintStructFields(s interface{}) {
 
 		fmt.Printf("%s (%s) = %v\n", fieldName, fieldType, fieldValue)
 	}
+}
+
+func ExtractOrderIDStr(orderIDorOrderRes interface{}) string {
+	var orderIDStr string
+	if orderID, ok := orderIDorOrderRes.(string); ok {
+		orderIDStr = orderID
+	} else if orderID, ok := orderIDorOrderRes.(int64); ok {
+		orderIDStr = ConvertBinanceOrderID(orderID)
+	} else if order, ok := orderIDorOrderRes.(*futures.CreateOrderResponse); ok {
+		orderIDStr = ConvertBinanceOrderID(order.OrderID)
+	} else if order, ok := orderIDorOrderRes.(*swagger.Order); ok {
+		orderIDStr = order.OrderID
+	} else {
+		log.Panicf("unexpected error happened in casting order response to *futures.CreateOrderResponse or *swagger.Order: %T", orderIDorOrderRes)
+	}
+	return orderIDStr
+}
+
+func ExtractOrderStatus(orderRes interface{}) string {
+	if order, ok := (orderRes).(*futures.Order); ok {
+		return string(order.Status)
+	} else if order, ok := (orderRes).(*swagger.Order); ok {
+		return string(order.OrdStatus)
+	} else {
+		log.Panicf("unexpected error happened in casting error to futures.Order: %T", orderRes)
+	}
+	return ""
 }

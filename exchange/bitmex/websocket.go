@@ -1,4 +1,4 @@
-package bot
+package bitmex
 
 import (
 	"context"
@@ -7,13 +7,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"log"
-	"net/url"
 	"strconv"
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/shahinrahimi/teletradebot/exchange/bitmex"
+	"github.com/shahinrahimi/teletradebot/swagger"
 )
 
 const (
@@ -25,97 +23,35 @@ const (
 	pongWait           time.Duration = 5 * time.Second
 )
 
-func (b *Bot) StartWebsocketServiceBitmex(ctx context.Context) {
-	go b.startUserDataStreamBitmexReconnect(ctx)
+func (mc *BitmexClient) StartWebsocketService(ctx context.Context, wsHandler func(ctx context.Context, od []swagger.OrderData)) {
+	go mc.startUserDataStream724(ctx, wsHandler)
 	//b.Test()
 }
 
-func generateSignature(apiSecret, verb, endpoint string, nonce int64) string {
-	message := verb + endpoint + strconv.FormatInt(nonce, 10)
-	hash := hmac.New(sha256.New, []byte(apiSecret))
-	hash.Write([]byte(message))
-	return hex.EncodeToString(hash.Sum(nil))
-}
-
-func (b *Bot) startUserDataStreamBitmex(ctx context.Context) {
-	ws, _, err := websocket.DefaultDialer.Dial(wsBitmexURLTestnet+endpoint, nil)
-	if err != nil {
-		b.l.Fatal("error dialing bitmex websocket: %v", err)
-	}
-
-	defer ws.Close()
-
-	nonce := (time.Now().Unix() + 5) * 1000
-	signature := generateSignature(b.mc.ApiSec, "GET", endpoint, nonce)
-
-	authMessage := fmt.Sprintf(`{"op": "authKeyExpires", "args": ["%s", %d, "%s"]}`, b.mc.ApiKey, nonce, signature)
-
-	err = ws.WriteMessage(websocket.TextMessage, []byte(authMessage))
-	if err != nil {
-		b.l.Fatalf("error sending bitmex auth message: %v", err)
-	}
-	b.l.Printf("sent auth message: %s", authMessage)
-
-	// subscribe to public channels
-	// publicSubMessage := map[string]interface{}{
-	// 	"op":   "subscribe",
-	// 	"args": []string{"announcement", "chat", "connected", "publicNotifications"},
-	// }
-	// messageByte, err := json.Marshal(publicSubMessage)
-	// if err != nil {
-	// 	b.l.Fatalf("error sending bitmex public sub message: %v", err)
-	// }
-	publicSubMessage := fmt.Sprintf(`{"op": "subscribe", ["trade:%s", "instrument:%s"]}`, Symbol, Symbol)
-
-	err = ws.WriteMessage(websocket.TextMessage, []byte(publicSubMessage))
-	if err != nil {
-		b.l.Fatalf("error sending bitmex public sub message: %v", err)
-	}
-	b.l.Printf("sent public sub message: %s", publicSubMessage)
-
-	// subscribe to private channel
-	privateSubMessage := fmt.Sprintf(`{"op": "subscribe", "args": ["%s" , "%s", "%s"]}`, "execution", "order", "margin")
-
-	err = ws.WriteMessage(websocket.TextMessage, []byte(privateSubMessage))
-	if err != nil {
-		b.l.Fatalf("error sending bitmex private sub message: %v", err)
-	}
-	b.l.Printf("sent private sub message: %s", privateSubMessage)
-
-	//start reading message
-	for {
-		_, message, err := ws.ReadMessage()
-		if err != nil {
-			b.l.Fatalf("error reading bitmex message: %v", err)
-		}
-		b.l.Printf("received message: %s", message)
-	}
-}
-
-func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
+func (mc *BitmexClient) startUserDataStream724(ctx context.Context, wsHandler func(ctx context.Context, od []swagger.OrderData)) {
 	for {
 		ws, _, err := websocket.DefaultDialer.Dial(wsBitmexURLTestnet+endpoint, nil)
 		if err != nil {
-			b.l.Fatalf("error dialing bitmex websocket: %v", err)
+			mc.l.Fatalf("error dialing bitmex websocket: %v", err)
 		}
 
 		defer ws.Close()
 
 		nonce := (time.Now().Unix() + 5) * 1000
-		signature := generateSignature(b.mc.ApiSec, "GET", endpoint, nonce)
+		signature := generateSignature(mc.apiSec, "GET", endpoint, nonce)
 
-		authMessage := fmt.Sprintf(`{"op": "authKeyExpires", "args": ["%s", %d, "%s"]}`, b.mc.ApiKey, nonce, signature)
+		authMessage := fmt.Sprintf(`{"op": "authKeyExpires", "args": ["%s", %d, "%s"]}`, mc.apiKey, nonce, signature)
 
 		err = ws.WriteMessage(websocket.TextMessage, []byte(authMessage))
 		if err != nil {
-			b.l.Fatalf("error sending bitmex auth message: %v", err)
+			mc.l.Fatalf("error sending bitmex auth message: %v", err)
 		}
 		//b.l.Printf("sent auth message: %s", authMessage)
 
 		publicSubMessage := `{"op": "subscribe", "args": ["instrument:DERIVATIVES"]}`
 		err = ws.WriteMessage(websocket.TextMessage, []byte(publicSubMessage))
 		if err != nil {
-			b.l.Fatalf("error sending bitmex public sub message: %v", err)
+			mc.l.Fatalf("error sending bitmex public sub message: %v", err)
 		}
 		// b.l.Printf("sent public sub message: %s", publicSubMessage)
 
@@ -124,7 +60,7 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 
 		err = ws.WriteMessage(websocket.TextMessage, []byte(privateSubMessage))
 		if err != nil {
-			b.l.Fatalf("error sending bitmex private sub message: %v", err)
+			mc.l.Fatalf("error sending bitmex private sub message: %v", err)
 		}
 		//b.l.Printf("sent private sub message: %s", privateSubMessage)
 
@@ -157,7 +93,7 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 			for {
 				_, message, err := ws.ReadMessage()
 				if err != nil {
-					b.l.Printf("error reading bitmex message: %v", err)
+					mc.l.Printf("error reading bitmex message: %v", err)
 					return
 				}
 				lastMessageTime = time.Now()
@@ -170,59 +106,59 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 					Subscribe string `json:"subscribe"`
 					Table     string `json:"table"`
 				}
-				var orderTable bitmex.OrderTable
-				var marginTable bitmex.MarginTable
-				var executionTable bitmex.ExecutionTable
-				var instrumentTable bitmex.InstrumentTable
+				var orderTable swagger.OrderTable
+				var marginTable swagger.MarginTable
+				var executionTable swagger.ExecutionTable
+				var instrumentTable swagger.InstrumentTable
 				if err := json.Unmarshal(message, &baseMessage); err != nil {
-					b.l.Printf("error unmarshalling bitmex message: %v", err)
+					mc.l.Printf("error unmarshalling bitmex message: %v", err)
 					continue
 				}
 				switch {
 				case baseMessage.Info != "":
-					b.l.Printf("received message info: %s", baseMessage.Info)
+					mc.l.Printf("received message info: %s", baseMessage.Info)
 				case baseMessage.Status != 0:
-					b.l.Printf("received message status: %d with error: %s", baseMessage.Status, baseMessage.Error)
+					mc.l.Printf("received message status: %d with error: %s", baseMessage.Status, baseMessage.Error)
 				case baseMessage.Success:
-					b.l.Printf("received message success on %v", baseMessage.Subscribe)
+					mc.l.Printf("received message success on %v", baseMessage.Subscribe)
 				case baseMessage.Table != "":
 					//b.l.Printf("received message table: %s", baseMessage.Table)
 					switch baseMessage.Table {
 					case "order":
 						if err := json.Unmarshal(message, &orderTable); err == nil {
-							b.l.Printf("received message orderTable: %s", orderTable.Table)
-							b.handleOrderTradeUpdateBitmex(context.Background(), orderTable.Data)
+							mc.l.Printf("received message orderTable: %s", orderTable.Table)
+							wsHandler(ctx, orderTable.Data)
 							// for i := range orderTable.Data {
 							// 	b.l.Printf("orderTable: %v", orderTable.Data[i])
 							// }
 
 						} else {
-							b.l.Printf("error unmarshalling bitmex message: %v", err)
+							mc.l.Printf("error unmarshalling bitmex message: %v", err)
 						}
 					case "margin":
 						if err := json.Unmarshal(message, &marginTable); err == nil {
 							//b.l.Printf("received message marginTable: %s", marginTable.Table)
 						} else {
-							b.l.Printf("error unmarshalling bitmex message: %v", err)
+							mc.l.Printf("error unmarshalling bitmex message: %v", err)
 						}
 					case "execution":
 						if err := json.Unmarshal(message, &executionTable); err == nil {
-							b.l.Printf("received message executionTable: %s", executionTable.Table)
+							mc.l.Printf("received message executionTable: %s", executionTable.Table)
 						} else {
-							b.l.Printf("error unmarshalling bitmex message: %v", err)
+							mc.l.Printf("error unmarshalling bitmex message: %v", err)
 						}
 					case "instrument":
 						if err := json.Unmarshal(message, &instrumentTable); err == nil {
 							//b.l.Printf("received message instrumentTable, symbol is: %s data length: %d", instrumentTable.Table, len(instrumentTable.Data))
 							if len(instrumentTable.Data) >= 3 {
-								b.l.Printf("too many symbols: %d", len(instrumentTable.Data))
+								mc.l.Printf("too many symbols: %d", len(instrumentTable.Data))
 							} else {
 								for _, i := range instrumentTable.Data {
 									// if i.Symbol == "SOLUSDT" {
 									// 	b.l.Printf("symbol: %s, markPrice: %0.5f , since: %s", i.Symbol, i.MarkPrice, utils.FriendlyDuration(time.Since(i.Timestamp)))
 									// }
 									if i.MarkPrice > 0 {
-										go b.mc.UpdateCandles(i.Symbol, i.MarkPrice, i.Timestamp)
+										go mc.updateCandles(i.Symbol, i.MarkPrice, i.Timestamp)
 									}
 									//trunc1min := i.Timestamp.Truncate(time.Minute).Local()
 									//trunc15min := i.Timestamp.Truncate(time.Minute * 15).Local()
@@ -234,14 +170,14 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 							}
 
 						} else {
-							b.l.Printf("error unmarshalling bitmex message: %v", err)
+							mc.l.Printf("error unmarshalling bitmex message: %v", err)
 						}
 					default:
-						b.l.Printf("received unknown message table: %s", baseMessage.Table)
+						mc.l.Printf("received unknown message table: %s", baseMessage.Table)
 
 					}
 				default:
-					b.l.Printf("received unknown message type: %s", message)
+					mc.l.Printf("received unknown message type: %s", message)
 				}
 
 			}
@@ -258,7 +194,7 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 
 						err := ws.WriteMessage(websocket.PingMessage, nil)
 						if err != nil {
-							b.l.Printf("error sending bitmex ping: %v", err)
+							mc.l.Printf("error sending bitmex ping: %v", err)
 							return
 						}
 						// wait for pong
@@ -268,7 +204,7 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 							//b.l.Println("pong received in time")
 							pongWaitTimer.Stop()
 						case <-pongWaitTimer.C:
-							b.l.Println("pong timeout - reconnecting")
+							mc.l.Println("pong timeout - reconnecting")
 							ws.Close()
 							return
 						}
@@ -279,30 +215,15 @@ func (b *Bot) startUserDataStreamBitmexReconnect(ctx context.Context) {
 
 		// wait for websocket to close or error out
 		<-done
-		b.l.Println("Connection lost. Reconnecting...")
+		mc.l.Println("Connection lost. Reconnecting...")
 		time.Sleep(5 * time.Second)
 
 	}
 }
 
-func (b *Bot) Test() {
-	serverURL := "wss://ws.bitmex.com/realtimePlatform"
-
-	// Parse the URL
-	u, err := url.Parse(serverURL)
-	if err != nil {
-		log.Fatal("Error parsing URL:", err)
-	}
-
-	// Create a new WebSocket dialer
-	dialer := websocket.DefaultDialer
-
-	// Connect to the WebSocket server
-	conn, _, err := dialer.Dial(u.String(), nil)
-	if err != nil {
-		log.Fatal("Error connecting to WebSocket server:", err)
-	}
-	defer conn.Close()
-
-	log.Printf("Connected to %s\n", serverURL)
+func generateSignature(apiSecret, verb, endpoint string, nonce int64) string {
+	message := verb + endpoint + strconv.FormatInt(nonce, 10)
+	hash := hmac.New(sha256.New, []byte(apiSecret))
+	hash.Write([]byte(message))
+	return hex.EncodeToString(hash.Sum(nil))
 }

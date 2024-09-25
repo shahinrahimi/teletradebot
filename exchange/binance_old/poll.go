@@ -1,4 +1,4 @@
-package binance
+package binanceold
 
 import (
 	"context"
@@ -21,7 +21,7 @@ func (bc *BinanceClient) StartPolling(ctx context.Context) {
 
 func (bc *BinanceClient) pollExchangeInfo(ctx context.Context, interval time.Duration) {
 	for {
-		res, err := bc.client.NewExchangeInfoService().Do(ctx)
+		res, err := bc.Client.NewExchangeInfoService().Do(ctx)
 		if err != nil {
 			bc.l.Printf("Error fetching exchange info: %v", err)
 			if apiErr, ok := err.(*common.APIError); ok {

@@ -19,10 +19,10 @@ func (c *Cash) GetDescriber(ID int64) (*models.Describer, bool) {
 	return d, exist
 }
 
-func (c *Cash) SetDescriber(d *models.Describer, ID int64) {
+func (c *Cash) SetDescriber(i *models.Describer, ID int64) {
 	mu.Lock()
 	defer mu.Unlock()
-	c.describers[ID] = d
+	c.describers[ID] = i
 }
 
 func (c *Cash) RemoveDescriber(ID int64) {

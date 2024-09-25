@@ -1,4 +1,4 @@
-package binancec
+package binance
 
 import (
 	"fmt"
@@ -13,9 +13,7 @@ type BinanceClient struct {
 	client           *futures.Client
 	ListenKey        string
 	UseTestnet       bool
-	lastSymbolPrices []*futures.SymbolPrice
 	lastExchangeInfo *futures.ExchangeInfo
-	lastAccount      *futures.Account
 	MsgChan          chan types.BotMessage
 	ReverseEnabled   bool
 }
@@ -30,6 +28,19 @@ func NewBinanceClient(l *log.Logger, apiKey string, secretKey string, useTestnet
 		MsgChan:        msgChan,
 		ReverseEnabled: true,
 	}
+}
+
+func (bc *BinanceClient) CheckSymbol(symbol string) bool {
+	if bc.lastExchangeInfo == nil {
+		bc.l.Printf("exchange info not available right now please try after some time")
+		return false
+	}
+	for _, s := range bc.lastExchangeInfo.Symbols {
+		if s.Symbol == symbol {
+			return true
+		}
+	}
+	return false
 }
 
 func (bc *BinanceClient) GetSymbol(symbol string) (*futures.Symbol, error) {

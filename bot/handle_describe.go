@@ -21,12 +21,14 @@ func (b *Bot) HandleDescribe(u *tgbotapi.Update, ctx context.Context) error {
 			MsgStr: d.ToString(),
 		}
 		return nil
+	} else {
+
 	}
 	switch t.Account {
-	case types.ACCOUNT_B:
-		b.HandleDescribeBinance(u, ctx)
-	case types.ACCOUNT_M:
-		b.HandleDescribeBitmex(u, ctx)
+	case string(types.ExchangeBinance):
+		go b.handleDescribeExchange(ctx, &t, userID, b.bc)
+	case string(types.ExchangeBitmex):
+		go b.handleDescribeExchange(ctx, &t, userID, b.mc)
 	default:
 		msg := fmt.Sprintf("Unknown account: %s", t.Account)
 		b.MsgChan <- types.BotMessage{

@@ -8,6 +8,7 @@ import (
 
 type Exchange interface {
 	// fundamental operations
+	CheckSymbol(symbol string) bool
 	FetchInterpreter(ctx context.Context, t *models.Trade) (*models.Interpreter, error)
 	// basic operations
 	PlaceStopOrder(ctx context.Context, po interface{}) (interface{}, error)

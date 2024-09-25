@@ -12,9 +12,7 @@ import (
 	"github.com/shahinrahimi/teletradebot/cash"
 	"github.com/shahinrahimi/teletradebot/config"
 	"github.com/shahinrahimi/teletradebot/exchange/binance"
-	"github.com/shahinrahimi/teletradebot/exchange/binancec"
 	"github.com/shahinrahimi/teletradebot/exchange/bitmex"
-	"github.com/shahinrahimi/teletradebot/exchange/bitmexc"
 	"github.com/shahinrahimi/teletradebot/store"
 	"github.com/shahinrahimi/teletradebot/types"
 )
@@ -72,18 +70,18 @@ func main() {
 	}
 
 	// create binance and bitmex client
+	//bc := binance.NewBinanceClient(logger, apiKey, apiSec, config.UseBinanceTestnet, msgChan)
+	//mc := bitmex.NewBitmexClient(logger, apiKey2, apiSec2, config.UseBitmexTestnet)
+
 	bc := binance.NewBinanceClient(logger, apiKey, apiSec, config.UseBinanceTestnet, msgChan)
 	mc := bitmex.NewBitmexClient(logger, apiKey2, apiSec2, config.UseBitmexTestnet)
-
-	bcc := binancec.NewBinanceClient(logger, apiKey, apiSec, config.UseBinanceTestnet, msgChan)
-	mcc := bitmexc.NewBitmexClient(logger, apiKey2, apiSec2, config.UseBitmexTestnet)
 
 	// start polling for binance
 	bc.StartPolling(ctx)
 	// start polling for bitmex
 	mc.StartPolling(ctx)
 
-	b, err := bot.NewBot(logger, c, bc, mc, token, msgChan, bcc, mcc)
+	b, err := bot.NewBot(logger, c, bc, mc, token, msgChan)
 	if err != nil {
 		logger.Fatalf("error creating instance of bot: %v", err)
 	}
@@ -92,10 +90,10 @@ func main() {
 	b.StartMessageListener()
 
 	// start binance ws
-	b.StartWebsocketServiceBinance(ctx)
+	bc.StartWebsocketService(ctx, b.WsHandler, b.WsErrHandler)
 
 	// start bitmex ws
-	b.StartWebsocketServiceBitmex(ctx)
+	mc.StartWebsocketService(ctx, b.WsHandlerBitmex)
 
 	// global middleware
 	b.Use(b.BanBots)

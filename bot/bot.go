@@ -9,8 +9,6 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/shahinrahimi/teletradebot/cash"
 	"github.com/shahinrahimi/teletradebot/exchange"
-	"github.com/shahinrahimi/teletradebot/exchange/binance"
-	"github.com/shahinrahimi/teletradebot/exchange/bitmex"
 	"github.com/shahinrahimi/teletradebot/swagger"
 	"github.com/shahinrahimi/teletradebot/types"
 )
@@ -21,14 +19,14 @@ type Bot struct {
 	api         *tgbotapi.BotAPI
 	routers     map[string]*Router
 	middlewares []Middleware
-	bc          *binance.BinanceClient
-	mc          *bitmex.BitmexClient
-	bcc         exchange.Exchange
-	mcc         exchange.Exchange
-	MsgChan     chan types.BotMessage
+	//bc          *binance.BinanceClient
+	//mc          *bitmex.BitmexClient
+	bc      exchange.Exchange
+	mc      exchange.Exchange
+	MsgChan chan types.BotMessage
 }
 
-func NewBot(l *log.Logger, c *cash.Cash, bc *binance.BinanceClient, mc *bitmex.BitmexClient, token string, msgChan chan types.BotMessage, bcc exchange.Exchange, mcc exchange.Exchange) (*Bot, error) {
+func NewBot(l *log.Logger, c *cash.Cash, bc exchange.Exchange, mc exchange.Exchange, token string, msgChan chan types.BotMessage) (*Bot, error) {
 	api, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		l.Printf("error creating a new bot api: %v", err)
@@ -42,8 +40,6 @@ func NewBot(l *log.Logger, c *cash.Cash, bc *binance.BinanceClient, mc *bitmex.B
 		middlewares: []Middleware{},
 		bc:          bc,
 		mc:          mc,
-		bcc:         bcc,
-		mcc:         mcc,
 		MsgChan:     msgChan,
 	}, nil
 }

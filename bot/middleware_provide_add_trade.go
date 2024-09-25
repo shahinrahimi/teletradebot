@@ -43,16 +43,12 @@ func (b *Bot) ProvideAddTrade(next Handler) Handler {
 
 		var isAvailable bool = false
 		switch t.Account {
-		case types.ACCOUNT_B:
+		case string(types.ExchangeBinance):
 			// check pair for binance
-			if _, err := b.bc.GetSymbol(t.Symbol); err == nil {
-				isAvailable = true
-			}
-		case types.ACCOUNT_M:
+			isAvailable = b.bc.CheckSymbol(t.Symbol)
+		case string(types.ExchangeBitmex):
 			// check pair for bitmex
-			if _, err := b.mc.GetSymbol(t.Symbol); err == nil {
-				isAvailable = true
-			}
+			isAvailable = b.mc.CheckSymbol(t.Symbol)
 		default:
 			// should never happen
 			b.l.Panicf("Unexpected account type while checking symbol '%s'", t.Symbol)

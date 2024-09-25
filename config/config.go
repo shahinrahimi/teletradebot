@@ -53,7 +53,8 @@ var Shortcuts = map[string]string{
 }
 
 var MaxTries int = 3
-var WaitForNextTries time.Duration = time.Second * 3 // 3 seconds
+var WaitForNextTries time.Duration = time.Second * 3   // 3 seconds
+var WaitForReplacement time.Duration = time.Second * 2 // 2 seconds
 
 var UserIDs = []int64{
 	104196468,

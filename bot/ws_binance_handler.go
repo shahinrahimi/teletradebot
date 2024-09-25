@@ -7,11 +7,11 @@ import (
 	"github.com/adshao/go-binance/v2/futures"
 )
 
-func (b *Bot) wsHandler(event *futures.WsUserDataEvent) {
+func (b *Bot) WsHandler(event *futures.WsUserDataEvent) {
 	b.handleOrderTradeUpdate(context.Background(), event.OrderTradeUpdate)
 }
 
-func (b *Bot) errHandler(err error) {
+func (b *Bot) WsErrHandler(err error) {
 	b.l.Printf("WebSocket error: %v", err)
 }
 
@@ -25,7 +25,7 @@ func (b *Bot) handleOrderTradeUpdate(ctx context.Context, f futures.WsOrderTrade
 		// sleep a little bit to make sure the store is updated for early filled orders
 		// TODO maybe change the logic in future for better handling
 		time.Sleep(time.Second)
-		go b.handleFilled(ctx, f)
+		go b.handleFilledExchange(ctx, f)
 	case futures.OrderStatusTypeRejected:
 		b.l.Println("Order was rejected.")
 	case futures.OrderStatusTypeNew:

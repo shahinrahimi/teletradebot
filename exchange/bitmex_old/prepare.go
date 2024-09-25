@@ -1,4 +1,4 @@
-package bitmex
+package bitmexold
 
 import (
 	"context"
