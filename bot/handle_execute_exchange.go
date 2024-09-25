@@ -21,7 +21,7 @@ func (b *Bot) handleExecuteExchange(ctx context.Context, t *models.Trade, userID
 	if !ok {
 		b.l.Panicf("unexpected error happened in casting res to *models.Interpreter: %T", interpreter)
 	}
-	oe := interpreter.GetOrderExecution(types.StopPriceExecution, t.OrderID)
+	oe := interpreter.GetOrderExecution(types.ExecutionEntryMainOrder, t.OrderID)
 	res, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
 		return ex.PlaceStopOrder(ctx, oe)
 	})

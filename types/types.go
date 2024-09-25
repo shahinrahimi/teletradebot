@@ -53,11 +53,6 @@ const (
 	VerbClosed   VerbType = `closed`
 	VerbFilled   VerbType = `filled`
 	VerbExecuted VerbType = `executed`
-	// ActionReverted     ActionType = `reverted`
-	// ActionRevertedMain ActionType = `reverted-main`
-	// ActionRevertedSL   ActionType = `reverted-stop-loss`
-	// ActionRevertedTP   ActionType = `reverted-take-profit`
-	// ActionExpired      ActionType = `expired`
 
 	OrderIDTypeMain              OrderIDType = `main`
 	OrderIDTypeStopLoss          OrderIDType = `stop-loss`
@@ -78,15 +73,5 @@ const (
 	ExecutionStopLossReverseOrder   ExecutionType = "stop-loss-reverse-order"
 	ExecutionTakeProfitReverseOrder ExecutionType = "take-profit-reverse-order"
 
-	// GetOrderExecution             ExecutionType = "get-order"
-	// CancelOrderExecution          ExecutionType = "cancel-order"
-	// StopPriceExecution            ExecutionType = "stop-price"
-	// StopLossExecution             ExecutionType = "stop-loss"
-	// TakeProfitExecution           ExecutionType = "take-profit"
-	// ClosePositionExecution        ExecutionType = "close-position"
-	// ReverseStopPriceExecution     ExecutionType = "reverse-stop-price"
-	// ReverseStopLossExecution      ExecutionType = "reverse-stop-loss"
-	// ReverseTakeProfitExecution    ExecutionType = "reverse-take-profit"
-	// ClosePositionReverseExecution ExecutionType = "close-position-reverse"
 	ExecutionNone ExecutionType = "none"
 )
