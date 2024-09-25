@@ -39,6 +39,19 @@ func NewBitmexClient(l *log.Logger, apiKey string, apiSec string, UseTestnet boo
 	}
 }
 
+func (mc *BitmexClient) CheckSymbol(symbol string) bool {
+	if mc.activeInstruments == nil {
+		mc.l.Printf("exchange info not available right now please try after some time")
+		return false
+	}
+	for _, s := range mc.activeInstruments {
+		if s.Symbol == symbol {
+			return true
+		}
+	}
+	return false
+}
+
 func (mc *BitmexClient) GetSymbol(symbol string) (*swagger.Instrument, error) {
 	if mc.activeInstruments == nil {
 		return nil, fmt.Errorf("exchange info not available right now")

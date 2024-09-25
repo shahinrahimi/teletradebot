@@ -82,7 +82,7 @@ func (b *Bot) scheduleOrderReplacementBitmex(ctx context.Context, i *models.Inte
 				MsgStr: msg,
 			}
 			// new schedule
-			b.scheduleOrderReplacementBitmex(ctx, interpreter, t, b.mc)
+			b.scheduleOrderReplacementBitmex(ctx, interpreter, t, ex)
 		default:
 			b.l.Printf("Schedule order replacement canceled due to status: %s, TradeID: %d", order.OrdStatus, t.ID)
 		}

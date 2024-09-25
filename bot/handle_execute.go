@@ -27,9 +27,9 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 
 	switch t.Account {
 	case types.ACCOUNT_B:
-		b.HandleExecuteBinance(u, ctx)
+		go b.handleExecuteBinance(ctx, &t, userID, b.bc)
 	case types.ACCOUNT_M:
-		b.HandleExecuteBitmex(u, ctx)
+		go b.HandleExecuteBitmex(ctx, &t, userID, b.mc)
 	default:
 		msg := fmt.Sprintf("Unknown account: %s", t.Account)
 		b.MsgChan <- types.BotMessage{

@@ -30,6 +30,19 @@ func NewBinanceClient(l *log.Logger, apiKey string, secretKey string, useTestnet
 	}
 }
 
+func (bc *BinanceClient) CheckSymbol(symbol string) bool {
+	if bc.lastExchangeInfo == nil {
+		bc.l.Printf("exchange info not available right now please try after some time")
+		return false
+	}
+	for _, s := range bc.lastExchangeInfo.Symbols {
+		if s.Symbol == symbol {
+			return true
+		}
+	}
+	return false
+}
+
 func (bc *BinanceClient) GetSymbol(symbol string) (*futures.Symbol, error) {
 	if bc.lastExchangeInfo == nil {
 		return nil, fmt.Errorf("exchange info not available right now")
