@@ -23,17 +23,17 @@ type Trade struct {
 
 	State string // Current state of the trade.
 
-	Account           string        // Trading account associated with the trade.
-	Side              string        // Side of the trade (e.g., buy or sell).
-	Symbol            string        // Trading pair symbol (e.g., BTCUSDT).
-	Timeframe         TimeframeType // Timeframe of the candle (e.g., 1h, 4h, 15m).
-	Offset            float64       // Offset for placing the order, defined in USDT amount (e.g., 1 for $1, 0.1 for $0.1).
-	Size              int           // Size of the trade as percentage (e.g., 1, 2, 3, or 5).
-	StopLossSize      int           // Stop Loss percentage based on the range of the candle before the last (e.g., 100 for 100% of the range).
-	TakeProfitSize    int           // Take Profit percentage based on the range of the candle before the last (e.g., 105 for 105% of the range).
-	ReverseMultiplier int           // Multiplier used for reversing the trade.
-	CreatedAt         time.Time     // Timestamp when the trade was created.
-	UpdatedAt         time.Time     // Timestamp when the trade was last updated.
+	Account           types.ExchangeType // Trading account associated with the trade.
+	Side              types.SideType     // Side of the trade (e.g., buy or sell).
+	Symbol            string             // Trading pair symbol (e.g., BTCUSDT).
+	Timeframe         TimeframeType      // Timeframe of the candle (e.g., 1h, 4h, 15m).
+	Offset            float64            // Offset for placing the order, defined in USDT amount (e.g., 1 for $1, 0.1 for $0.1).
+	Size              int                // Size of the trade as percentage (e.g., 1, 2, 3, or 5).
+	StopLossSize      int                // Stop Loss percentage based on the range of the candle before the last (e.g., 100 for 100% of the range).
+	TakeProfitSize    int                // Take Profit percentage based on the range of the candle before the last (e.g., 105 for 105% of the range).
+	ReverseMultiplier int                // Multiplier used for reversing the trade.
+	CreatedAt         time.Time          // Timestamp when the trade was created.
+	UpdatedAt         time.Time          // Timestamp when the trade was last updated.
 }
 
 type KeyTrade struct{}
@@ -100,7 +100,7 @@ func (t *Trade) ToViewString() string {
 
 func (t *Trade) CalculateEntryPrice(high, low float64) (float64, error) {
 	var stopPrice float64
-	if t.Side == types.SIDE_L {
+	if t.Side == types.SideLong {
 		stopPrice = high + t.Offset
 	} else {
 		stopPrice = low - t.Offset
@@ -115,7 +115,7 @@ func (t *Trade) CalculateStopLossPrice(high, low, basePrice float64, reverse boo
 	var stopPrice float64
 	r := high - low
 	rAmount := (r * (float64(t.StopLossSize)) / 100)
-	if t.Side == types.SIDE_L {
+	if t.Side == types.SideLong {
 		if !reverse {
 			stopPrice = basePrice - rAmount
 		} else {
@@ -138,7 +138,7 @@ func (t *Trade) CalculateTakeProfitPrice(high, low, basePrice float64, reverse b
 	var stopPrice float64
 	r := high - low
 	rAmount := (r * (float64(t.TakeProfitSize)) / 100)
-	if t.Side == types.SIDE_L {
+	if t.Side == types.SideLong {
 		if !reverse {
 			stopPrice = basePrice + rAmount
 		} else {
@@ -166,9 +166,9 @@ func ParseTrade(tradeArgs []string) (*Trade, error) {
 	if len(part1) > 1 || (part1 != "m" && part1 != "b") {
 		return nil, fmt.Errorf("invalid account value; use 'm' for BitMEX or 'b' for Binance")
 	} else if part1 == "m" {
-		t.Account = string(types.ExchangeBitmex)
+		t.Account = types.ExchangeBitmex
 	} else if part1 == "b" {
-		t.Account = string(types.ExchangeBinance)
+		t.Account = types.ExchangeBinance
 	} else {
 		// should never happen
 		return nil, fmt.Errorf("unexpected internal error")
@@ -178,10 +178,10 @@ func ParseTrade(tradeArgs []string) (*Trade, error) {
 	t.Symbol = part2
 	// side
 	part3 := strings.TrimSpace(strings.ToUpper(tradeArgs[2]))
-	if part3 != types.SIDE_L && part3 != types.SIDE_S {
+	if part3 != string(types.SideLong) && part3 != string(types.SideShort) {
 		return nil, fmt.Errorf("invalid side value; please enter 'long' or 'short'")
 	} else {
-		t.Side = part3
+		t.Side = types.SideType(part3)
 	}
 	// candle
 	part4 := strings.TrimSpace(tradeArgs[3])

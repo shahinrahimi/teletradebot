@@ -21,7 +21,7 @@ type Interpreter struct {
 	// these fields copy from trade
 	TradeID           int64
 	Symbol            string
-	Side              string
+	Side              types.SideType
 	Size              int
 	StopLossSize      int
 	TakeProfitSize    int
@@ -107,10 +107,10 @@ func (i *Interpreter) Describe(fromCash bool) string {
 	reverseTakeProfitPrice := i.getPriceString(i.ReverseTakeProfitPrice)
 
 	var reverseSide string
-	if i.Side == types.SIDE_L {
-		reverseSide = types.SIDE_S
+	if i.Side == types.SideLong {
+		reverseSide = string(types.SideShort)
 	} else {
-		reverseSide = types.SIDE_L
+		reverseSide = string(types.SideLong)
 	}
 
 	var expiration string
@@ -139,28 +139,28 @@ func (i *Interpreter) Describe(fromCash bool) string {
 }
 
 func (i *Interpreter) getSideBinance() futures.SideType {
-	if i.Side == types.SIDE_S {
+	if i.Side == types.SideShort {
 		return futures.SideTypeSell
 	}
 	return futures.SideTypeBuy
 }
 
 func (i *Interpreter) getOppositeSideBinance() futures.SideType {
-	if i.Side == types.SIDE_S {
+	if i.Side == types.SideShort {
 		return futures.SideTypeBuy
 	}
 	return futures.SideTypeSell
 }
 
 func (i *Interpreter) getSideBitmex() swagger.SideType {
-	if i.Side == types.SIDE_S {
+	if i.Side == types.SideShort {
 		return swagger.SideTypeSell
 	}
 	return swagger.SideTypeBuy
 }
 
 func (i *Interpreter) getOppositeSideBitmex() swagger.SideType {
-	if i.Side == types.SIDE_S {
+	if i.Side == types.SideShort {
 		return swagger.SideTypeBuy
 	}
 	return swagger.SideTypeSell

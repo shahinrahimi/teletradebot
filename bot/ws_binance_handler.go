@@ -35,6 +35,6 @@ func (b *Bot) handleOrderTradeUpdate(ctx context.Context, f futures.WsOrderTrade
 	case futures.OrderStatusTypePartiallyFilled:
 		b.l.Println("Order partially filled.")
 	default:
-		b.l.Println("Unknown order status received.")
+		b.l.Printf("Unknown order status received status: %s", f.Status)
 	}
 }

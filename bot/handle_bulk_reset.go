@@ -18,13 +18,13 @@ func (b *Bot) HandleBulkReset(u *tgbotapi.Update, ctx context.Context) error {
 	if len(args) == 2 {
 		switch {
 		case args[0] == "b" && args[1] == "s":
-			trades = b.c.GetAllTrades(string(types.ExchangeBinance), types.SIDE_S)
+			trades = b.c.GetAllTrades(types.ExchangeBinance, types.SideShort)
 		case args[0] == "b" && args[1] == "l":
-			trades = b.c.GetAllTrades(string(types.ExchangeBinance), types.SIDE_L)
+			trades = b.c.GetAllTrades(types.ExchangeBinance, types.SideLong)
 		case args[0] == "m" && args[1] == "s":
-			trades = b.c.GetAllTrades(string(types.ExchangeBitmex), types.SIDE_S)
+			trades = b.c.GetAllTrades(types.ExchangeBitmex, types.SideShort)
 		case args[0] == "m" && args[1] == "l":
-			trades = b.c.GetAllTrades(string(types.ExchangeBitmex), types.SIDE_L)
+			trades = b.c.GetAllTrades(types.ExchangeBitmex, types.SideLong)
 		default:
 			msg := "Wrong arguments. Valid arguments are: b [s|l] and m [s|l]"
 			b.MsgChan <- types.BotMessage{ChatID: userID, MsgStr: msg}

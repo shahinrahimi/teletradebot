@@ -34,9 +34,9 @@ func (b *Bot) handleFilledExchange(ctx context.Context, update interface{}) {
 		return
 	}
 
-	if t.Account == string(types.ExchangeBinance) {
+	if t.Account == types.ExchangeBinance {
 		ex = b.bc
-	} else if t.Account == string(types.ExchangeBitmex) {
+	} else if t.Account == types.ExchangeBitmex {
 		ex = b.mc
 	} else {
 		b.l.Panicf("unknown account: %s", t.Account)

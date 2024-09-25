@@ -25,9 +25,9 @@ func (b *Bot) HandleDescribe(u *tgbotapi.Update, ctx context.Context) error {
 
 	}
 	switch t.Account {
-	case string(types.ExchangeBinance):
+	case types.ExchangeBinance:
 		go b.handleDescribeExchange(ctx, &t, userID, b.bc)
-	case string(types.ExchangeBitmex):
+	case types.ExchangeBitmex:
 		go b.handleDescribeExchange(ctx, &t, userID, b.mc)
 	default:
 		msg := fmt.Sprintf("Unknown account: %s", t.Account)

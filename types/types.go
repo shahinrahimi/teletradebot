@@ -1,5 +1,7 @@
 package types
 
+type SideType string
+type StateType string
 type ExchangeType string
 type OrderIDType string
 type ExecutionType string
@@ -25,9 +27,21 @@ const (
 	ExchangeBitmex  ExchangeType = `bitmex`
 	// ACCOUNT_B string = `Binance`
 	// ACCOUNT_M string = `Bitmex`
+	SideLong  SideType = `LONG`
+	SideShort SideType = `SHORT`
 
-	SIDE_L string = `LONG`
-	SIDE_S string = `SHORT`
+	// SIDE_L string = `LONG`
+	// SIDE_S string = `SHORT`
+
+	StateIdle      StateType = `idle`
+	StatePlaced    StateType = `placed`
+	StateCanceled  StateType = `canceled`
+	StateFilled    StateType = `filled`
+	StateStopped   StateType = `stopped`
+	StateProfited  StateType = `profited`
+	StateClosed    StateType = `closed`
+	StateExpired   StateType = `expired`
+	StateReverting StateType = `reverting`
 
 	STATE_IDLE      string = `idle`
 	STATE_CANCELED  string = `canceled`

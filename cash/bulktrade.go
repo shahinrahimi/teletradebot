@@ -1,8 +1,11 @@
 package cash
 
-import "github.com/shahinrahimi/teletradebot/models"
+import (
+	"github.com/shahinrahimi/teletradebot/models"
+	"github.com/shahinrahimi/teletradebot/types"
+)
 
-func (c *Cash) GetAllUniqueTrades(account string, side string, state string) []*models.Trade {
+func (c *Cash) GetAllUniqueTrades(account types.ExchangeType, side types.SideType, state string) []*models.Trade {
 	trades := make([]*models.Trade, 0)
 	uniqueSymbolTrades := make(map[string]models.Trade, 0)
 	ts := c.GetTrades()
@@ -17,7 +20,7 @@ func (c *Cash) GetAllUniqueTrades(account string, side string, state string) []*
 	return trades
 }
 
-func (c *Cash) GetAllUniqueRawTrades(rawTrades []models.Trade, account string, side string) []*models.Trade {
+func (c *Cash) GetAllUniqueRawTrades(rawTrades []models.Trade, account types.ExchangeType, side types.SideType) []*models.Trade {
 	trades := make([]*models.Trade, 0)
 	uniqueTrades := make(map[string]models.Trade, 0)
 	for _, t := range rawTrades {
@@ -31,7 +34,7 @@ func (c *Cash) GetAllUniqueRawTrades(rawTrades []models.Trade, account string, s
 	return trades
 }
 
-func (c *Cash) GetAllTrades(account string, side string) []*models.Trade {
+func (c *Cash) GetAllTrades(account types.ExchangeType, side types.SideType) []*models.Trade {
 	var trades []*models.Trade
 	ts := c.GetTrades()
 	for _, t := range ts {

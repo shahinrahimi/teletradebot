@@ -16,7 +16,7 @@ import (
 func (b *Bot) ScheduleOrderReplacement(ctx context.Context, i *models.Interpreter, tradeID int64, ex exchange.Exchange) {
 	b.c.SetInterpreter(i, tradeID)
 	delay := i.CalculateExpiration()
-	b.l.Printf("schedule order replacement: delay: %s , TradeID: %d", utils.FriendlyDuration(delay), tradeID)
+	b.l.Printf("Schedule order replacement after: %s , TradeID: %d", utils.FriendlyDuration(delay), tradeID)
 	time.AfterFunc(delay, func() {
 		t := b.c.GetTrade(tradeID)
 		oe := i.GetOrderExecution(types.ExecutionGetOrder, t.OrderID)

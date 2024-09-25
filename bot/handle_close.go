@@ -23,9 +23,9 @@ func (b *Bot) HandleClose(u *tgbotapi.Update, ctx context.Context) error {
 	}
 	var ex exchange.Exchange
 	switch t.Account {
-	case string(types.ExchangeBinance):
+	case types.ExchangeBinance:
 		ex = b.bc
-	case string(types.ExchangeBitmex):
+	case types.ExchangeBitmex:
 		ex = b.mc
 	default:
 		msg := fmt.Sprintf("Unknown account: %s", t.Account)

@@ -42,13 +42,13 @@ func (b *Bot) HandleBulkAdd(u *tgbotapi.Update, ctx context.Context) error {
 		var trades []*models.Trade
 		switch {
 		case args[0] == "b" && args[1] == "s":
-			trades = b.c.GetAllUniqueRawTrades(rawTrades, string(types.ExchangeBinance), types.SIDE_S)
+			trades = b.c.GetAllUniqueRawTrades(rawTrades, types.ExchangeBinance, types.SideShort)
 		case args[0] == "b" && args[1] == "l":
-			trades = b.c.GetAllUniqueRawTrades(rawTrades, string(types.ExchangeBinance), types.SIDE_L)
+			trades = b.c.GetAllUniqueRawTrades(rawTrades, types.ExchangeBinance, types.SideLong)
 		case args[0] == "m" && args[1] == "s":
-			trades = b.c.GetAllUniqueRawTrades(rawTrades, string(types.ExchangeBitmex), types.SIDE_S)
+			trades = b.c.GetAllUniqueRawTrades(rawTrades, types.ExchangeBitmex, types.SideShort)
 		case args[0] == "m" && args[1] == "l":
-			trades = b.c.GetAllUniqueRawTrades(rawTrades, string(types.ExchangeBitmex), types.SIDE_L)
+			trades = b.c.GetAllUniqueRawTrades(rawTrades, types.ExchangeBitmex, types.SideLong)
 		default:
 			msg := "Wrong arguments. Valid arguments are: b [s|l] and m [s|l]"
 			b.MsgChan <- types.BotMessage{ChatID: userID, MsgStr: msg}
@@ -57,10 +57,10 @@ func (b *Bot) HandleBulkAdd(u *tgbotapi.Update, ctx context.Context) error {
 		for _, t := range trades {
 			// check for symbol availability
 			var isAvailable bool = false
-			if t.Account == string(types.ExchangeBinance) {
+			if t.Account == types.ExchangeBinance {
 				isAvailable = b.bc.CheckSymbol(t.Symbol)
 			}
-			if t.Account == string(types.ExchangeBitmex) {
+			if t.Account == types.ExchangeBitmex {
 				isAvailable = b.mc.CheckSymbol(t.Symbol)
 			}
 			if !isAvailable {
