@@ -17,6 +17,7 @@ type Interpreter struct {
 	Price           float64
 	Quantity        float64
 	ReverseQuantity float64
+	Exchange        types.ExchangeType
 	// these fields copy from trade
 	TradeID           int64
 	Symbol            string
@@ -165,7 +166,20 @@ func (i *Interpreter) getOppositeSideBitmex() swagger.SideType {
 	return swagger.SideTypeSell
 }
 
-func (i *Interpreter) GetOrderExecutionBinance(executionType types.ExecutionType, orderIDStr string) *OrderExecutionBinance {
+func (i *Interpreter) GetOrderExecution(executionType types.ExecutionType, orderIDStr string) interface{} {
+
+	switch i.Exchange {
+	case types.ExchangeBinance:
+		return i.getOrderExecutionBinance(executionType, orderIDStr)
+	case types.ExchangeBitmex:
+		return i.getOrderExecutionBitmex(executionType, orderIDStr)
+	default:
+		log.Panicf("unsupported exchange type: %s", i.Exchange)
+	}
+	return nil
+}
+
+func (i *Interpreter) getOrderExecutionBinance(executionType types.ExecutionType, orderIDStr string) *OrderExecutionBinance {
 	var oeb *OrderExecutionBinance
 	switch executionType {
 	case types.GetOrderExecution, types.CancelOrderExecution:
@@ -258,7 +272,7 @@ func (i *Interpreter) GetOrderExecutionBinance(executionType types.ExecutionType
 	}
 	return oeb
 }
-func (i *Interpreter) GetOrderExecutionBitmex(ExecutionType types.ExecutionType, orderIDStr string) *OrderExecutionBitmex {
+func (i *Interpreter) getOrderExecutionBitmex(ExecutionType types.ExecutionType, orderIDStr string) *OrderExecutionBitmex {
 	var oeb *OrderExecutionBitmex
 	switch ExecutionType {
 	case types.GetOrderExecution, types.CancelOrderExecution:

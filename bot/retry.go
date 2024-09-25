@@ -10,15 +10,14 @@ import (
 	"github.com/shahinrahimi/teletradebot/utils"
 )
 
-func (b *Bot) retry(attempts int, delay time.Duration, t *models.Trade, f func() (interface{}, interface{}, error)) (interface{}, interface{}, error) {
+func (b *Bot) retry(attempts int, delay time.Duration, t *models.Trade, f func() (interface{}, error)) (interface{}, error) {
 	var err error
 	for i := 0; i < attempts; i++ {
-		res, po, err := f()
+		res, err := f()
 		if err != nil {
 			if apiErr, ok := err.(*common.APIError); ok {
 				switch {
 				case (apiErr.Code == -1007 || apiErr.Code == -1008):
-					// TODO add action string so the message have meaning (not place order)
 					msg := fmt.Sprintf("Failed to perform action on order\nRetry after %s ...\n\nTrade ID: %d", utils.FriendlyDuration(delay), t.ID)
 					b.MsgChan <- types.BotMessage{
 						ChatID: t.UserID,
@@ -27,25 +26,29 @@ func (b *Bot) retry(attempts int, delay time.Duration, t *models.Trade, f func()
 					time.Sleep(delay)
 					continue
 				default:
-					return nil, nil, err
+					return nil, err
 				}
 			} else {
 				b.l.Printf("unexpected error happened in retrying function: %v", err)
-				return nil, nil, err
+				return nil, err
 			}
 		}
-		return res, po, err
+		return res, err
 	}
-	return nil, nil, err
+	return nil, err
 }
 
-func (b *Bot) retry2(attempts int, delay time.Duration, t *models.Trade, f func() (interface{}, error)) (interface{}, error) {
+func (b *Bot) retryDenyNotFound(attempts int, delay time.Duration, t *models.Trade, f func() (interface{}, error)) (interface{}, error) {
 	var err error
 	for i := 0; i < attempts; i++ {
 		res, err := f()
 		if err != nil {
 			if apiErr, ok := err.(*common.APIError); ok {
 				switch {
+				case apiErr.Code == -2011:
+					b.handleError(err, t.UserID, t.ID)
+					// deny the error from binance api
+					return nil, nil
 				case (apiErr.Code == -1007 || apiErr.Code == -1008):
 					msg := fmt.Sprintf("Failed to perform action on order\nRetry after %s ...\n\nTrade ID: %d", utils.FriendlyDuration(delay), t.ID)
 					b.MsgChan <- types.BotMessage{

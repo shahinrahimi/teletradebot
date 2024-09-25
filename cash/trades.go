@@ -7,6 +7,7 @@ import (
 
 	"github.com/shahinrahimi/teletradebot/models"
 	"github.com/shahinrahimi/teletradebot/types"
+	"github.com/shahinrahimi/teletradebot/utils"
 )
 
 var (
@@ -79,7 +80,7 @@ func (c *Cash) UpdateTradeIdle(ID int64) {
 	c.trades[ID] = t
 }
 
-func (c *Cash) UpdateTradeMainOrder(ID int64, orderID string) {
+func (c *Cash) updateTradeMainOrder(ID int64, orderID string) {
 	mu.Lock()
 	defer mu.Unlock()
 	t, exist := c.trades[ID]
@@ -91,7 +92,12 @@ func (c *Cash) UpdateTradeMainOrder(ID int64, orderID string) {
 	c.trades[ID] = t
 }
 
-func (c *Cash) UpdateTradeTPOrder(ID int64, orderID string) {
+func (c *Cash) UpdateTradeMainOrder(ID int64, orderIDorOrderRes interface{}) {
+	orderID := utils.ExtractOrderIDStr(orderIDorOrderRes)
+	c.updateTradeMainOrder(ID, orderID)
+}
+
+func (c *Cash) updateTradeTPOrder(ID int64, orderID string) {
 	mu.Lock()
 	defer mu.Unlock()
 	t, exist := c.trades[ID]
@@ -102,7 +108,12 @@ func (c *Cash) UpdateTradeTPOrder(ID int64, orderID string) {
 	c.trades[ID] = t
 }
 
-func (c *Cash) UpdateTradeSLOrder(ID int64, orderID string) {
+func (c *Cash) UpdateTradeSLOrder(ID int64, orderIDorOrderRes interface{}) {
+	orderIDStr := utils.ExtractOrderIDStr(orderIDorOrderRes)
+	c.updateTradeSLOrder(ID, orderIDStr)
+}
+
+func (c *Cash) updateTradeSLOrder(ID int64, orderID string) {
 	mu.Lock()
 	defer mu.Unlock()
 	t, exist := c.trades[ID]
@@ -114,7 +125,12 @@ func (c *Cash) UpdateTradeSLOrder(ID int64, orderID string) {
 
 }
 
-func (c *Cash) UpdateTradeReverseOrder(ID int64, orderID string) {
+func (c *Cash) UpdateTradeTPOrder(ID int64, resOrder interface{}) {
+	orderID := utils.ExtractOrderIDStr(resOrder)
+	c.updateTradeTPOrder(ID, orderID)
+}
+
+func (c *Cash) updateTradeReverseOrder(ID int64, orderID string) {
 	mu.Lock()
 	defer mu.Unlock()
 	t, exist := c.trades[ID]
@@ -125,7 +141,12 @@ func (c *Cash) UpdateTradeReverseOrder(ID int64, orderID string) {
 	c.trades[ID] = t
 }
 
-func (c *Cash) UpdateTradeReverseSLOrder(ID int64, orderID string) {
+func (c *Cash) UpdateTradeReverseOrder(ID int64, resOrder interface{}) {
+	orderID := utils.ExtractOrderIDStr(resOrder)
+	c.updateTradeReverseOrder(ID, orderID)
+}
+
+func (c *Cash) updateTradeReverseSLOrder(ID int64, orderID string) {
 	mu.Lock()
 	defer mu.Unlock()
 	t, exist := c.trades[ID]
@@ -136,7 +157,12 @@ func (c *Cash) UpdateTradeReverseSLOrder(ID int64, orderID string) {
 	c.trades[ID] = t
 }
 
-func (c *Cash) UpdateTradeReverseTPOrder(ID int64, orderID string) {
+func (c *Cash) UpdateTradeReverseSLOrder(ID int64, resOrder interface{}) {
+	orderID := utils.ExtractOrderIDStr(resOrder)
+	c.updateTradeReverseSLOrder(ID, orderID)
+}
+
+func (c *Cash) updateTradeReverseTPOrder(ID int64, orderID string) {
 	mu.Lock()
 	defer mu.Unlock()
 	t, exist := c.trades[ID]
@@ -145,6 +171,11 @@ func (c *Cash) UpdateTradeReverseTPOrder(ID int64, orderID string) {
 	}
 	t.ReverseTPOrderID = orderID
 	c.trades[ID] = t
+}
+
+func (c *Cash) UpdateTradeReverseTPOrder(ID int64, resOrder interface{}) {
+	orderID := utils.ExtractOrderIDStr(resOrder)
+	c.updateTradeReverseTPOrder(ID, orderID)
 }
 
 func (c *Cash) UpdateTradeFilled(ID int64) {

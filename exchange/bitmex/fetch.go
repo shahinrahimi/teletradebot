@@ -8,6 +8,7 @@ import (
 	"github.com/shahinrahimi/teletradebot/config"
 	"github.com/shahinrahimi/teletradebot/models"
 	"github.com/shahinrahimi/teletradebot/swagger"
+	"github.com/shahinrahimi/teletradebot/types"
 )
 
 func (mc *BitmexClient) fetchMargins(ctx context.Context) ([]swagger.Margin, error) {
@@ -162,6 +163,7 @@ func (mc *BitmexClient) FetchInterpreter(ctx context.Context, t *models.Trade) (
 		Price:           price,
 		Quantity:        quantity,
 		ReverseQuantity: rQuantity,
+		Exchange:        types.ExchangeBitmex,
 
 		TradeID:           t.ID,
 		Symbol:            t.Symbol,

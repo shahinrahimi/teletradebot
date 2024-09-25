@@ -93,7 +93,7 @@ func main() {
 	bc.StartWebsocketService(ctx, b.WsHandler, b.WsErrHandler)
 
 	// start bitmex ws
-	b.StartWebsocketServiceBitmex(ctx)
+	mc.StartWebsocketService(ctx, b.WsHandlerBitmex)
 
 	// global middleware
 	b.Use(b.BanBots)

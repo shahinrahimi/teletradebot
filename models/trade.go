@@ -166,9 +166,9 @@ func ParseTrade(tradeArgs []string) (*Trade, error) {
 	if len(part1) > 1 || (part1 != "m" && part1 != "b") {
 		return nil, fmt.Errorf("invalid account value; use 'm' for BitMEX or 'b' for Binance")
 	} else if part1 == "m" {
-		t.Account = types.ACCOUNT_M
+		t.Account = string(types.ExchangeBitmex)
 	} else if part1 == "b" {
-		t.Account = types.ACCOUNT_B
+		t.Account = string(types.ExchangeBinance)
 	} else {
 		// should never happen
 		return nil, fmt.Errorf("unexpected internal error")

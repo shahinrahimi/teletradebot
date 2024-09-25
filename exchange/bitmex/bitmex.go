@@ -14,8 +14,8 @@ type BitmexClient struct {
 	auth              context.Context
 	activeInstruments []swagger.Instrument
 	Verbose           bool
-	ApiKey            string
-	ApiSec            string
+	apiKey            string
+	apiSec            string
 }
 
 func NewBitmexClient(l *log.Logger, apiKey string, apiSec string, UseTestnet bool) *BitmexClient {
@@ -33,8 +33,8 @@ func NewBitmexClient(l *log.Logger, apiKey string, apiSec string, UseTestnet boo
 		l:       l,
 		client:  client,
 		auth:    auth,
-		ApiKey:  apiKey,
-		ApiSec:  apiSec,
+		apiKey:  apiKey,
+		apiSec:  apiSec,
 		Verbose: true,
 	}
 }
@@ -66,7 +66,7 @@ func (mc *BitmexClient) GetSymbol(symbol string) (*swagger.Instrument, error) {
 
 func (mc *BitmexClient) getAuthContext(ctx context.Context) context.Context {
 	return context.WithValue(ctx, swagger.ContextAPIKey, swagger.APIKey{
-		Key:    mc.ApiKey,
-		Secret: mc.ApiSec,
+		Key:    mc.apiKey,
+		Secret: mc.apiSec,
 	})
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/adshao/go-binance/v2/futures"
 	"github.com/shahinrahimi/teletradebot/models"
+	"github.com/shahinrahimi/teletradebot/types"
 	"github.com/shahinrahimi/teletradebot/utils"
 )
 
@@ -163,6 +164,7 @@ func (bc *BinanceClient) FetchInterpreter(ctx context.Context, t *models.Trade) 
 		Price:           price,
 		Quantity:        quantity,
 		ReverseQuantity: rQuantity,
+		Exchange:        types.ExchangeBinance,
 
 		TradeID:           t.ID,
 		Symbol:            t.Symbol,

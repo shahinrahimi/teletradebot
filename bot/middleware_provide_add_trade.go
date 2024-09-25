@@ -43,10 +43,10 @@ func (b *Bot) ProvideAddTrade(next Handler) Handler {
 
 		var isAvailable bool = false
 		switch t.Account {
-		case types.ACCOUNT_B:
+		case string(types.ExchangeBinance):
 			// check pair for binance
 			isAvailable = b.bc.CheckSymbol(t.Symbol)
-		case types.ACCOUNT_M:
+		case string(types.ExchangeBitmex):
 			// check pair for bitmex
 			isAvailable = b.mc.CheckSymbol(t.Symbol)
 		default:

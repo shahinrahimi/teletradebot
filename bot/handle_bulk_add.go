@@ -42,13 +42,13 @@ func (b *Bot) HandleBulkAdd(u *tgbotapi.Update, ctx context.Context) error {
 		var trades []*models.Trade
 		switch {
 		case args[0] == "b" && args[1] == "s":
-			trades = b.c.GetAllUniqueRawTrades(rawTrades, types.ACCOUNT_B, types.SIDE_S)
+			trades = b.c.GetAllUniqueRawTrades(rawTrades, string(types.ExchangeBinance), types.SIDE_S)
 		case args[0] == "b" && args[1] == "l":
-			trades = b.c.GetAllUniqueRawTrades(rawTrades, types.ACCOUNT_B, types.SIDE_L)
+			trades = b.c.GetAllUniqueRawTrades(rawTrades, string(types.ExchangeBinance), types.SIDE_L)
 		case args[0] == "m" && args[1] == "s":
-			trades = b.c.GetAllUniqueRawTrades(rawTrades, types.ACCOUNT_M, types.SIDE_S)
+			trades = b.c.GetAllUniqueRawTrades(rawTrades, string(types.ExchangeBitmex), types.SIDE_S)
 		case args[0] == "m" && args[1] == "l":
-			trades = b.c.GetAllUniqueRawTrades(rawTrades, types.ACCOUNT_M, types.SIDE_L)
+			trades = b.c.GetAllUniqueRawTrades(rawTrades, string(types.ExchangeBitmex), types.SIDE_L)
 		default:
 			msg := "Wrong arguments. Valid arguments are: b [s|l] and m [s|l]"
 			b.MsgChan <- types.BotMessage{ChatID: userID, MsgStr: msg}
@@ -57,15 +57,11 @@ func (b *Bot) HandleBulkAdd(u *tgbotapi.Update, ctx context.Context) error {
 		for _, t := range trades {
 			// check for symbol availability
 			var isAvailable bool = false
-			if t.Account == types.ACCOUNT_B {
-				if _, err := b.bc.GetSymbol(t.Symbol); err == nil {
-					isAvailable = true
-				}
+			if t.Account == string(types.ExchangeBinance) {
+				isAvailable = b.bc.CheckSymbol(t.Symbol)
 			}
-			if t.Account == types.ACCOUNT_M {
-				if _, err := b.mc.GetSymbol(t.Symbol); err == nil {
-					isAvailable = true
-				}
+			if t.Account == string(types.ExchangeBitmex) {
+				isAvailable = b.mc.CheckSymbol(t.Symbol)
 			}
 			if !isAvailable {
 				msg := fmt.Sprintf("Symbol %s not available for account %s", t.Symbol, t.Account)

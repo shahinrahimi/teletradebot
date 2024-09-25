@@ -63,7 +63,7 @@ func getCurrentCandle(candles []*Candle, timeframe models.TimeframeType, timesta
 	}
 }
 
-func (mc *BitmexClient) UpdateCandles(symbol string, markPrice float64, timestamp time.Time) {
+func (mc *BitmexClient) updateCandles(symbol string, markPrice float64, timestamp time.Time) {
 	mu.Lock()
 	defer mu.Unlock()
 

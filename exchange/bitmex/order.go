@@ -18,7 +18,7 @@ func (mc *BitmexClient) PlaceStopOrder(ctx context.Context, oe interface{}) (int
 	params := &swagger.OrderApiOrderNewOpts{
 		Side:     optional.NewString(string(oeb.Side)),
 		OrderQty: optional.NewFloat32(float32(oeb.Quantity)),
-		OrdType:  optional.NewString(OrderTypeStop),
+		OrdType:  optional.NewString(swagger.OrderTypeStop),
 		StopPx:   optional.NewFloat64(oeb.StopPrice),
 	}
 	order, _, err := mc.client.OrderApi.OrderNew(ctx, oeb.Symbol, params)
@@ -34,7 +34,7 @@ func (mc *BitmexClient) PlaceTakeProfitOrder(ctx context.Context, oe interface{}
 	params := &swagger.OrderApiOrderNewOpts{
 		Side:     optional.NewString(string(oeb.Side)),
 		OrderQty: optional.NewFloat32(float32(oeb.Quantity)),
-		OrdType:  optional.NewString(OrderTypeMarketIfTouched),
+		OrdType:  optional.NewString(swagger.OrderTypeMarketIfTouched),
 		StopPx:   optional.NewFloat64(oeb.StopPrice),
 	}
 	order, _, err := mc.client.OrderApi.OrderNew(ctx, oeb.Symbol, params)
