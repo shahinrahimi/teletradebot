@@ -73,7 +73,7 @@ func (c *Cash) UpdateTradeIdle(ID int64) {
 	if !exist {
 		c.l.Panicf("trade not found: %d", ID)
 	}
-	t.State = types.STATE_IDLE
+	t.State = types.StateIdle
 	t.OrderID = ""
 	t.SLOrderID = ""
 	t.TPOrderID = ""
@@ -87,7 +87,7 @@ func (c *Cash) updateTradeMainOrder(ID int64, orderID string) {
 	if !exist {
 		c.l.Panicf("trade not found: %d", ID)
 	}
-	t.State = types.STATE_PLACED
+	t.State = types.StatePlaced
 	t.OrderID = orderID
 	c.trades[ID] = t
 }
@@ -185,7 +185,7 @@ func (c *Cash) UpdateTradeFilled(ID int64) {
 	if !exist {
 		c.l.Panicf("trade not found: %d", ID)
 	}
-	t.State = types.STATE_FILLED
+	t.State = types.StateFilled
 	c.trades[ID] = t
 }
 
@@ -196,7 +196,7 @@ func (c *Cash) UpdateTradeStopped(ID int64) {
 	if !exist {
 		c.l.Panicf("trade not found: %d", ID)
 	}
-	t.State = types.STATE_STOPPED
+	t.State = types.StateStopped
 	c.trades[ID] = t
 }
 
@@ -207,7 +207,7 @@ func (c *Cash) UpdateTradeProfited(ID int64) {
 	if !exist {
 		c.l.Panicf("trade not found: %d", ID)
 	}
-	t.State = types.STATE_PROFITED
+	t.State = types.StateProfited
 	c.trades[ID] = t
 }
 
@@ -218,7 +218,7 @@ func (c *Cash) UpdateTradeCanceled(ID int64) {
 	if !exist {
 		c.l.Panicf("trade not found: %d", ID)
 	}
-	t.State = types.STATE_CANCELED
+	t.State = types.StateCanceled
 	c.trades[ID] = t
 }
 
@@ -229,7 +229,7 @@ func (c *Cash) UpdateTradeClosed(ID int64) {
 	if !exist {
 		c.l.Panicf("trade not found: %d", ID)
 	}
-	t.State = types.STATE_CLOSED
+	t.State = types.StateClosed
 	c.trades[ID] = t
 }
 
@@ -240,7 +240,7 @@ func (c *Cash) UpdateTradeReverting(ID int64) {
 	if !exist {
 		c.l.Panicf("trade not found: %d", ID)
 	}
-	t.State = types.STATE_REVERTING
+	t.State = types.StateReverting
 	c.trades[ID] = t
 }
 
@@ -251,7 +251,7 @@ func (c *Cash) UpdateTradeExpired(ID int64) {
 	if !exist {
 		c.l.Panicf("trade not found: %d", ID)
 	}
-	t.State = types.STATE_EXPIRED
+	t.State = types.StateExpired
 	c.trades[ID] = t
 }
 

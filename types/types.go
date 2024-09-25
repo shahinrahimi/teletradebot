@@ -25,13 +25,9 @@ func (b *BotError) Error() string {
 const (
 	ExchangeBinance ExchangeType = `binance`
 	ExchangeBitmex  ExchangeType = `bitmex`
-	// ACCOUNT_B string = `Binance`
-	// ACCOUNT_M string = `Bitmex`
+
 	SideLong  SideType = `LONG`
 	SideShort SideType = `SHORT`
-
-	// SIDE_L string = `LONG`
-	// SIDE_S string = `SHORT`
 
 	StateIdle      StateType = `idle`
 	StatePlaced    StateType = `placed`
@@ -42,16 +38,6 @@ const (
 	StateClosed    StateType = `closed`
 	StateExpired   StateType = `expired`
 	StateReverting StateType = `reverting`
-
-	STATE_IDLE      string = `idle`
-	STATE_CANCELED  string = `canceled`
-	STATE_PLACED    string = `placed`
-	STATE_FILLED    string = `filled`
-	STATE_STOPPED   string = `stopped`
-	STATE_PROFITED  string = `profited`
-	STATE_CLOSED    string = `closed`
-	STATE_EXPIRED   string = `expired`
-	STATE_REVERTING string = `reverting`
 
 	OrderTitleMain              OrderTitleType = `main`
 	OrderTitleStopLoss          OrderTitleType = `stop-loss`

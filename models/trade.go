@@ -21,7 +21,7 @@ type Trade struct {
 	ReverseTPOrderID string // OrderID for the Reverse Take Profit order.
 	ReverseSLOrderID string // OrderID for the Reverse Stop Loss order.
 
-	State string // Current state of the trade.
+	State types.StateType // Current state of the trade.
 
 	Account           types.ExchangeType // Trading account associated with the trade.
 	Side              types.SideType     // Side of the trade (e.g., buy or sell).
@@ -91,7 +91,7 @@ func (t *Trade) ToFelids() []interface{} {
 }
 
 func (t *Trade) ToListString() string {
-	return fmt.Sprintf("ID: %d [%s] %s %s %s %s", t.ID, t.Account, t.Symbol, t.Side, t.Timeframe, strings.ToUpper(t.State))
+	return fmt.Sprintf("ID: %d [%s] %s %s %s %s", t.ID, t.Account, t.Symbol, t.Side, t.Timeframe, strings.ToUpper(string(t.State)))
 }
 
 func (t *Trade) ToViewString() string {
@@ -240,7 +240,7 @@ func ParseTrade(tradeArgs []string) (*Trade, error) {
 		t.ReverseMultiplier = reverse_multiplier
 	}
 
-	t.State = types.STATE_IDLE
+	t.State = types.StateIdle
 
 	return &t, nil
 }

@@ -16,7 +16,7 @@ func (b *Bot) HandleExecute(u *tgbotapi.Update, ctx context.Context) error {
 	}
 
 	userID := u.Message.From.ID
-	if t.State != types.STATE_IDLE {
+	if t.State != types.StateIdle {
 		msg := "The trade could not be executed as it has already been executed once."
 		b.MsgChan <- types.BotMessage{
 			ChatID: userID,

@@ -5,7 +5,7 @@ import (
 	"github.com/shahinrahimi/teletradebot/types"
 )
 
-func (c *Cash) GetAllUniqueTrades(account types.ExchangeType, side types.SideType, state string) []*models.Trade {
+func (c *Cash) GetAllUniqueTrades(account types.ExchangeType, side types.SideType, state types.StateType) []*models.Trade {
 	trades := make([]*models.Trade, 0)
 	uniqueSymbolTrades := make(map[string]models.Trade, 0)
 	ts := c.GetTrades()

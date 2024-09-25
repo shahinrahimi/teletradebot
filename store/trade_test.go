@@ -30,7 +30,7 @@ func createTestTrade() *models.Trade {
 	return &models.Trade{
 		UserID:            123,
 		ChatID:            456,
-		State:             types.STATE_IDLE,
+		State:             types.StateIdle,
 		Account:           "test_account",
 		Symbol:            "BTCUSDT",
 		Side:              "buy",
@@ -202,14 +202,14 @@ func TestUpdateTrade(t *testing.T) {
 	trade.ID = id
 
 	trade.OrderID = "updated_order_id"
-	trade.State = types.STATE_FILLED
+	trade.State = types.StateFilled
 	err = store.UpdateTrade(trade)
 	require.NoError(t, err)
 
 	updatedTrade, err := store.GetTrade(trade.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "updated_order_id", updatedTrade.OrderID)
-	assert.Equal(t, types.STATE_FILLED, updatedTrade.State)
+	assert.Equal(t, types.StateFilled, updatedTrade.State)
 }
 
 func TestUpdateTradeFilled(t *testing.T) {
@@ -228,7 +228,7 @@ func TestUpdateTradeFilled(t *testing.T) {
 
 	updatedTrade, err := store.GetTrade(trade.ID)
 	require.NoError(t, err)
-	assert.Equal(t, types.STATE_FILLED, updatedTrade.State)
+	assert.Equal(t, types.StateFilled, updatedTrade.State)
 }
 
 func TestUpdateTradePlaced(t *testing.T) {
@@ -266,7 +266,7 @@ func TestUpdateTradeIdle(t *testing.T) {
 
 	updatedTrade, err := store.GetTrade(trade.ID)
 	require.NoError(t, err)
-	assert.Equal(t, types.STATE_IDLE, updatedTrade.State)
+	assert.Equal(t, types.StateIdle, updatedTrade.State)
 	assert.Empty(t, updatedTrade.OrderID)
 	assert.Empty(t, updatedTrade.SLOrderID)
 	assert.Empty(t, updatedTrade.TPOrderID)
@@ -288,7 +288,7 @@ func TestUpdateTradeStopped(t *testing.T) {
 
 	updatedTrade, err := store.GetTrade(trade.ID)
 	require.NoError(t, err)
-	assert.Equal(t, types.STATE_STOPPED, updatedTrade.State)
+	assert.Equal(t, types.StateStopped, updatedTrade.State)
 }
 
 func TestUpdateTradeProfited(t *testing.T) {
@@ -307,5 +307,5 @@ func TestUpdateTradeProfited(t *testing.T) {
 
 	updatedTrade, err := store.GetTrade(trade.ID)
 	require.NoError(t, err)
-	assert.Equal(t, types.STATE_PROFITED, updatedTrade.State)
+	assert.Equal(t, types.StateProfited, updatedTrade.State)
 }

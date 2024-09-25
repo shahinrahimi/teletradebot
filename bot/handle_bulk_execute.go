@@ -16,13 +16,13 @@ func (b *Bot) HandleBulkExecute(u *tgbotapi.Update, ctx context.Context) error {
 		var trades []*models.Trade
 		switch {
 		case args[0] == "b" && args[1] == "s":
-			trades = b.c.GetAllUniqueTrades(types.ExchangeBinance, types.SideShort, types.STATE_IDLE)
+			trades = b.c.GetAllUniqueTrades(types.ExchangeBinance, types.SideShort, types.StateIdle)
 		case args[0] == "b" && args[1] == "l":
-			trades = b.c.GetAllUniqueTrades(types.ExchangeBinance, types.SideLong, types.STATE_IDLE)
+			trades = b.c.GetAllUniqueTrades(types.ExchangeBinance, types.SideLong, types.StateIdle)
 		case args[0] == "m" && args[1] == "s":
-			trades = b.c.GetAllUniqueTrades(types.ExchangeBitmex, types.SideShort, types.STATE_IDLE)
+			trades = b.c.GetAllUniqueTrades(types.ExchangeBitmex, types.SideShort, types.StateIdle)
 		case args[0] == "m" && args[1] == "l":
-			trades = b.c.GetAllUniqueTrades(types.ExchangeBitmex, types.SideLong, types.STATE_IDLE)
+			trades = b.c.GetAllUniqueTrades(types.ExchangeBitmex, types.SideLong, types.StateIdle)
 		default:
 			msg := "Wrong arguments. Valid arguments are: b [s|l] and m [s|l]"
 			b.MsgChan <- types.BotMessage{ChatID: userID, MsgStr: msg}

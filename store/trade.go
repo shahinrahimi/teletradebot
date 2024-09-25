@@ -97,7 +97,7 @@ func (s *SqliteStore) UpdateTrade(t *models.Trade) error {
 }
 
 func (s *SqliteStore) UpdateTradeClosed(t *models.Trade) error {
-	t.State = types.STATE_CLOSED
+	t.State = types.StateClosed
 	t.OrderID = ""
 	t.SLOrderID = ""
 	t.TPOrderID = ""
@@ -105,7 +105,7 @@ func (s *SqliteStore) UpdateTradeClosed(t *models.Trade) error {
 }
 
 func (s *SqliteStore) UpdateTradeCancelled(t *models.Trade) error {
-	t.State = types.STATE_CANCELED
+	t.State = types.StateCanceled
 	t.OrderID = ""
 	t.SLOrderID = ""
 	t.TPOrderID = ""
@@ -113,17 +113,17 @@ func (s *SqliteStore) UpdateTradeCancelled(t *models.Trade) error {
 }
 
 func (s *SqliteStore) UpdateTradeFilled(t *models.Trade) error {
-	t.State = types.STATE_FILLED
+	t.State = types.StateFilled
 	return s.UpdateTrade(t)
 }
 
 func (s *SqliteStore) UpdateTradeStopped(t *models.Trade) error {
-	t.State = types.STATE_STOPPED
+	t.State = types.StateStopped
 	return s.UpdateTrade(t)
 }
 
 func (s *SqliteStore) UpdateTradeProfited(t *models.Trade) error {
-	t.State = types.STATE_PROFITED
+	t.State = types.StateProfited
 	return s.UpdateTrade(t)
 }
 
@@ -139,12 +139,12 @@ func (s *SqliteStore) UpdateTradeTPOrder(t *models.Trade, TPOrderID string) erro
 
 func (s *SqliteStore) UpdateTradePlaced(t *models.Trade, orderID string) error {
 	t.OrderID = orderID
-	t.State = types.STATE_PLACED
+	t.State = types.StatePlaced
 	return s.UpdateTrade(t)
 }
 
 func (s *SqliteStore) UpdateTradeIdle(t *models.Trade) error {
-	t.State = types.STATE_IDLE
+	t.State = types.StateIdle
 	t.OrderID = ""
 	t.SLOrderID = ""
 	t.TPOrderID = ""
