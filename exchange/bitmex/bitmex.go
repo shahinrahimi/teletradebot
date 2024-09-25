@@ -11,7 +11,6 @@ import (
 type BitmexClient struct {
 	l                 *log.Logger
 	client            *swagger.APIClient
-	auth              context.Context
 	activeInstruments []swagger.Instrument
 	Verbose           bool
 	apiKey            string
@@ -24,15 +23,9 @@ func NewBitmexClient(l *log.Logger, apiKey string, apiSec string, UseTestnet boo
 		cfg.BasePath = "https://testnet.bitmex.com/api/v1"
 	}
 	client := swagger.NewAPIClient(cfg)
-	auth := context.WithValue(context.TODO(), swagger.ContextAPIKey, swagger.APIKey{
-		Key:    apiKey,
-		Secret: apiSec,
-	})
-
 	return &BitmexClient{
 		l:       l,
 		client:  client,
-		auth:    auth,
 		apiKey:  apiKey,
 		apiSec:  apiSec,
 		Verbose: true,

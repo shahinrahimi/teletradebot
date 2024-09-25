@@ -27,7 +27,7 @@ func (b *Bot) handleCloseExchange(
 	if orderIDStr == "" {
 		return
 	}
-	oe := i.GetOrderExecution(types.GetOrderExecution, orderIDStr)
+	oe := i.GetOrderExecution(types.ExecutionGetOrder, orderIDStr)
 
 	// get order
 	res, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
@@ -42,8 +42,8 @@ func (b *Bot) handleCloseExchange(
 
 	switch status {
 	case string(futures.OrderStatusTypeNew), swagger.OrderStatusTypeNew:
-		oe := i.GetOrderExecution(types.CancelOrderExecution, orderIDStr)
-		_, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
+		oe := i.GetOrderExecution(types.ExecutionCancelOrder, orderIDStr)
+		_, err := b.retryDenyNotFound(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
 			return b.bc.CancelOrder(ctx, oe)
 		})
 		if err != nil {

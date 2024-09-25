@@ -17,8 +17,11 @@ func (b *Bot) handleCancelExchange(
 	ex exchange.Exchange,
 	orderIDStr string,
 ) {
+	if orderIDStr == "" {
+		return
+	}
 	//oe := i.GetOrderExecution(types.GetOrderExecution,orderIDStr)
-	oe := i.GetOrderExecution(types.CancelOrderExecution, orderIDStr)
+	oe := i.GetOrderExecution(types.ExecutionCancelOrder, orderIDStr)
 	_, err := b.retryDenyNotFound(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
 		return ex.CancelOrder(ctx, oe)
 	})

@@ -36,11 +36,11 @@ func (b *Bot) HandleClose(u *tgbotapi.Update, ctx context.Context) error {
 		return nil
 	}
 
-	go b.handleCloseExchange(ctx, &t, i, types.OrderTitleMain, types.ClosePositionExecution, userID, t.OrderID, ex, true, true)
-	go b.handleCloseExchange(ctx, &t, i, types.OrderTitleStopLoss, types.ExecutionNone, userID, t.OrderID, ex, false, false)
-	go b.handleCloseExchange(ctx, &t, i, types.OrderTitleTakeProfit, types.ExecutionNone, userID, t.OrderID, ex, false, false)
-	go b.handleCloseExchange(ctx, &t, i, types.OrderTitleReverseMain, types.ClosePositionReverseExecution, userID, t.OrderID, ex, true, true)
-	go b.handleCloseExchange(ctx, &t, i, types.OrderTitleReverseStopLoss, types.ExecutionNone, userID, t.OrderID, ex, false, false)
-	go b.handleCloseExchange(ctx, &t, i, types.OrderTitleReverseTakeProfit, types.ExecutionNone, userID, t.OrderID, ex, false, false)
+	go b.handleCloseExchange(ctx, &t, i, types.OrderTitleMain, types.ExecutionCloseMainOrder, userID, t.OrderID, ex, true, true)
+	go b.handleCloseExchange(ctx, &t, i, types.OrderTitleStopLoss, types.ExecutionNone, userID, t.SLOrderID, ex, false, false)
+	go b.handleCloseExchange(ctx, &t, i, types.OrderTitleTakeProfit, types.ExecutionNone, userID, t.TPOrderID, ex, false, false)
+	go b.handleCloseExchange(ctx, &t, i, types.OrderTitleReverseMain, types.ExecutionCloseReverseMainOrder, userID, t.ReverseOrderID, ex, true, true)
+	go b.handleCloseExchange(ctx, &t, i, types.OrderTitleReverseStopLoss, types.ExecutionNone, userID, t.ReverseSLOrderID, ex, false, false)
+	go b.handleCloseExchange(ctx, &t, i, types.OrderTitleReverseTakeProfit, types.ExecutionNone, userID, t.ReverseTPOrderID, ex, false, false)
 	return nil
 }

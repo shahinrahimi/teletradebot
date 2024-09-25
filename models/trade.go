@@ -236,8 +236,6 @@ func ParseTrade(tradeArgs []string) (*Trade, error) {
 	reverse_multiplier, err := strconv.Atoi(part9)
 	if err != nil {
 		return nil, fmt.Errorf("invalid reverse_multiplier; please provide a value of 1 or 2")
-	} else if reverse_multiplier <= 0 || reverse_multiplier > 2 {
-		return nil, fmt.Errorf("invalid reverse_multiplier; must be 1 or 2")
 	} else {
 		t.ReverseMultiplier = reverse_multiplier
 	}

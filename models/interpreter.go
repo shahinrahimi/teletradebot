@@ -84,7 +84,7 @@ func (i *Interpreter) getPriceString(price float64) string {
 func (i *Interpreter) CalculateExpiration() time.Duration {
 	return i.TimeFrameDur + time.Until(i.CloseTime)
 }
-func (i *Interpreter) Describe() string {
+func (i *Interpreter) Describe(fromCash bool) string {
 
 	format := "2006-01-02 15:04:05"
 	from := i.OpenTime.Local().Format(format)
@@ -114,10 +114,10 @@ func (i *Interpreter) Describe() string {
 	}
 
 	var expiration string
-	if i.CalculateExpiration() > 0 {
-		expiration = utils.FriendlyDuration(i.CalculateExpiration())
-	} else {
+	if fromCash {
 		expiration = "∞"
+	} else {
+		expiration = utils.FriendlyDuration(i.CalculateExpiration())
 	}
 
 	msg := ""
@@ -182,7 +182,7 @@ func (i *Interpreter) GetOrderExecution(executionType types.ExecutionType, order
 func (i *Interpreter) getOrderExecutionBinance(executionType types.ExecutionType, orderIDStr string) *OrderExecutionBinance {
 	var oeb *OrderExecutionBinance
 	switch executionType {
-	case types.GetOrderExecution, types.CancelOrderExecution:
+	case types.ExecutionGetOrder, types.ExecutionCancelOrder:
 		orderID, err := utils.ConvertOrderIDtoBinanceOrderID(orderIDStr)
 		if err != nil {
 			log.Panicf("invalid order id: %s", orderIDStr)
@@ -191,7 +191,7 @@ func (i *Interpreter) getOrderExecutionBinance(executionType types.ExecutionType
 			OrderID: orderID,
 			Symbol:  i.Symbol,
 		}
-	case types.StopPriceExecution:
+	case types.ExecutionEntryMainOrder:
 		side := i.getSideBinance()
 		p := fmt.Sprintf("%.*f", i.PricePrecision, i.EntryPrice)
 		q := fmt.Sprintf("%.*f", i.QuantityPrecision, i.Quantity)
@@ -201,7 +201,7 @@ func (i *Interpreter) getOrderExecutionBinance(executionType types.ExecutionType
 			StopPrice: p,
 			Quantity:  q,
 		}
-	case types.TakeProfitExecution:
+	case types.ExecutionTakeProfitOrder:
 		side := i.getOppositeSideBinance()
 		p := fmt.Sprintf("%.*f", i.PricePrecision, i.TakeProfitPrice)
 		q := fmt.Sprintf("%.*f", i.QuantityPrecision, i.Quantity)
@@ -211,7 +211,7 @@ func (i *Interpreter) getOrderExecutionBinance(executionType types.ExecutionType
 			StopPrice: p,
 			Quantity:  q,
 		}
-	case types.StopLossExecution:
+	case types.ExecutionStopLossOrder:
 		side := i.getOppositeSideBinance()
 		p := fmt.Sprintf("%.*f", i.PricePrecision, i.StopLossPrice)
 		q := fmt.Sprintf("%.*f", i.QuantityPrecision, i.Quantity)
@@ -221,7 +221,7 @@ func (i *Interpreter) getOrderExecutionBinance(executionType types.ExecutionType
 			StopPrice: p,
 			Quantity:  q,
 		}
-	case types.ReverseStopPriceExecution:
+	case types.ExecutionEntryReverseMainOrder:
 		side := i.getOppositeSideBinance()
 		p := fmt.Sprintf("%.*f", i.PricePrecision, i.ReverseEntryPrice)
 		q := fmt.Sprintf("%.*f", i.QuantityPrecision, i.ReverseQuantity)
@@ -231,7 +231,7 @@ func (i *Interpreter) getOrderExecutionBinance(executionType types.ExecutionType
 			StopPrice: p,
 			Quantity:  q,
 		}
-	case types.ReverseStopLossExecution:
+	case types.ExecutionStopLossReverseOrder:
 		side := i.getSideBinance()
 		p := fmt.Sprintf("%.*f", i.PricePrecision, i.ReverseStopLossPrice)
 		q := fmt.Sprintf("%.*f", i.QuantityPrecision, i.ReverseQuantity)
@@ -241,7 +241,7 @@ func (i *Interpreter) getOrderExecutionBinance(executionType types.ExecutionType
 			StopPrice: p,
 			Quantity:  q,
 		}
-	case types.ReverseTakeProfitExecution:
+	case types.ExecutionTakeProfitReverseOrder:
 		side := i.getSideBinance()
 		p := fmt.Sprintf("%.*f", i.PricePrecision, i.ReverseTakeProfitPrice)
 		q := fmt.Sprintf("%.*f", i.QuantityPrecision, i.ReverseQuantity)
@@ -251,7 +251,7 @@ func (i *Interpreter) getOrderExecutionBinance(executionType types.ExecutionType
 			StopPrice: p,
 			Quantity:  q,
 		}
-	case types.ClosePositionExecution:
+	case types.ExecutionCloseMainOrder:
 		side := i.getOppositeSideBinance()
 		q := fmt.Sprintf("%.*f", i.QuantityPrecision, i.Quantity)
 		oeb = &OrderExecutionBinance{
@@ -259,7 +259,7 @@ func (i *Interpreter) getOrderExecutionBinance(executionType types.ExecutionType
 			Side:     side,
 			Quantity: q,
 		}
-	case types.ClosePositionReverseExecution:
+	case types.ExecutionCloseReverseMainOrder:
 		side := i.getSideBinance()
 		q := fmt.Sprintf("%.*f", i.QuantityPrecision, i.ReverseQuantity)
 		oeb = &OrderExecutionBinance{
@@ -275,12 +275,12 @@ func (i *Interpreter) getOrderExecutionBinance(executionType types.ExecutionType
 func (i *Interpreter) getOrderExecutionBitmex(ExecutionType types.ExecutionType, orderIDStr string) *OrderExecutionBitmex {
 	var oeb *OrderExecutionBitmex
 	switch ExecutionType {
-	case types.GetOrderExecution, types.CancelOrderExecution:
+	case types.ExecutionGetOrder, types.ExecutionCancelOrder:
 		oeb = &OrderExecutionBitmex{
 			OrderID: orderIDStr,
 			Symbol:  i.Symbol,
 		}
-	case types.StopPriceExecution:
+	case types.ExecutionEntryMainOrder:
 		side := i.getSideBitmex()
 		p := math.Round(i.EntryPrice/i.TickSize) * i.TickSize
 		q := math.Round(i.Quantity/i.LotSize) * i.LotSize
@@ -290,7 +290,7 @@ func (i *Interpreter) getOrderExecutionBitmex(ExecutionType types.ExecutionType,
 			Quantity:  q,
 			StopPrice: p,
 		}
-	case types.TakeProfitExecution:
+	case types.ExecutionTakeProfitOrder:
 		side := i.getOppositeSideBitmex()
 		p := math.Round(i.TakeProfitPrice/i.TickSize) * i.TickSize
 		q := math.Round(i.Quantity/i.LotSize) * i.LotSize
@@ -300,7 +300,7 @@ func (i *Interpreter) getOrderExecutionBitmex(ExecutionType types.ExecutionType,
 			Quantity:  q,
 			StopPrice: p,
 		}
-	case types.StopLossExecution:
+	case types.ExecutionStopLossOrder:
 		side := i.getOppositeSideBitmex()
 		p := math.Round(i.StopLossPrice/i.TickSize) * i.TickSize
 		q := math.Round(i.Quantity/i.LotSize) * i.LotSize
@@ -310,7 +310,7 @@ func (i *Interpreter) getOrderExecutionBitmex(ExecutionType types.ExecutionType,
 			Quantity:  q,
 			StopPrice: p,
 		}
-	case types.ReverseStopPriceExecution:
+	case types.ExecutionEntryReverseMainOrder:
 		side := i.getOppositeSideBitmex()
 		p := math.Round(i.ReverseEntryPrice/i.TickSize) * i.TickSize
 		q := math.Round(i.ReverseQuantity/i.LotSize) * i.LotSize
@@ -320,7 +320,7 @@ func (i *Interpreter) getOrderExecutionBitmex(ExecutionType types.ExecutionType,
 			Quantity:  q,
 			StopPrice: p,
 		}
-	case types.ReverseStopLossExecution:
+	case types.ExecutionStopLossReverseOrder:
 		side := i.getSideBitmex()
 		p := math.Round(i.ReverseStopLossPrice/i.TickSize) * i.TickSize
 		q := math.Round(i.ReverseQuantity/i.LotSize) * i.LotSize
@@ -330,7 +330,7 @@ func (i *Interpreter) getOrderExecutionBitmex(ExecutionType types.ExecutionType,
 			Quantity:  q,
 			StopPrice: p,
 		}
-	case types.ReverseTakeProfitExecution:
+	case types.ExecutionTakeProfitReverseOrder:
 		side := i.getSideBitmex()
 		p := math.Round(i.ReverseTakeProfitPrice/i.TickSize) * i.TickSize
 		q := math.Round(i.ReverseQuantity/i.LotSize) * i.LotSize
@@ -340,7 +340,7 @@ func (i *Interpreter) getOrderExecutionBitmex(ExecutionType types.ExecutionType,
 			Quantity:  q,
 			StopPrice: p,
 		}
-	case types.ClosePositionExecution, types.ClosePositionReverseExecution:
+	case types.ExecutionCloseMainOrder, types.ExecutionCloseReverseMainOrder:
 		oeb = &OrderExecutionBitmex{
 			Symbol: i.Symbol,
 		}

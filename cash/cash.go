@@ -9,7 +9,6 @@ import (
 
 type Cash struct {
 	trades       map[int64]*models.Trade
-	describers   map[int64]*models.Describer
 	interpreters map[int64]*models.Interpreter
 	l            *log.Logger
 	s            store.Storage
@@ -26,7 +25,6 @@ func NewCash(s store.Storage, l *log.Logger) *Cash {
 	}
 	return &Cash{
 		trades:       trades,
-		describers:   make(map[int64]*models.Describer, 0),
 		interpreters: make(map[int64]*models.Interpreter, 0),
 		l:            l,
 		s:            s,

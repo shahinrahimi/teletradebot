@@ -25,6 +25,6 @@ func (b *Bot) handleDescribeExchange(ctx context.Context, t *models.Trade, userI
 	}
 	b.MsgChan <- types.BotMessage{
 		ChatID: userID,
-		MsgStr: interpreter.Describe(),
+		MsgStr: interpreter.Describe(false),
 	}
 }

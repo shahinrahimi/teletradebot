@@ -15,10 +15,10 @@ func (b *Bot) HandleDescribe(u *tgbotapi.Update, ctx context.Context) error {
 	if !ok {
 		b.l.Panic("error getting trade from context")
 	}
-	if d, exist := b.c.GetDescriber(t.ID); exist {
+	if i, exist := b.c.GetInterpreter(t.ID); exist {
 		b.MsgChan <- types.BotMessage{
 			ChatID: userID,
-			MsgStr: d.ToString(),
+			MsgStr: i.Describe(true),
 		}
 		return nil
 	} else {

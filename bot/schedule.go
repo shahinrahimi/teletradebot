@@ -19,7 +19,7 @@ func (b *Bot) ScheduleOrderReplacement(ctx context.Context, i *models.Interprete
 	b.l.Printf("schedule order replacement: delay: %s , TradeID: %d", utils.FriendlyDuration(delay), tradeID)
 	time.AfterFunc(delay, func() {
 		t := b.c.GetTrade(tradeID)
-		oe := i.GetOrderExecution(types.GetOrderExecution, t.OrderID)
+		oe := i.GetOrderExecution(types.ExecutionGetOrder, t.OrderID)
 		res, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
 			return ex.GetOrder(ctx, oe)
 		})
@@ -33,7 +33,7 @@ func (b *Bot) ScheduleOrderReplacement(ctx context.Context, i *models.Interprete
 		switch status {
 		case string(futures.OrderStatusTypeNew), string(futures.OrderStatusTypeExpired), swagger.OrderStatusTypeNew:
 			b.l.Printf("Order not executed, attempting replacement, TradeID: %d", t.ID)
-			oe := i.GetOrderExecution(types.CancelOrderExecution, t.OrderID)
+			oe := i.GetOrderExecution(types.ExecutionCancelOrder, t.OrderID)
 			_, err := b.retryDenyNotFound(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
 				return ex.CancelOrder(ctx, oe)
 			})
@@ -57,7 +57,7 @@ func (b *Bot) ScheduleOrderReplacement(ctx context.Context, i *models.Interprete
 			}
 			b.c.SetInterpreter(interpreter, t.ID)
 			// place new order
-			oe = interpreter.GetOrderExecution(types.StopPriceExecution, t.OrderID)
+			oe = interpreter.GetOrderExecution(types.ExecutionEntryMainOrder, t.OrderID)
 			res, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
 				return ex.PlaceStopOrder(ctx, oe)
 			})
