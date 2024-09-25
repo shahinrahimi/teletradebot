@@ -110,7 +110,7 @@ func (bc *BinanceClient) FetchDescriber(ctx context.Context, t *models.Trade) (*
 	if err != nil {
 		return nil, err
 	}
-	sp, err := t.CalculateStopPrice(high, low)
+	sp, err := t.CalculateEntryPrice(high, low)
 	if err != nil {
 		return nil, err
 	}

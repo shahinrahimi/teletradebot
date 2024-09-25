@@ -104,7 +104,7 @@ func (mc *BitmexClient) FetchDescriber(ctx context.Context, t *models.Trade) (*m
 	if err != nil {
 		return nil, err
 	}
-	sp, err := t.CalculateStopPrice(candle.High, candle.Low)
+	sp, err := t.CalculateEntryPrice(candle.High, candle.Low)
 	if err != nil {
 		return nil, err
 	}
@@ -127,6 +127,7 @@ func (mc *BitmexClient) FetchDescriber(ctx context.Context, t *models.Trade) (*m
 	}
 
 	return &models.Describer{
+
 		TradeID:           t.ID,
 		Symbol:            t.Symbol,
 		Size:              t.Size,
