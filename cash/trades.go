@@ -213,6 +213,17 @@ func (c *Cash) UpdateTradeReverting(ID int64) {
 	c.trades[ID] = t
 }
 
+func (c *Cash) UpdateTradeExpired(ID int64) {
+	mu.Lock()
+	defer mu.Unlock()
+	t, exist := c.trades[ID]
+	if !exist {
+		c.l.Panicf("trade not found: %d", ID)
+	}
+	t.State = types.STATE_EXPIRED
+	c.trades[ID] = t
+}
+
 func (c *Cash) GetTradeByOrderID(orderID string) *models.Trade {
 	mu.RLock()
 	defer mu.RUnlock()

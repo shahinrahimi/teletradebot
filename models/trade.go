@@ -98,7 +98,7 @@ func (t *Trade) ToViewString() string {
 	return fmt.Sprintf("Trade ID: %d\n\nAccount: %s\nSymbol: %s\nSide: %s\nTimeframe: %s\nOffset: $%0.2f\nSize: %d\nSL: %d\nTP: %d\nRM: %d", t.ID, t.Account, t.Symbol, t.Side, t.Timeframe, t.Offset, t.Size, t.StopLossSize, t.TakeProfitSize, t.ReverseMultiplier)
 }
 
-func (t *Trade) CalculateStopPrice(high, low float64) (float64, error) {
+func (t *Trade) CalculateEntryPrice(high, low float64) (float64, error) {
 	var stopPrice float64
 	if t.Side == types.SIDE_L {
 		stopPrice = high + t.Offset
