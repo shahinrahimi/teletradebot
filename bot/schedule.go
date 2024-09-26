@@ -64,6 +64,8 @@ func (b *Bot) ScheduleOrderReplacement(ctx context.Context, i *models.Interprete
 			if err != nil {
 				b.l.Printf("error placing stop-order: %v", err)
 				b.handleError(err, t.UserID, t.ID)
+				// cancel trade if main order is not placed
+				b.c.UpdateTradeCanceled(t.ID)
 				return
 			}
 			// update trade

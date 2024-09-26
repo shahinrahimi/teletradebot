@@ -19,7 +19,7 @@ func (b *Bot) retry(attempts int, delay time.Duration, t *models.Trade, f func()
 			if apiErr, ok := err.(*common.APIError); ok {
 				switch {
 				case (apiErr.Code == -1007 || apiErr.Code == -1008):
-					msg := fmt.Sprintf("Failed to perform action on order\nRetry after %s\n\nTrade ID: %d", utils.FriendlyDuration(delay), t.ID)
+					msg := fmt.Sprintf("Failed to perform action on order\nError: %s\nRetry after %s\n\nTrade ID: %d", apiErr.Message, utils.FriendlyDuration(delay), t.ID)
 					b.MsgChan <- types.BotMessage{
 						ChatID: t.UserID,
 						MsgStr: msg,
@@ -32,15 +32,16 @@ func (b *Bot) retry(attempts int, delay time.Duration, t *models.Trade, f func()
 			} else if apiErr, ok := err.(swagger.GenericSwaggerError); ok {
 				switch {
 				case apiErr.Error() == "503 Service Unavailable":
-					msg := fmt.Sprintf("Failed to perform action on order\nRetry after %s\n\nTrade ID: %d", utils.FriendlyDuration(delay), t.ID)
+					msg := fmt.Sprintf("Failed to perform action on order\nError: %s\nRetry after %s\n\nTrade ID: %d", apiErr.Error(), utils.FriendlyDuration(delay), t.ID)
 					b.MsgChan <- types.BotMessage{
 						ChatID: t.UserID,
 						MsgStr: msg,
 					}
 					time.Sleep(delay)
 					continue
+				default:
+					return nil, err
 				}
-				return nil, err
 			} else if _, ok := err.(*types.BotError); ok {
 				return nil, err
 			} else {
@@ -65,7 +66,7 @@ func (b *Bot) retryDenyNotFound(attempts int, delay time.Duration, t *models.Tra
 					// deny the error from binance api
 					return nil, nil
 				case (apiErr.Code == -1007 || apiErr.Code == -1008):
-					msg := fmt.Sprintf("Failed to perform action on order\nRetry after %s ...\n\nTrade ID: %d", utils.FriendlyDuration(delay), t.ID)
+					msg := fmt.Sprintf("Failed to perform action on order\nError: %s\nRetry after %s\n\nTrade ID: %d", apiErr.Message, utils.FriendlyDuration(delay), t.ID)
 					b.MsgChan <- types.BotMessage{
 						ChatID: t.UserID,
 						MsgStr: msg,
@@ -75,8 +76,19 @@ func (b *Bot) retryDenyNotFound(attempts int, delay time.Duration, t *models.Tra
 				default:
 					return nil, err
 				}
-			} else if _, ok := err.(swagger.GenericSwaggerError); ok {
-				return nil, err
+			} else if apiErr, ok := err.(swagger.GenericSwaggerError); ok {
+				switch {
+				case apiErr.Error() == "503 Service Unavailable":
+					msg := fmt.Sprintf("Failed to perform action on order\nError: %s\nRetry after %s\n\nTrade ID: %d", apiErr.Error(), utils.FriendlyDuration(delay), t.ID)
+					b.MsgChan <- types.BotMessage{
+						ChatID: t.UserID,
+						MsgStr: msg,
+					}
+					time.Sleep(delay)
+					continue
+				default:
+					return nil, err
+				}
 			} else if _, ok := err.(*types.BotError); ok {
 				return nil, err
 			} else {
