@@ -30,10 +30,11 @@ func (b *Bot) handleExecuteExchange(ctx context.Context, t *models.Trade, userID
 		b.handleError(err, userID, t.ID)
 		return
 	}
+	// update trade state
 	b.c.UpdateTradeMainOrder(t.ID, res)
 	// schedule for replacement
 	go b.ScheduleOrderReplacement(ctx, interpreter, t.ID, ex)
 	msg := b.getMessagePlacedOrder(types.OrderTitleMain, types.VerbPlaced, t.ID, res)
 	b.MsgChan <- types.BotMessage{ChatID: t.UserID, MsgStr: msg}
-	// update trade state
+
 }

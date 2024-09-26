@@ -44,7 +44,7 @@ func (b *Bot) handleCloseExchange(
 	case string(futures.OrderStatusTypeNew), swagger.OrderStatusTypeNew:
 		oe := i.GetOrderExecution(types.ExecutionCancelOrder, orderIDStr)
 		_, err := b.retryDenyNotFound(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
-			return b.bc.CancelOrder(ctx, oe)
+			return ex.CancelOrder(ctx, oe)
 		})
 		if err != nil {
 			b.l.Printf("error cancelling order: %v", err)

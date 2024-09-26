@@ -19,7 +19,7 @@ func (b *Bot) retry(attempts int, delay time.Duration, t *models.Trade, f func()
 			if apiErr, ok := err.(*common.APIError); ok {
 				switch {
 				case (apiErr.Code == -1007 || apiErr.Code == -1008):
-					msg := fmt.Sprintf("Failed to perform action on order\nRetry after %s ...\n\nTrade ID: %d", utils.FriendlyDuration(delay), t.ID)
+					msg := fmt.Sprintf("Failed to perform action on order\nRetry after %s\n\nTrade ID: %d", utils.FriendlyDuration(delay), t.ID)
 					b.MsgChan <- types.BotMessage{
 						ChatID: t.UserID,
 						MsgStr: msg,
@@ -29,7 +29,17 @@ func (b *Bot) retry(attempts int, delay time.Duration, t *models.Trade, f func()
 				default:
 					return nil, err
 				}
-			} else if _, ok := err.(swagger.GenericSwaggerError); ok {
+			} else if apiErr, ok := err.(swagger.GenericSwaggerError); ok {
+				switch {
+				case apiErr.Error() == "503 Service Unavailable":
+					msg := fmt.Sprintf("Failed to perform action on order\nRetry after %s\n\nTrade ID: %d", utils.FriendlyDuration(delay), t.ID)
+					b.MsgChan <- types.BotMessage{
+						ChatID: t.UserID,
+						MsgStr: msg,
+					}
+					time.Sleep(delay)
+					continue
+				}
 				return nil, err
 			} else if _, ok := err.(*types.BotError); ok {
 				return nil, err
