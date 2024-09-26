@@ -18,7 +18,16 @@ func (b *Bot) ScheduleOrderReplacement(ctx context.Context, i *models.Interprete
 	delay := i.CalculateExpiration()
 	b.l.Printf("Schedule order replacement after: %s , TradeID: %d", utils.FriendlyDuration(delay), tradeID)
 	time.AfterFunc(delay, func() {
-		t := b.c.GetTrade(tradeID)
+		t := b.c.GetSafeTrade(tradeID)
+		if t == nil {
+			b.l.Printf("Schedule order replacement canceled - Trade not found, TradeID: %d", tradeID)
+			return
+		}
+		if t.OrderID == "" {
+			b.l.Printf("Schedule order replacement canceled - Order not found, TradeID: %d", tradeID)
+			return
+		}
+		// get order
 		oe := i.GetOrderExecution(types.ExecutionGetOrder, t.OrderID)
 		res, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
 			return ex.GetOrder(ctx, oe)

@@ -42,6 +42,16 @@ func (c *Cash) GetTrade(ID int64) *models.Trade {
 	return t
 }
 
+func (c *Cash) GetSafeTrade(ID int64) *models.Trade {
+	mu.Lock()
+	defer mu.Unlock()
+	t, exist := c.trades[ID]
+	if !exist {
+		return nil
+	}
+	return t
+}
+
 func (c *Cash) AddTrade(t *models.Trade, ID int64) {
 	mu.Lock()
 	defer mu.Unlock()
