@@ -7,6 +7,15 @@ const (
 	UseBitmexTestnet  bool = true
 )
 
+var MaxTries int = 3
+var WaitForNextTries time.Duration = time.Second * 3   // 3 seconds
+var WaitForReplacement time.Duration = time.Second * 2 // 2 seconds
+
+var UserIDs = []int64{
+	104196468,
+	539168576,
+}
+
 var Shortcuts = map[string]string{
 	"1":   "m XBTUSDT long 15m 0 1 105 105 1",
 	"2":   "m XBTUSDT short 15m 0 1 105 105 1",
@@ -38,15 +47,6 @@ var Shortcuts = map[string]string{
 	"ml2": "m XBTUSDT long 15m 0.1 1 50 50 2",
 	"s":   "b BTCUSDT short 15m 0.1 1 50 50 1",
 	"l":   "b BTCUSDT long 15m 0.1 1 50 50 1",
-}
-
-var MaxTries int = 3
-var WaitForNextTries time.Duration = time.Second * 3   // 3 seconds
-var WaitForReplacement time.Duration = time.Second * 2 // 2 seconds
-
-var UserIDs = []int64{
-	104196468,
-	539168576,
 }
 
 // hard coded contract size for each symbol for bitmex
