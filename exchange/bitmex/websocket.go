@@ -11,11 +11,12 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/shahinrahimi/teletradebot/config"
 	"github.com/shahinrahimi/teletradebot/swagger"
 )
 
 const (
-	wsBitmexURL        string        = "wss://www.bitmex.com/realtime"
+	wsBitmexURL        string        = "wss://www.bitmex.com"
 	wsBitmexURLTestnet string        = "wss://testnet.bitmex.com"
 	endpoint           string        = "/realtime"
 	Symbol             string        = "ETHUSDT"
@@ -30,7 +31,11 @@ func (mc *BitmexClient) StartWebsocketService(ctx context.Context, wsHandler fun
 
 func (mc *BitmexClient) startUserDataStream724(ctx context.Context, wsHandler func(ctx context.Context, od []swagger.OrderData)) {
 	for {
-		ws, _, err := websocket.DefaultDialer.Dial(wsBitmexURLTestnet+endpoint, nil)
+		websocketURL := wsBitmexURL + endpoint
+		if config.UseBitmexTestnet {
+			websocketURL = wsBitmexURLTestnet + endpoint
+		}
+		ws, _, err := websocket.DefaultDialer.Dial(websocketURL, nil)
 		if err != nil {
 			mc.l.Fatalf("error dialing bitmex websocket: %v", err)
 		}
