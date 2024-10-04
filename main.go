@@ -40,8 +40,6 @@ func main() {
 	}
 
 	c := cash.NewCash(s, logger)
-	// reset all trades
-	//s.ResetAllTrades()
 
 	// check .env file
 	if err := godotenv.Load(); err != nil {
@@ -69,11 +67,7 @@ func main() {
 		logger.Fatal("error wrong environmental variable for bitmex client")
 	}
 
-	// create binance and bitmex client
-	//bc := binance.NewBinanceClient(logger, apiKey, apiSec, config.UseBinanceTestnet, msgChan)
-	//mc := bitmex.NewBitmexClient(logger, apiKey2, apiSec2, config.UseBitmexTestnet)
-
-	bc := binance.NewBinanceClient(logger, apiKey, apiSec, config.UseBinanceTestnet, msgChan)
+	bc := binance.NewBinanceClient(logger, apiKey, apiSec, config.UseBinanceTestnet)
 	mc := bitmex.NewBitmexClient(logger, apiKey2, apiSec2, config.UseBitmexTestnet)
 
 	// start polling for binance

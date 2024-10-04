@@ -133,9 +133,6 @@ func (mc *BitmexClient) startUserDataStream724(ctx context.Context, wsHandler fu
 						if err := json.Unmarshal(message, &orderTable); err == nil {
 							mc.l.Printf("received message orderTable: %s", orderTable.Table)
 							wsHandler(ctx, orderTable.Data)
-							// for i := range orderTable.Data {
-							// 	b.l.Printf("orderTable: %v", orderTable.Data[i])
-							// }
 
 						} else {
 							mc.l.Printf("error unmarshalling bitmex message: %v", err)
@@ -154,24 +151,10 @@ func (mc *BitmexClient) startUserDataStream724(ctx context.Context, wsHandler fu
 						}
 					case "instrument":
 						if err := json.Unmarshal(message, &instrumentTable); err == nil {
-							//b.l.Printf("received message instrumentTable, symbol is: %s data length: %d", instrumentTable.Table, len(instrumentTable.Data))
-							if len(instrumentTable.Data) >= 3 {
-								mc.l.Printf("too many symbols: %d", len(instrumentTable.Data))
-							} else {
-								for _, i := range instrumentTable.Data {
-									// if i.Symbol == "SOLUSDT" {
-									// 	b.l.Printf("symbol: %s, markPrice: %0.5f , since: %s", i.Symbol, i.MarkPrice, utils.FriendlyDuration(time.Since(i.Timestamp)))
-									// }
-									if i.MarkPrice > 0 {
-										go mc.updateCandles(i.Symbol, i.MarkPrice, i.Timestamp)
-									}
-									//trunc1min := i.Timestamp.Truncate(time.Minute).Local()
-									//trunc15min := i.Timestamp.Truncate(time.Minute * 15).Local()
-									//trunc1h := i.Timestamp.Truncate(time.Hour).Local()
-
-									//b.l.Printf("symbol: %s, markPrice: %0.5f , since: %s \ntruncated1min: %s, truncated15min: %s, truncated1h: %s", i.Symbol, i.MarkPrice, utils.FriendlyDuration(time.Since(i.Timestamp)), trunc1min, trunc15min, trunc1h)
+							for _, i := range instrumentTable.Data {
+								if i.MarkPrice > 0 {
+									go mc.updateCandles(i.Symbol, i.MarkPrice, i.Timestamp)
 								}
-
 							}
 
 						} else {

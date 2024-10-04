@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/adshao/go-binance/v2/futures"
-	"github.com/shahinrahimi/teletradebot/types"
 )
 
 type BinanceClient struct {
@@ -14,18 +13,16 @@ type BinanceClient struct {
 	ListenKey        string
 	UseTestnet       bool
 	lastExchangeInfo *futures.ExchangeInfo
-	MsgChan          chan types.BotMessage
 	ReverseEnabled   bool
 }
 
-func NewBinanceClient(l *log.Logger, apiKey string, secretKey string, useTestnet bool, msgChan chan types.BotMessage) *BinanceClient {
+func NewBinanceClient(l *log.Logger, apiKey string, secretKey string, useTestnet bool) *BinanceClient {
 	futures.UseTestnet = useTestnet
 	client := futures.NewClient(apiKey, secretKey)
 	return &BinanceClient{
 		l:              l,
 		client:         client,
 		UseTestnet:     useTestnet,
-		MsgChan:        msgChan,
 		ReverseEnabled: true,
 	}
 }
