@@ -62,7 +62,7 @@ func main() {
 
 	// check environmental variable for binance api
 	apiKey2 := os.Getenv("BITMEX_API_ID")
-	apiSec2 := os.Getenv("BITMEX_APY_KEY")
+	apiSec2 := os.Getenv("BITMEX_API_KEY")
 	if apiKey2 == "" || apiSec2 == "" {
 		logger.Fatal("error wrong environmental variable for bitmex client")
 	}
