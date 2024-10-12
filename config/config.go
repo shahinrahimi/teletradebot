@@ -51,6 +51,7 @@ var Shortcuts = map[string]string{
 
 // hard coded contract size for each symbol for bitmex
 var ContractSizes = map[string]float64{
+	"XBTUSD":   0.00001583, // BTC per contract
 	"XBTUSDT":  0.000001,
 	"ETHUSDT":  0.00001,
 	"ADAUSDT":  0.01,
