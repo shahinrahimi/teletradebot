@@ -128,7 +128,6 @@ func (mc *BitmexClient) FetchInterpreter(ctx context.Context, t *models.Trade) (
 	}()
 	go func() {
 		price, err := mc.fetchPrice(ctx, t.Symbol)
-		mc.l.Printf("price: %v", price)
 		if err != nil {
 			errChan <- err
 		}
@@ -136,7 +135,6 @@ func (mc *BitmexClient) FetchInterpreter(ctx context.Context, t *models.Trade) (
 	}()
 	go func() {
 		price, err := mc.fetchPrice(ctx, "XBTUSD")
-		mc.l.Printf("price: %v", price)
 		if err != nil {
 			errChan <- err
 		}
