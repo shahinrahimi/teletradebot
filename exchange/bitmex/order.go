@@ -15,6 +15,7 @@ func (mc *BitmexClient) PlaceStopOrder(ctx context.Context, oe interface{}) (int
 		mc.l.Panicf("unexpected order type: %T", oe)
 	}
 	ctx = mc.getAuthContext(ctx)
+	mc.l.Printf("placing stop order: %+v", oeb.Quantity)
 	params := &swagger.OrderApiOrderNewOpts{
 		Side:     optional.NewString(string(oeb.Side)),
 		OrderQty: optional.NewFloat32(float32(oeb.Quantity)),

@@ -13,11 +13,14 @@ import (
 )
 
 type Interpreter struct {
-	Balance         float64
-	Price           float64
-	Quantity        float64
-	ReverseQuantity float64
-	Exchange        types.ExchangeType
+	Balance            float64
+	XBtBalance         float64
+	Price              float64
+	Quantity           float64
+	XBtQuantity        float64
+	ReverseQuantity    float64
+	ReverseXBtQuantity float64
+	Exchange           types.ExchangeType
 	// these fields copy from trade
 	TradeID           int64
 	Symbol            string
@@ -283,7 +286,8 @@ func (i *Interpreter) getOrderExecutionBitmex(ExecutionType types.ExecutionType,
 	case types.ExecutionEntryMainOrder:
 		side := i.getSideBitmex()
 		p := math.Round(i.EntryPrice/i.TickSize) * i.TickSize
-		q := math.Round(i.Quantity/i.LotSize) * i.LotSize
+		//q := math.Round(i.Quantity/i.LotSize) * i.LotSize
+		q := math.Round(i.XBtQuantity/i.LotSize) * i.LotSize
 		oeb = &OrderExecutionBitmex{
 			Symbol:    i.Symbol,
 			Side:      side,
@@ -293,7 +297,8 @@ func (i *Interpreter) getOrderExecutionBitmex(ExecutionType types.ExecutionType,
 	case types.ExecutionTakeProfitOrder:
 		side := i.getOppositeSideBitmex()
 		p := math.Round(i.TakeProfitPrice/i.TickSize) * i.TickSize
-		q := math.Round(i.Quantity/i.LotSize) * i.LotSize
+		//q := math.Round(i.Quantity/i.LotSize) * i.LotSize
+		q := math.Round(i.XBtQuantity/i.LotSize) * i.LotSize
 		oeb = &OrderExecutionBitmex{
 			Symbol:    i.Symbol,
 			Side:      side,
@@ -303,7 +308,8 @@ func (i *Interpreter) getOrderExecutionBitmex(ExecutionType types.ExecutionType,
 	case types.ExecutionStopLossOrder:
 		side := i.getOppositeSideBitmex()
 		p := math.Round(i.StopLossPrice/i.TickSize) * i.TickSize
-		q := math.Round(i.Quantity/i.LotSize) * i.LotSize
+		//q := math.Round(i.Quantity/i.LotSize) * i.LotSize
+		q := math.Round(i.XBtQuantity/i.LotSize) * i.LotSize
 		oeb = &OrderExecutionBitmex{
 			Symbol:    i.Symbol,
 			Side:      side,
@@ -313,7 +319,8 @@ func (i *Interpreter) getOrderExecutionBitmex(ExecutionType types.ExecutionType,
 	case types.ExecutionEntryReverseMainOrder:
 		side := i.getOppositeSideBitmex()
 		p := math.Round(i.ReverseEntryPrice/i.TickSize) * i.TickSize
-		q := math.Round(i.ReverseQuantity/i.LotSize) * i.LotSize
+		//q := math.Round(i.ReverseQuantity/i.LotSize) * i.LotSize
+		q := math.Round(i.ReverseXBtQuantity/i.LotSize) * i.LotSize
 		oeb = &OrderExecutionBitmex{
 			Symbol:    i.Symbol,
 			Side:      side,
@@ -323,7 +330,8 @@ func (i *Interpreter) getOrderExecutionBitmex(ExecutionType types.ExecutionType,
 	case types.ExecutionStopLossReverseOrder:
 		side := i.getSideBitmex()
 		p := math.Round(i.ReverseStopLossPrice/i.TickSize) * i.TickSize
-		q := math.Round(i.ReverseQuantity/i.LotSize) * i.LotSize
+		//q := math.Round(i.ReverseQuantity/i.LotSize) * i.LotSize
+		q := math.Round(i.ReverseXBtQuantity/i.LotSize) * i.LotSize
 		oeb = &OrderExecutionBitmex{
 			Symbol:    i.Symbol,
 			Side:      side,
@@ -333,7 +341,8 @@ func (i *Interpreter) getOrderExecutionBitmex(ExecutionType types.ExecutionType,
 	case types.ExecutionTakeProfitReverseOrder:
 		side := i.getSideBitmex()
 		p := math.Round(i.ReverseTakeProfitPrice/i.TickSize) * i.TickSize
-		q := math.Round(i.ReverseQuantity/i.LotSize) * i.LotSize
+		//q := math.Round(i.ReverseQuantity/i.LotSize) * i.LotSize
+		q := math.Round(i.ReverseXBtQuantity/i.LotSize) * i.LotSize
 		oeb = &OrderExecutionBitmex{
 			Symbol:    i.Symbol,
 			Side:      side,

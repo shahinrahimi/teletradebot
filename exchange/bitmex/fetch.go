@@ -24,7 +24,25 @@ func (mc *BitmexClient) fetchMargins(ctx context.Context) ([]swagger.Margin, err
 	return margins, nil
 }
 
-func (mc *BitmexClient) fetchBalance(ctx context.Context) (float64, error) {
+func (mc *BitmexClient) fetchBalanceXBt(ctx context.Context) (float64, error) {
+	ctx = mc.getAuthContext(ctx)
+	opts := swagger.UserApiUserGetMarginOpts{
+		Currency: optional.NewString("all"),
+	}
+	margins, _, err := mc.client.UserApi.UserGetMargins(ctx, &opts)
+	if err != nil {
+		mc.l.Printf("failed to retrieve margins: %v", err)
+		return 0, err
+	}
+	for _, m := range margins {
+		if m.Currency == "XBt" {
+			return float64(m.AvailableMargin), nil
+		}
+	}
+	return 0, fmt.Errorf("the currency 'XBt' not found")
+}
+
+func (mc *BitmexClient) fetchBalanceUSDt(ctx context.Context) (float64, error) {
 	ctx = mc.getAuthContext(ctx)
 	opts := swagger.UserApiUserGetMarginOpts{
 		Currency: optional.NewString("all"),
@@ -39,7 +57,7 @@ func (mc *BitmexClient) fetchBalance(ctx context.Context) (float64, error) {
 			return float64(m.AvailableMargin), nil
 		}
 	}
-	return 0, fmt.Errorf("the currency 'USTt' not found")
+	return 0, fmt.Errorf("the currency 'USDt' not found")
 }
 
 func (mc *BitmexClient) fetchPrice(ctx context.Context, symbol string) (float64, error) {
@@ -71,9 +89,12 @@ func (mc *BitmexClient) fetchInstrument(ctx context.Context, symbol string) (*sw
 }
 
 func (mc *BitmexClient) FetchInterpreter(ctx context.Context, t *models.Trade) (*models.Interpreter, error) {
-	errChan := make(chan error, 4)
-	balanceChan := make(chan float64, 1)
+	var cc = 6 //  channel count
+	errChan := make(chan error, cc)
+	usdtBalanceChan := make(chan float64, 1)
+	xbtBalanceChan := make(chan float64, 1)
 	priceChan := make(chan float64, 1)
+	xbtPriceChan := make(chan float64, 1)
 	candleChan := make(chan *Candle, 1)
 	symbolChan := make(chan *swagger.Instrument, 1)
 
@@ -92,32 +113,52 @@ func (mc *BitmexClient) FetchInterpreter(ctx context.Context, t *models.Trade) (
 		symbolChan <- symbol
 	}()
 	go func() {
-		balance, err := mc.fetchBalance(ctx)
+		balance, err := mc.fetchBalanceUSDt(ctx)
 		if err != nil {
-			errChan <- err
+			//errChan <- err
 		}
-		balanceChan <- balance
+		usdtBalanceChan <- balance
+	}()
+	go func() {
+		balance, err := mc.fetchBalanceXBt(ctx)
+		if err != nil {
+			//errChan <- err
+		}
+		xbtBalanceChan <- balance
 	}()
 	go func() {
 		price, err := mc.fetchPrice(ctx, t.Symbol)
+		mc.l.Printf("price: %v", price)
 		if err != nil {
 			errChan <- err
 		}
 		priceChan <- price
 	}()
+	go func() {
+		price, err := mc.fetchPrice(ctx, "XBTUSD")
+		mc.l.Printf("price: %v", price)
+		if err != nil {
+			errChan <- err
+		}
+		xbtPriceChan <- price
+	}()
 
 	var candle *Candle
 	var symbol *swagger.Instrument
-	var balance float64
+	var usdtBalance float64
+	var xbtBalance float64
 	var price float64
-	for i := 0; i < 4; i++ {
+	var xbtPrice float64
+	for i := 0; i < cc; i++ {
 		select {
 		case err := <-errChan:
 			return nil, err
 		case candle = <-candleChan:
 		case symbol = <-symbolChan:
-		case balance = <-balanceChan:
+		case usdtBalance = <-usdtBalanceChan:
+		case xbtBalance = <-xbtBalanceChan:
 		case price = <-priceChan:
+		case xbtPrice = <-xbtPriceChan:
 		}
 	}
 
@@ -151,19 +192,33 @@ func (mc *BitmexClient) FetchInterpreter(ctx context.Context, t *models.Trade) (
 	if !exist {
 		return nil, fmt.Errorf("contract size not found for symbol %s", t.Symbol)
 	}
-
-	balance = balance / 1000000 // balance in USDT
-
-	size := balance * (float64(t.Size) / 100)
+	// perform calculation for USDt
+	usdtBalance = usdtBalance / 1000000 // balance in USDT
+	size := usdtBalance * (float64(t.Size) / 100)
 	quantity := size / (price * contractSize)
+
+	// Calculate XBt-based balance
+	xbtBalance = xbtBalance / 100000000 // Convert satoshis to XBt
+	xbtSize := xbtBalance * (float64(t.Size) / 100)
+	xbtQuantity := xbtSize * xbtPrice / (price * contractSize)
+
 	rQuantity := quantity * float64(t.ReverseMultiplier)
+	rXbtQuantity := xbtQuantity * float64(t.ReverseMultiplier)
+
+	mc.l.Printf("symbol: %s, price: %f, usdtBalance: %f, xbtBalance: %ff", t.Symbol, price, usdtBalance, xbtBalance)
+	mc.l.Printf("symbol: %s, quantity: %f, xbtQuantity: %f", t.Symbol, quantity, xbtQuantity)
+	mc.l.Printf("symbol: %s, rQuantity: %f, rXbtQuantity: %f", t.Symbol, rQuantity, rXbtQuantity)
 
 	return &models.Interpreter{
-		Balance:         balance,
-		Price:           price,
-		Quantity:        quantity,
-		ReverseQuantity: rQuantity,
-		Exchange:        types.ExchangeBitmex,
+		Balance:     usdtBalance,
+		XBtBalance:  xbtBalance,
+		Price:       price,
+		Quantity:    quantity,
+		XBtQuantity: xbtQuantity,
+
+		ReverseQuantity:    rQuantity,
+		ReverseXBtQuantity: rXbtQuantity,
+		Exchange:           types.ExchangeBitmex,
 
 		TradeID:           t.ID,
 		Symbol:            t.Symbol,
