@@ -203,8 +203,8 @@ func ParseTrade(tradeArgs []string) (*Trade, error) {
 	size_percent, err := strconv.Atoi(part6)
 	if err != nil {
 		return nil, fmt.Errorf("invalid size; please provide a percentage value (e.g., 5)")
-	} else if size_percent <= 0 || size_percent > 50 {
-		return nil, fmt.Errorf("invalid size; please provide a value between 1 and 50")
+	} else if size_percent <= 0 {
+		return nil, fmt.Errorf("invalid size; please provide a positive percentage value (e.g., 5)")
 	} else {
 		t.Size = size_percent
 	}
