@@ -3,6 +3,7 @@ package bitmex
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/antihax/optional"
 	"github.com/shahinrahimi/teletradebot/config"
@@ -88,6 +89,55 @@ func (mc *BitmexClient) fetchInstrument(ctx context.Context, symbol string) (*sw
 	return nil, fmt.Errorf("could not find instrument")
 }
 
+func (mc *BitmexClient) fetchLastCompletedCandle(ctx context.Context, t *models.Trade) (*swagger.TradeBin, error) {
+	ctx = mc.getAuthContext(ctx)
+	endTime := time.Now().UTC().Format("2006-01-02 15:04")
+	filter := fmt.Sprintf(`{"endTime": "%s"}`, endTime)
+	candleDuration, err := models.GetDuration(t.Timeframe)
+	if err != nil {
+		return nil, err
+	}
+	switch candleDuration {
+	case time.Minute, time.Minute * 5, time.Hour, time.Hour * 24:
+		//filter = fmt.Sprintf(`{"endTime": "%s", "interval": "1m"}`, endTime)
+	default:
+		return nil, &types.BotError{
+			Msg: fmt.Sprintf("timeframe %s not supported", t.Timeframe),
+		}
+	}
+	params := swagger.TradeApiTradeGetBucketedOpts{
+		BinSize: optional.NewString(string(t.Timeframe)),
+		Symbol:  optional.NewString(t.Symbol),
+		Count:   optional.NewFloat32(1),
+		Reverse: optional.NewBool(true),
+		Filter:  optional.NewString(filter),
+	}
+	// try until we get tradebucket with positive remaining time
+	for i := 0; i < 10; i++ {
+		tradeBins, _, err := mc.client.TradeApi.TradeGetBucketed(ctx, &params)
+		if err != nil {
+			mc.l.Printf("error: %v", err)
+			mc.l.Printf("err type: %T", err)
+			if ApiErr, ok := (err).(swagger.GenericSwaggerError); ok {
+				mc.l.Printf("error creating a order: %s , error: %s", string(ApiErr.Body()), ApiErr.Error())
+			}
+			return nil, err
+		}
+		for _, bin := range tradeBins {
+			expiration := candleDuration + time.Until(bin.Timestamp)
+			if expiration <= 0 {
+				mc.l.Printf("retrying getting last closed candle with delay sleep 5s")
+				time.Sleep(time.Second * 5)
+				break
+			} else {
+				return &bin, nil
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("failed to get last closed candle")
+}
+
 func (mc *BitmexClient) FetchInterpreter(ctx context.Context, t *models.Trade) (*models.Interpreter, error) {
 	var cc = 6 //  channel count
 	errChan := make(chan error, cc)
@@ -95,13 +145,40 @@ func (mc *BitmexClient) FetchInterpreter(ctx context.Context, t *models.Trade) (
 	xbtBalanceChan := make(chan float64, 1)
 	priceChan := make(chan float64, 1)
 	xbtPriceChan := make(chan float64, 1)
-	candleChan := make(chan *Candle, 1)
+	candleChan := make(chan Candle, 1)
 	symbolChan := make(chan *swagger.Instrument, 1)
 
+	candleDur, err := models.GetDuration(t.Timeframe)
+	if err != nil {
+		return nil, err
+	}
+
 	go func() {
-		candle, err := mc.GetLastCompletedCandle(t.Symbol, t.Timeframe)
-		if err != nil {
-			errChan <- err
+		var candle Candle
+		if config.UseMarkPriceFromAggregator {
+			c, err := mc.GetLastCompletedCandle(t.Symbol, t.Timeframe)
+			if err != nil {
+				errChan <- err
+				return
+			}
+			candle.High = c.High
+			candle.Low = c.Low
+			candle.Close = c.Close
+			candle.Open = c.Open
+			candle.CloseTime = c.CloseTime
+			candle.OpenTime = c.OpenTime
+		} else {
+			bin, err := mc.fetchLastCompletedCandle(ctx, t)
+			if err != nil {
+				errChan <- err
+				return
+			}
+			candle.High = bin.High
+			candle.Low = bin.Low
+			candle.Close = bin.Close
+			candle.Open = bin.Open
+			candle.CloseTime = bin.Timestamp
+			candle.OpenTime = bin.Timestamp.Add(-candleDur)
 		}
 		candleChan <- candle
 	}()
@@ -141,7 +218,7 @@ func (mc *BitmexClient) FetchInterpreter(ctx context.Context, t *models.Trade) (
 		xbtPriceChan <- price
 	}()
 
-	var candle *Candle
+	var candle Candle
 	var symbol *swagger.Instrument
 	var usdtBalance float64
 	var xbtBalance float64
@@ -202,10 +279,6 @@ func (mc *BitmexClient) FetchInterpreter(ctx context.Context, t *models.Trade) (
 
 	rQuantity := quantity * float64(t.ReverseMultiplier)
 	rXbtQuantity := xbtQuantity * float64(t.ReverseMultiplier)
-
-	mc.l.Printf("symbol: %s, price: %f, usdtBalance: %f, xbtBalance: %ff", t.Symbol, price, usdtBalance, xbtBalance)
-	mc.l.Printf("symbol: %s, quantity: %f, xbtQuantity: %f", t.Symbol, quantity, xbtQuantity)
-	mc.l.Printf("symbol: %s, rQuantity: %f, rXbtQuantity: %f", t.Symbol, rQuantity, rXbtQuantity)
 
 	return &models.Interpreter{
 		Balance:     usdtBalance,

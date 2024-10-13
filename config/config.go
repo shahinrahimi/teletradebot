@@ -3,8 +3,9 @@ package config
 import "time"
 
 const (
-	UseBinanceTestnet bool = true
-	UseBitmexTestnet  bool = true
+	UseBinanceTestnet          bool = true
+	UseBitmexTestnet           bool = true
+	UseMarkPriceFromAggregator bool = false // false will use last price for bitmex exchange
 )
 
 var MaxTries int = 3
