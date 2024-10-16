@@ -58,6 +58,7 @@ func (mc *BitmexClient) GetSymbol(symbol string) (*swagger.Instrument, error) {
 }
 
 func (mc *BitmexClient) getAuthContext(ctx context.Context) context.Context {
+
 	return context.WithValue(ctx, swagger.ContextAPIKey, swagger.APIKey{
 		Key:    mc.apiKey,
 		Secret: mc.apiSec,

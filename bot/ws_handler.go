@@ -2,6 +2,8 @@ package bot
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/adshao/go-binance/v2/futures"
 	"github.com/shahinrahimi/teletradebot/config"
@@ -10,6 +12,74 @@ import (
 	"github.com/shahinrahimi/teletradebot/swagger"
 	"github.com/shahinrahimi/teletradebot/types"
 )
+
+func (b *Bot) handleCanceledExchange(ctx context.Context, update interface{}) {
+	var t *models.Trade
+	var orderType types.OrderIDType
+	var text string
+	if u, ok := update.(futures.WsOrderTradeUpdate); ok {
+		t, orderType = b.c.GetTradeByAnyOrderID(u.ID)
+		text = string(u.Status)
+	} else if u, ok := update.(swagger.OrderData); ok {
+		t, orderType = b.c.GetTradeByAnyOrderID(u.OrderID)
+		text = u.Text
+	} else {
+		b.l.Panicf("unknown type of update: %T", update)
+	}
+
+	if types.OrderIDTypeNone == orderType {
+		b.l.Printf("the orderID is not associate with any trade: %s", update)
+		return
+	}
+	// i, exist := b.c.GetInterpreter(t.ID)
+	// if !exist {
+	// 	b.l.Panicf("interpreter not exist for trade: %d", t.ID)
+	// 	return
+	// }
+
+	// if t.Account == types.ExchangeBinance {
+	// 	ex = b.bc
+	// } else if t.Account == types.ExchangeBitmex {
+	// 	ex = b.mc
+	// } else {
+	// 	b.l.Panicf("unknown account: %s", t.Account)
+	// }
+
+	switch orderType {
+	case types.OrderIDTypeMain:
+		if t.State == types.StatePlaced {
+			// canceled via app (api)
+			if strings.Contains(text, "Submitted via API") {
+				return
+			}
+			b.c.UpdateTradeCanceled(t.ID)
+			// message user
+			msg := fmt.Sprintf("Main order canceled.\nText: %s\n\nTradeID: %d", text, t.ID)
+			b.MsgChan <- types.BotMessage{ChatID: t.UserID, MsgStr: msg}
+
+		}
+		//b.handleMainFilledExchange(ctx, t, i, ex)
+	case types.OrderIDTypeTakeProfit:
+		//b.handleTakeProfitFilledExchange(ctx, t, i, ex)
+	case types.OrderIDTypeStopLoss:
+		//b.handleStopLossFilledExchange(ctx, t, i, ex)
+	case types.OrderIDTypeReverseMain:
+		if t.State == types.StateReverting {
+			b.c.UpdateTradeCanceled(t.ID)
+			// message user
+			msg := fmt.Sprintf("Reverse order canceled.\nText: %s\n\nTradeID: %d", text, t.ID)
+			b.MsgChan <- types.BotMessage{ChatID: t.UserID, MsgStr: msg}
+
+		}
+	case types.OrderIDTypeReverseTakeProfit:
+		//b.handleReverseTakeProfitFilledExchange(ctx, t, i, ex)
+	case types.OrderIDTypeReverseStopLoss:
+		//b.handleReverseStopLossFilledExchange(ctx, t, i, ex)
+	default:
+		b.l.Printf("the orderID is not associate with any trade: %s", update)
+	}
+
+}
 
 func (b *Bot) handleFilledExchange(ctx context.Context, update interface{}) {
 	var t *models.Trade
