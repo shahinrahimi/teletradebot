@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/adshao/go-binance/v2/futures"
 	"github.com/shahinrahimi/teletradebot/config"
@@ -25,6 +26,7 @@ func (b *Bot) handleCloseExchange(
 	isFilledClose bool,
 ) {
 	if orderIDStr == "" {
+		b.DbgChan <- fmt.Sprintf("Close order skipped, orderIDStr is empty, TradeID: %d", t.ID)
 		return
 	}
 	oe := i.GetOrderExecution(types.ExecutionGetOrder, orderIDStr)
@@ -34,11 +36,13 @@ func (b *Bot) handleCloseExchange(
 		return ex.GetOrder(ctx, oe)
 	})
 	if err != nil {
-		b.l.Printf("error getting order: %v", err)
+		b.DbgChan <- fmt.Sprintf("error getting order: %v", err)
 		b.handleError(err, userID, t.ID)
 		return
 	}
 	status := utils.ExtractOrderStatus(res)
+
+	b.DbgChan <- fmt.Sprintf("order status is: %s", status)
 
 	switch status {
 	case string(futures.OrderStatusTypeNew), swagger.OrderStatusTypeNew:
@@ -47,7 +51,7 @@ func (b *Bot) handleCloseExchange(
 			return ex.CancelOrder(ctx, oe)
 		})
 		if err != nil {
-			b.l.Printf("error cancelling order: %v", err)
+			b.DbgChan <- fmt.Sprintf("error cancelling order: %v", err)
 			b.handleError(err, userID, t.ID)
 			return
 		}
@@ -68,7 +72,7 @@ func (b *Bot) handleCloseExchange(
 				return ex.CloseOrder(ctx, oe)
 			})
 			if err != nil {
-				b.l.Printf("error closing order: %v", err)
+				b.DbgChan <- fmt.Sprintf("error closing order: %v", err)
 				b.handleError(err, userID, t.ID)
 				return
 			}
@@ -86,7 +90,7 @@ func (b *Bot) handleCloseExchange(
 	case string(futures.OrderStatusTypeExpired), string(futures.OrderStatusTypeRejected):
 		return
 	default:
-		b.l.Printf("unknown order status received: %v", status)
+		b.DbgChan <- fmt.Sprintf("unknown order status received: %v", status)
 
 	}
 }

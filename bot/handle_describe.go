@@ -15,15 +15,15 @@ func (b *Bot) HandleDescribe(u *tgbotapi.Update, ctx context.Context) error {
 	if !ok {
 		b.l.Panic("error getting trade from context")
 	}
+	b.DbgChan <- fmt.Sprintf("Handling describe request for trade: %d from user: %d", t.ID, userID)
 	if i, exist := b.c.GetInterpreter(t.ID); exist {
 		b.MsgChan <- types.BotMessage{
 			ChatID: userID,
 			MsgStr: i.Describe(true),
 		}
 		return nil
-	} else {
-
 	}
+	b.DbgChan <- fmt.Sprintf("interpreter not found for trade: %d, so fetching it", t.ID)
 	switch t.Account {
 	case types.ExchangeBinance:
 		go b.handleDescribeExchange(ctx, &t, userID, b.bc)

@@ -6,6 +6,7 @@ import (
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/shahinrahimi/teletradebot/cash"
+	"github.com/shahinrahimi/teletradebot/config"
 	"github.com/shahinrahimi/teletradebot/exchange"
 	"github.com/shahinrahimi/teletradebot/types"
 )
@@ -21,9 +22,10 @@ type Bot struct {
 	bc      exchange.Exchange
 	mc      exchange.Exchange
 	MsgChan chan types.BotMessage
+	DbgChan chan string
 }
 
-func NewBot(l *log.Logger, c *cash.Cash, bc exchange.Exchange, mc exchange.Exchange, token string, msgChan chan types.BotMessage) (*Bot, error) {
+func NewBot(l *log.Logger, c *cash.Cash, bc exchange.Exchange, mc exchange.Exchange, token string, msgChan chan types.BotMessage, dbgChan chan string) (*Bot, error) {
 	api, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		l.Printf("error creating a new bot api: %v", err)
@@ -38,7 +40,14 @@ func NewBot(l *log.Logger, c *cash.Cash, bc exchange.Exchange, mc exchange.Excha
 		bc:          bc,
 		mc:          mc,
 		MsgChan:     msgChan,
+		DbgChan:     dbgChan,
 	}, nil
+}
+
+func (b *Bot) Debug(msg string) {
+	if config.Debug {
+		b.l.Printf(msg)
+	}
 }
 
 func (b *Bot) NewRouter(routeName string) *Router {
@@ -118,6 +127,19 @@ func (b *Bot) handleUpdate(u tgbotapi.Update, ctx context.Context) {
 
 // SendMessage send message string to user and error does not returned
 func (b *Bot) StartMessageListener() {
+	go b.startListenForDbgMessages()
+	go b.startListenForBotMessages()
+}
+
+func (b *Bot) startListenForDbgMessages() {
+	go func() {
+		for msg := range b.DbgChan {
+			b.Debug(msg)
+		}
+	}()
+}
+
+func (b *Bot) startListenForBotMessages() {
 	go func() {
 		for msg := range b.MsgChan {
 			b.sendMessage(msg.ChatID, msg.MsgStr)

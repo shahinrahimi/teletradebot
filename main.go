@@ -26,6 +26,7 @@ func main() {
 
 	// create global message channel
 	msgChan := make(chan types.BotMessage)
+	dbgChan := make(chan string)
 
 	// create global store (Storage)
 	s, err := store.NewSqliteStore(logger)
@@ -67,15 +68,15 @@ func main() {
 		logger.Fatal("error wrong environmental variable for bitmex client")
 	}
 
-	bc := binance.NewBinanceClient(logger, apiKey, apiSec, config.UseBinanceTestnet)
-	mc := bitmex.NewBitmexClient(logger, apiKey2, apiSec2, config.UseBitmexTestnet)
+	bc := binance.NewBinanceClient(logger, apiKey, apiSec, config.UseBinanceTestnet, dbgChan)
+	mc := bitmex.NewBitmexClient(logger, apiKey2, apiSec2, config.UseBitmexTestnet, dbgChan)
 
 	// start polling for binance
 	bc.StartPolling(ctx)
 	// start polling for bitmex
 	mc.StartPolling(ctx)
 
-	b, err := bot.NewBot(logger, c, bc, mc, token, msgChan)
+	b, err := bot.NewBot(logger, c, bc, mc, token, msgChan, dbgChan)
 	if err != nil {
 		logger.Fatalf("error creating instance of bot: %v", err)
 	}

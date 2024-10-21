@@ -59,19 +59,38 @@ func (bc *BinanceClient) fetchLastCompletedCandle(ctx context.Context, symbol st
 	return nil, fmt.Errorf("failed to locate before last candle")
 }
 
+func (bc *BinanceClient) fetchSymbolBracket(ctx context.Context, symbol string) ([]futures.Bracket, error) {
+	res, err := bc.client.NewGetLeverageBracketService().Symbol(symbol).Do(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, s := range res {
+		if s.Symbol == symbol {
+			return s.Brackets, nil
+		}
+	}
+	return nil, fmt.Errorf("symbol %s not found", symbol)
+}
+
 func (bc *BinanceClient) FetchInterpreter(ctx context.Context, t *models.Trade) (*models.Interpreter, error) {
-	errChan := make(chan error, 2)
+	bc.DbgChan <- fmt.Sprintf("Fetching interpreter for trade: %d", t.ID)
+	var cc = 5
+	errChan := make(chan error, cc)
 	balanceChan := make(chan float64, 1)
 	priceChan := make(chan float64, 1)
 	candleChan := make(chan *futures.Kline, 1)
 	symbolChan := make(chan *futures.Symbol, 1)
+	symbolBracketChan := make(chan []futures.Bracket, 1) // contain leverage info
 
 	go func() {
 		candle, err := bc.fetchLastCompletedCandle(ctx, t.Symbol, t.Timeframe)
 		if err != nil {
 			errChan <- err
+			candleChan <- nil
+			return
 		}
 		candleChan <- candle
+		bc.DbgChan <- fmt.Sprintf("candle: %v", candle)
 	}()
 	go func() {
 		symbol, err := bc.GetSymbol(t.Symbol)
@@ -79,6 +98,7 @@ func (bc *BinanceClient) FetchInterpreter(ctx context.Context, t *models.Trade) 
 			errChan <- err
 		}
 		symbolChan <- symbol
+		bc.DbgChan <- fmt.Sprintf("symbol: %v", symbol)
 	}()
 	go func() {
 		balance, err := bc.fetchBalance(ctx)
@@ -86,6 +106,7 @@ func (bc *BinanceClient) FetchInterpreter(ctx context.Context, t *models.Trade) 
 			errChan <- err
 		}
 		balanceChan <- balance
+		bc.DbgChan <- fmt.Sprintf("balance: %f", balance)
 	}()
 	go func() {
 		price, err := bc.fetchPrice(ctx, t.Symbol)
@@ -93,26 +114,39 @@ func (bc *BinanceClient) FetchInterpreter(ctx context.Context, t *models.Trade) 
 			errChan <- err
 		}
 		priceChan <- price
+		bc.DbgChan <- fmt.Sprintf("price: %f", price)
+	}()
+
+	go func() {
+		symbolBracket, err := bc.fetchSymbolBracket(ctx, t.Symbol)
+		if err != nil {
+			errChan <- err
+			symbolBracketChan <- nil
+			return
+		}
+		symbolBracketChan <- symbolBracket
+		bc.DbgChan <- fmt.Sprintf("symbol bracket: %v", symbolBracket)
 	}()
 
 	var candle *futures.Kline
 	var symbol *futures.Symbol
+	var symbolBracket []futures.Bracket
 	var balance float64
 	var price float64
 	var err error
 
-	for i := 0; i < 4; i++ {
+	for i := 0; i < cc; i++ {
 		select {
-		case candle = <-candleChan:
 		case err = <-errChan:
+			return nil, err
+		case candle = <-candleChan:
 		case balance = <-balanceChan:
 		case price = <-priceChan:
 		case symbol = <-symbolChan:
-		}
-		if err != nil {
-			return nil, err
+		case symbolBracket = <-symbolBracketChan:
 		}
 	}
+	bc.DbgChan <- fmt.Sprintf("bracket length: %d", len(symbolBracket))
 
 	timeframeDur, err := models.GetDuration(t.Timeframe)
 	if err != nil {
@@ -158,6 +192,15 @@ func (bc *BinanceClient) FetchInterpreter(ctx context.Context, t *models.Trade) 
 	size := balance * float64(t.Size) / 100
 	quantity := size / price
 	rQuantity := quantity * float64(t.ReverseMultiplier)
+
+	// check quantity
+	if quantity == 0 {
+		return nil, &types.BotError{
+			Msg: fmt.Sprintf("quantity is 0. balance is %f price is %f size is %f", balance, price, size),
+		}
+	}
+
+	bc.DbgChan <- fmt.Sprintf("the size is %f balance is %f price is %f quantity is %f reverse quantity is %f", size, balance, price, quantity, rQuantity)
 
 	return &models.Interpreter{
 		Balance:         balance,
