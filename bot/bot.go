@@ -3,6 +3,7 @@ package bot
 import (
 	"context"
 	"log"
+	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/shahinrahimi/teletradebot/cash"
@@ -75,7 +76,7 @@ func (b *Bot) receiveUpdates(ctx context.Context, us tgbotapi.UpdatesChannel) {
 	for {
 		select {
 		case <-ctx.Done():
-			b.l.Printf("recived a ctx.Done")
+			b.l.Printf("received a ctx.Done")
 			return
 		case u := <-us:
 			if u.EditedMessage != nil {
@@ -92,6 +93,8 @@ func (b *Bot) handleUpdate(u tgbotapi.Update, ctx context.Context) {
 	// Define the function that will handle the routing logic
 	routerHandler := func(u *tgbotapi.Update, ctx context.Context) {
 		command := u.Message.Command()
+		// remove case sensitivity for commands
+		command = strings.ToLower(command)
 		for _, router := range b.routers {
 			if handler, exists := router.handlers[command]; exists {
 				// Start with the actual handler

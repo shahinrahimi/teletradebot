@@ -13,202 +13,199 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/shahinrahimi/teletradebot/config"
 	"github.com/shahinrahimi/teletradebot/swagger"
+	"github.com/shahinrahimi/teletradebot/utils"
 )
 
 const (
-	wsBitmexURL        string        = "wss://www.bitmex.com"
-	wsBitmexURLTestnet string        = "wss://testnet.bitmex.com"
-	endpoint           string        = "/realtime"
-	Symbol             string        = "ETHUSDT"
-	pingInterval       time.Duration = 5 * time.Second
-	pongWait           time.Duration = 5 * time.Second
+	wsBitmexURL          = "wss://www.bitmex.com"
+	wsBitmexURLTestnet   = "wss://testnet.bitmex.com"
+	endpoint             = "/realtime"
+	Symbol               = "ETHUSDT"
+	pingInterval         = 5 * time.Second
+	pongWait             = 5 * time.Second
+	reconnectingInterval = 5 * time.Second
 )
 
-func (mc *BitmexClient) StartWebsocketService(ctx context.Context, wsHandler func(ctx context.Context, od []swagger.OrderData)) {
-	go mc.startUserDataStream724(ctx, wsHandler)
-	//b.Test()
+// WebSocketConnection handles the lifecycle of the WebSocket connection
+type WebSocketConnection struct {
+	ws      *websocket.Conn
+	ctx     context.Context
+	handler func(ctx context.Context, od []swagger.OrderData)
 }
 
-func (mc *BitmexClient) startUserDataStream724(ctx context.Context, wsHandler func(ctx context.Context, od []swagger.OrderData)) {
+// StartWebsocketService initializes the WebSocket connection and handles reconnection
+func (mc *BitmexClient) StartWebsocketService(ctx context.Context, wsHandler func(ctx2 context.Context, od []swagger.OrderData)) {
+	go mc.startUserDataStream(ctx, wsHandler)
+}
+
+// startUserDataStream initiates and manages the connection loop
+func (mc *BitmexClient) startUserDataStream(ctx context.Context, wsHandler func(ctx2 context.Context, od []swagger.OrderData)) {
 	for {
-		websocketURL := wsBitmexURL + endpoint
-		if config.UseBitmexTestnet {
-			websocketURL = wsBitmexURLTestnet + endpoint
-		}
-		ws, _, err := websocket.DefaultDialer.Dial(websocketURL, nil)
+		err := mc.connectWebSocket(ctx, wsHandler)
 		if err != nil {
-			mc.l.Fatalf("error dialing bitmex websocket: %v", err)
+			mc.l.Printf("Error in websocket connection: %v. Reconnecting in 5 seconds...", err)
+			time.Sleep(5 * time.Second)
 		}
-
-		defer ws.Close()
-
-		nonce := (time.Now().Unix() + 5) * 1000
-		signature := generateSignature(mc.apiSec, "GET", endpoint, nonce)
-
-		authMessage := fmt.Sprintf(`{"op": "authKeyExpires", "args": ["%s", %d, "%s"]}`, mc.apiKey, nonce, signature)
-
-		err = ws.WriteMessage(websocket.TextMessage, []byte(authMessage))
-		if err != nil {
-			mc.l.Fatalf("error sending bitmex auth message: %v", err)
-		}
-		//b.l.Printf("sent auth message: %s", authMessage)
-
-		publicSubMessage := `{"op": "subscribe", "args": ["instrument:DERIVATIVES"]}`
-		err = ws.WriteMessage(websocket.TextMessage, []byte(publicSubMessage))
-		if err != nil {
-			mc.l.Fatalf("error sending bitmex public sub message: %v", err)
-		}
-		// b.l.Printf("sent public sub message: %s", publicSubMessage)
-
-		// subscribe to private channel
-		privateSubMessage := fmt.Sprintf(`{"op": "subscribe", "args": ["%s" , "%s", "%s"]}`, "execution", "order", "margin")
-
-		err = ws.WriteMessage(websocket.TextMessage, []byte(privateSubMessage))
-		if err != nil {
-			mc.l.Fatalf("error sending bitmex private sub message: %v", err)
-		}
-		//b.l.Printf("sent private sub message: %s", privateSubMessage)
-
-		// Timer for heartbeat
-		lastMessageTime := time.Now()
-		pingTicker := time.NewTicker(pingInterval)
-		defer pingTicker.Stop()
-
-		// Track pong receipt
-		pongReceived := make(chan struct{})
-
-		ws.SetPongHandler(func(appData string) error {
-			//b.l.Printf("received pong from BitMEX: %s", appData)
-			lastMessageTime = time.Now() // Reset the last message time
-			// Signal pong received
-			select {
-			case pongReceived <- struct{}{}:
-			default:
-			}
-
-			return nil
-		})
-
-		done := make(chan struct{})
-
-		// WebSocket read loop
-
-		go func() {
-			defer close(done)
-			for {
-				_, message, err := ws.ReadMessage()
-				if err != nil {
-					mc.l.Printf("error reading bitmex message: %v", err)
-					return
-				}
-				lastMessageTime = time.Now()
-
-				var baseMessage struct {
-					Info      string `json:"info"`
-					Status    int    `json:"status"`
-					Error     string `json:"error"`
-					Success   bool   `json:"success"`
-					Subscribe string `json:"subscribe"`
-					Table     string `json:"table"`
-				}
-				var orderTable swagger.OrderTable
-				var marginTable swagger.MarginTable
-				var executionTable swagger.ExecutionTable
-				var instrumentTable swagger.InstrumentTable
-				if err := json.Unmarshal(message, &baseMessage); err != nil {
-					mc.l.Printf("error unmarshalling bitmex message: %v", err)
-					continue
-				}
-				switch {
-				case baseMessage.Info != "":
-					mc.l.Printf("received message info: %s", baseMessage.Info)
-				case baseMessage.Status != 0:
-					mc.l.Printf("received message status: %d with error: %s", baseMessage.Status, baseMessage.Error)
-				case baseMessage.Success:
-					mc.l.Printf("received message success on %v", baseMessage.Subscribe)
-				case baseMessage.Table != "":
-					//b.l.Printf("received message table: %s", baseMessage.Table)
-					switch baseMessage.Table {
-					case "order":
-						if err := json.Unmarshal(message, &orderTable); err == nil {
-							mc.l.Printf("received message orderTable: %s", orderTable.Table)
-							wsHandler(ctx, orderTable.Data)
-
-						} else {
-							mc.l.Printf("error unmarshalling bitmex message: %v", err)
-						}
-					case "margin":
-						if err := json.Unmarshal(message, &marginTable); err == nil {
-							//b.l.Printf("received message marginTable: %s", marginTable.Table)
-						} else {
-							mc.l.Printf("error unmarshalling bitmex message: %v", err)
-						}
-					case "execution":
-						if err := json.Unmarshal(message, &executionTable); err == nil {
-							mc.l.Printf("received message executionTable: %s", executionTable.Table)
-						} else {
-							mc.l.Printf("error unmarshalling bitmex message: %v", err)
-						}
-					case "instrument":
-						if err := json.Unmarshal(message, &instrumentTable); err == nil {
-							for _, i := range instrumentTable.Data {
-								if i.MarkPrice > 0 {
-									go mc.updateCandles(i.Symbol, i.MarkPrice, i.Timestamp)
-								}
-							}
-
-						} else {
-							mc.l.Printf("error unmarshalling bitmex message: %v", err)
-						}
-					default:
-						mc.l.Printf("received unknown message table: %s", baseMessage.Table)
-
-					}
-				default:
-					mc.l.Printf("received unknown message type: %s", message)
-				}
-
-			}
-		}()
-
-		// Ping/Pong handleing
-		go func() {
-			for {
-				select {
-				case <-pingTicker.C:
-					//b.l.Printf("last message time: %s", utils.FriendlyDuration(time.Since(lastMessageTime)))
-					if time.Since(lastMessageTime) >= pingInterval {
-						//b.l.Println("ping bitmex")
-
-						err := ws.WriteMessage(websocket.PingMessage, nil)
-						if err != nil {
-							mc.l.Printf("error sending bitmex ping: %v", err)
-							return
-						}
-						// wait for pong
-						pongWaitTimer := time.NewTimer(pongWait)
-						select {
-						case <-pongReceived:
-							//b.l.Println("pong received in time")
-							pongWaitTimer.Stop()
-						case <-pongWaitTimer.C:
-							mc.l.Println("pong timeout - reconnecting")
-							ws.Close()
-							return
-						}
-					}
-				}
-			}
-		}()
-
-		// wait for websocket to close or error out
-		<-done
-		mc.l.Println("Connection lost. Reconnecting...")
-		time.Sleep(5 * time.Second)
-
 	}
 }
 
+// connectWebSocket manages the WebSocket connection and its events
+func (mc *BitmexClient) connectWebSocket(ctx context.Context, wsHandler func(ctx2 context.Context, od []swagger.OrderData)) error {
+	websocketURL := wsBitmexURL + endpoint
+	if config.UseBitmexTestnet {
+		websocketURL = wsBitmexURLTestnet + endpoint
+	}
+
+	// Establish WebSocket connection
+	ws, _, err := websocket.DefaultDialer.Dial(websocketURL, nil)
+	if err != nil {
+		return fmt.Errorf("error dialing websocket: %v", err)
+	}
+	defer ws.Close() // Manually close on error or completion
+
+	mc.l.Println("Connected to BitMEX WebSocket.")
+
+	conn := &WebSocketConnection{ws: ws, ctx: ctx, handler: wsHandler}
+
+	// Authenticate and subscribe
+	if err := mc.authenticateAndSubscribe(conn); err != nil {
+		return fmt.Errorf("failed to authenticate or subscribe: %v", err)
+	}
+
+	// Start ping/pong handling and read messages
+	pingTicker := time.NewTicker(pingInterval)
+	defer pingTicker.Stop()
+
+	done := make(chan struct{})
+
+	go conn.handleIncomingMessages(done)
+
+	go conn.handlePingPong(pingTicker, done)
+
+	// Wait for WebSocket close or error
+	<-done
+	mc.l.Printf("Bitmex WebSocket closed, Reconnecting after %s", utils.FriendlyDuration(reconnectingInterval))
+
+	return nil
+}
+
+// authenticateAndSubscribe handles authentication and subscription to WebSocket streams
+func (mc *BitmexClient) authenticateAndSubscribe(conn *WebSocketConnection) error {
+	nonce := (time.Now().Unix() + 5) * 1000
+	signature := generateSignature(mc.apiSec, "GET", endpoint, nonce)
+
+	authMessage := fmt.Sprintf(`{"op": "authKeyExpires", "args": ["%s", %d, "%s"]}`, mc.apiKey, nonce, signature)
+	if err := conn.ws.WriteMessage(websocket.TextMessage, []byte(authMessage)); err != nil {
+		return err
+	}
+
+	publicSubMessage := `{"op": "subscribe", "args": ["instrument:DERIVATIVES"]}`
+	privateSubMessage := `{"op": "subscribe", "args": ["execution", "order", "margin"]}`
+
+	if err := conn.ws.WriteMessage(websocket.TextMessage, []byte(publicSubMessage)); err != nil {
+		return err
+	}
+	if err := conn.ws.WriteMessage(websocket.TextMessage, []byte(privateSubMessage)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// handleIncomingMessages reads messages from WebSocket and processes them
+func (conn *WebSocketConnection) handleIncomingMessages(done chan struct{}) {
+	defer close(done)
+
+	for {
+		_, message, err := conn.ws.ReadMessage()
+		if err != nil {
+			conn.ws.Close()
+			conn.logError("error reading websocket message", err)
+			return
+		}
+
+		conn.processMessage(message)
+	}
+}
+
+// processMessage unmarshals and processes incoming WebSocket messages
+func (conn *WebSocketConnection) processMessage(message []byte) {
+	var baseMessage struct {
+		Info      string `json:"info"`
+		Status    int    `json:"status"`
+		Error     string `json:"error"`
+		Success   bool   `json:"success"`
+		Subscribe string `json:"subscribe"`
+		Table     string `json:"table"`
+	}
+
+	if err := json.Unmarshal(message, &baseMessage); err != nil {
+		conn.logError("error unmarshalling base message", err)
+		return
+	}
+
+	switch baseMessage.Table {
+	case "order":
+		conn.handleOrderMessage(message)
+	// Handle other cases (margin, execution, etc.)
+	default:
+		conn.logInfo("unknown message type", string(message))
+	}
+}
+
+// handleOrderMessage processes order messages
+func (conn *WebSocketConnection) handleOrderMessage(message []byte) {
+	var orderTable swagger.OrderTable
+	if err := json.Unmarshal(message, &orderTable); err == nil {
+		conn.handler(conn.ctx, orderTable.Data)
+	} else {
+		conn.logError("error unmarshalling order message", err)
+	}
+}
+
+// handlePingPong manages ping/pong mechanism for WebSocket
+func (conn *WebSocketConnection) handlePingPong(ticker *time.Ticker, done chan struct{}) {
+	pongReceived := make(chan struct{})
+
+	conn.ws.SetPongHandler(func(appData string) error {
+		select {
+		case pongReceived <- struct{}{}:
+		default:
+		}
+		return nil
+	})
+
+	for {
+		select {
+		case <-ticker.C:
+			if err := conn.ws.WriteMessage(websocket.PingMessage, nil); err != nil {
+				conn.logError("error sending ping", err)
+				return
+			}
+
+			select {
+			case <-pongReceived:
+			case <-time.After(pongWait):
+				conn.logInfo("pong not received in time, closing connection", "")
+				conn.ws.Close()
+				return
+			}
+		case <-done:
+			return
+		}
+	}
+}
+
+// Utility functions for logging
+func (conn *WebSocketConnection) logError(message string, err error) {
+	fmt.Printf("%s: %v\n", message, err)
+}
+
+func (conn *WebSocketConnection) logInfo(message, data string) {
+	//fmt.Printf("%s: %s\n", message, data)
+}
+
+// generateSignature creates the BitMEX API signature
 func generateSignature(apiSecret, verb, endpoint string, nonce int64) string {
 	message := verb + endpoint + strconv.FormatInt(nonce, 10)
 	hash := hmac.New(sha256.New, []byte(apiSecret))

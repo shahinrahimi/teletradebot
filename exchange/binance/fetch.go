@@ -90,7 +90,7 @@ func (bc *BinanceClient) FetchInterpreter(ctx context.Context, t *models.Trade) 
 			return
 		}
 		candleChan <- candle
-		bc.DbgChan <- fmt.Sprintf("candle: %v", candle)
+		bc.DbgChan <- fmt.Sprintf("Using candle: %v", candle)
 	}()
 	go func() {
 		symbol, err := bc.GetSymbol(t.Symbol)
@@ -98,7 +98,7 @@ func (bc *BinanceClient) FetchInterpreter(ctx context.Context, t *models.Trade) 
 			errChan <- err
 		}
 		symbolChan <- symbol
-		bc.DbgChan <- fmt.Sprintf("symbol: %v", symbol)
+		bc.DbgChan <- fmt.Sprintf("Using symbol: %v", symbol)
 	}()
 	go func() {
 		balance, err := bc.fetchBalance(ctx)
@@ -106,7 +106,7 @@ func (bc *BinanceClient) FetchInterpreter(ctx context.Context, t *models.Trade) 
 			errChan <- err
 		}
 		balanceChan <- balance
-		bc.DbgChan <- fmt.Sprintf("balance: %f", balance)
+		bc.DbgChan <- fmt.Sprintf("Using balance: %f", balance)
 	}()
 	go func() {
 		price, err := bc.fetchPrice(ctx, t.Symbol)
@@ -114,7 +114,7 @@ func (bc *BinanceClient) FetchInterpreter(ctx context.Context, t *models.Trade) 
 			errChan <- err
 		}
 		priceChan <- price
-		bc.DbgChan <- fmt.Sprintf("price: %f", price)
+		bc.DbgChan <- fmt.Sprintf("Using price: %f", price)
 	}()
 
 	go func() {
@@ -125,7 +125,7 @@ func (bc *BinanceClient) FetchInterpreter(ctx context.Context, t *models.Trade) 
 			return
 		}
 		symbolBracketChan <- symbolBracket
-		bc.DbgChan <- fmt.Sprintf("symbol bracket: %v", symbolBracket)
+		bc.DbgChan <- fmt.Sprintf("Using symbol bracket: %v", symbolBracket)
 	}()
 
 	var candle *futures.Kline

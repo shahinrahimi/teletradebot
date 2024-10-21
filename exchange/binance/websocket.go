@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/adshao/go-binance/v2/futures"
+	"github.com/shahinrahimi/teletradebot/utils"
 )
 
 func (bc *BinanceClient) StartWebsocketService(ctx context.Context, wsHandler func(event *futures.WsUserDataEvent), errHandler func(err error)) {
@@ -30,7 +31,7 @@ func (bc *BinanceClient) startUserDataStream724(ctx context.Context, wsHandler f
 			time.Sleep(5 * time.Second)
 			continue
 		}
-		bc.l.Println("WebSocket connection established. Awaiting events...")
+		bc.l.Println("Connected to Binance WebSocket.")
 
 		// Keep the connection alive by sending a ping every 30 minutes
 		ticker := time.NewTicker(30 * time.Minute)
@@ -60,8 +61,7 @@ func (bc *BinanceClient) startUserDataStream724(ctx context.Context, wsHandler f
 		select {
 		case <-doneC:
 			close(stopC)
-			bc.l.Println("WebSocket connection closed, reconnecting...")
-			time.Sleep(5 * time.Second)
+			bc.l.Printf("Binance WebSocket connection lost. reconnecting after %s", utils.FriendlyDuration(5*time.Second))
 		case <-ctx.Done():
 			// Handle context cancellation in the main loop
 			close(stopC)
