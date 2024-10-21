@@ -12,19 +12,6 @@ import (
 	"github.com/shahinrahimi/teletradebot/types"
 )
 
-func (mc *BitmexClient) fetchMargins(ctx context.Context) ([]swagger.Margin, error) {
-	ctx = mc.getAuthContext(ctx)
-	opts := swagger.UserApiUserGetMarginOpts{
-		Currency: optional.NewString("all"),
-	}
-	margins, _, err := mc.client.UserApi.UserGetMargins(ctx, &opts)
-	if err != nil {
-		mc.l.Printf("failed to retrieve margins: %v", err)
-		return nil, err
-	}
-	return margins, nil
-}
-
 func (mc *BitmexClient) fetchBalanceXBt(ctx context.Context) (float64, error) {
 	ctx = mc.getAuthContext(ctx)
 	opts := swagger.UserApiUserGetMarginOpts{
@@ -73,20 +60,6 @@ func (mc *BitmexClient) fetchPrice(ctx context.Context, symbol string) (float64,
 		}
 	}
 	return 0, fmt.Errorf("could not find instrument")
-}
-
-func (mc *BitmexClient) fetchInstrument(ctx context.Context, symbol string) (*swagger.Instrument, error) {
-	ctx = mc.getAuthContext(ctx)
-	instruments, _, err := mc.client.InstrumentApi.InstrumentGetActive(ctx)
-	if err != nil {
-		return nil, err
-	}
-	for _, i := range instruments {
-		if i.Symbol == symbol {
-			return &i, nil
-		}
-	}
-	return nil, fmt.Errorf("could not find instrument")
 }
 
 func (mc *BitmexClient) fetchLastCompletedCandle(ctx context.Context, t *models.Trade) (*swagger.TradeBin, error) {
@@ -139,6 +112,8 @@ func (mc *BitmexClient) fetchLastCompletedCandle(ctx context.Context, t *models.
 }
 
 func (mc *BitmexClient) FetchInterpreter(ctx context.Context, t *models.Trade) (*models.Interpreter, error) {
+	mc.DbgChan <- fmt.Sprintf("Fetching interpreter for trade: %d", t.ID)
+
 	var cc = 6 //  channel count
 	errChan := make(chan error, cc)
 	usdtBalanceChan := make(chan float64, 1)
@@ -167,6 +142,7 @@ func (mc *BitmexClient) FetchInterpreter(ctx context.Context, t *models.Trade) (
 			candle.Open = c.Open
 			candle.CloseTime = c.CloseTime
 			candle.OpenTime = c.OpenTime
+			mc.DbgChan <- fmt.Sprintf("Using Mark price from aggregator candle: %v", candle)
 		} else {
 			bin, err := mc.fetchLastCompletedCandle(ctx, t)
 			if err != nil {
@@ -179,6 +155,7 @@ func (mc *BitmexClient) FetchInterpreter(ctx context.Context, t *models.Trade) (
 			candle.Open = bin.Open
 			candle.CloseTime = bin.Timestamp
 			candle.OpenTime = bin.Timestamp.Add(-candleDur)
+			mc.DbgChan <- fmt.Sprintf("Using Last price from api candle: %v", candle)
 		}
 		candleChan <- candle
 	}()
@@ -187,6 +164,7 @@ func (mc *BitmexClient) FetchInterpreter(ctx context.Context, t *models.Trade) (
 		if err != nil {
 			errChan <- err
 		}
+		mc.DbgChan <- fmt.Sprintf("Using symbol: %v", symbol)
 		symbolChan <- symbol
 	}()
 	go func() {
@@ -194,6 +172,7 @@ func (mc *BitmexClient) FetchInterpreter(ctx context.Context, t *models.Trade) (
 		if err != nil {
 			//errChan <- err
 		}
+		mc.DbgChan <- fmt.Sprintf("Using USDt balance: %v", balance)
 		usdtBalanceChan <- balance
 	}()
 	go func() {
@@ -201,6 +180,7 @@ func (mc *BitmexClient) FetchInterpreter(ctx context.Context, t *models.Trade) (
 		if err != nil {
 			//errChan <- err
 		}
+		mc.DbgChan <- fmt.Sprintf("Using XBT balance: %v", balance)
 		xbtBalanceChan <- balance
 	}()
 	go func() {
@@ -208,6 +188,7 @@ func (mc *BitmexClient) FetchInterpreter(ctx context.Context, t *models.Trade) (
 		if err != nil {
 			errChan <- err
 		}
+		mc.DbgChan <- fmt.Sprintf("Using price: %v", price)
 		priceChan <- price
 	}()
 	go func() {
@@ -215,6 +196,7 @@ func (mc *BitmexClient) FetchInterpreter(ctx context.Context, t *models.Trade) (
 		if err != nil {
 			errChan <- err
 		}
+		mc.DbgChan <- fmt.Sprintf("Using XBT price: %v", price)
 		xbtPriceChan <- price
 	}()
 
@@ -279,6 +261,15 @@ func (mc *BitmexClient) FetchInterpreter(ctx context.Context, t *models.Trade) (
 
 	rQuantity := quantity * float64(t.ReverseMultiplier)
 	rXbtQuantity := xbtQuantity * float64(t.ReverseMultiplier)
+
+	// check quantity
+	if xbtQuantity == 0 {
+		return nil, &types.BotError{
+			Msg: fmt.Sprintf("quantity is 0. xbtBalance is %f price is %f size is %f", xbtBalance, price, size),
+		}
+	}
+
+	mc.DbgChan <- fmt.Sprintf("the size is %f xbtBalance is %f price is %f quantity is %f reverse quantity is %f", size, xbtBalance, price, xbtQuantity, rXbtQuantity)
 
 	return &models.Interpreter{
 		Balance:     usdtBalance,

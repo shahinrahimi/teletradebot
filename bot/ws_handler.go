@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/adshao/go-binance/v2/futures"
-	"github.com/shahinrahimi/teletradebot/config"
 	"github.com/shahinrahimi/teletradebot/exchange"
 	"github.com/shahinrahimi/teletradebot/models"
 	"github.com/shahinrahimi/teletradebot/swagger"
@@ -141,7 +140,7 @@ func (b *Bot) handleMainFilledExchange(ctx context.Context, t *models.Trade, i *
 	// place stop-loss order
 	go func() {
 		oe := i.GetOrderExecution(types.ExecutionStopLossOrder, "")
-		res, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
+		res, err := b.retry("PlaceStopOrder", false, t, func() (interface{}, error) {
 			return ex.PlaceStopOrder(ctx, oe)
 		})
 		if err != nil {
@@ -159,7 +158,7 @@ func (b *Bot) handleMainFilledExchange(ctx context.Context, t *models.Trade, i *
 	// place take-profit order
 	go func() {
 		oe := i.GetOrderExecution(types.ExecutionTakeProfitOrder, "")
-		res, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
+		res, err := b.retry("PlaceTakeProfitOrder", false, t, func() (interface{}, error) {
 			return ex.PlaceTakeProfitOrder(ctx, oe)
 		})
 		if err != nil {
@@ -180,7 +179,7 @@ func (b *Bot) handleMainFilledExchange(ctx context.Context, t *models.Trade, i *
 	// place reverse order
 	go func() {
 		oe := i.GetOrderExecution(types.ExecutionEntryReverseMainOrder, "")
-		res, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
+		res, err := b.retry("PlaceStopOrder", false, t, func() (interface{}, error) {
 			return ex.PlaceStopOrder(ctx, oe)
 		})
 		if err != nil {
@@ -207,7 +206,7 @@ func (b *Bot) handleMainReversedFilledExchange(ctx context.Context, t *models.Tr
 	// place reverse-stop-loss order
 	go func() {
 		oe := i.GetOrderExecution(types.ExecutionStopLossReverseOrder, "")
-		res, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
+		res, err := b.retry("PlaceStopOrder", false, t, func() (interface{}, error) {
 			return ex.PlaceStopOrder(ctx, oe)
 		})
 		if err != nil {
@@ -225,7 +224,7 @@ func (b *Bot) handleMainReversedFilledExchange(ctx context.Context, t *models.Tr
 	// place reverse-take-profit order
 	go func() {
 		oe := i.GetOrderExecution(types.ExecutionTakeProfitReverseOrder, "")
-		res, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
+		res, err := b.retry("PlaceTakeProfitOrder", false, t, func() (interface{}, error) {
 			return ex.PlaceTakeProfitOrder(ctx, oe)
 		})
 		if err != nil {

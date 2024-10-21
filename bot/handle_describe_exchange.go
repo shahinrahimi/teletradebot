@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/shahinrahimi/teletradebot/config"
 	"github.com/shahinrahimi/teletradebot/exchange"
 	"github.com/shahinrahimi/teletradebot/models"
 	"github.com/shahinrahimi/teletradebot/types"
@@ -12,7 +11,7 @@ import (
 
 func (b *Bot) handleDescribeExchange(ctx context.Context, t *models.Trade, userID int64, ex exchange.Exchange) {
 	b.DbgChan <- fmt.Sprintf("Handling describe trade: %d", t.ID)
-	i, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
+	i, err := b.retry("FetchInterpreter", false, t, func() (interface{}, error) {
 		return ex.FetchInterpreter(ctx, t)
 	})
 	if err != nil {

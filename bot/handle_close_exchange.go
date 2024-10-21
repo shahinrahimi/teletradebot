@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/adshao/go-binance/v2/futures"
-	"github.com/shahinrahimi/teletradebot/config"
 	"github.com/shahinrahimi/teletradebot/exchange"
 	"github.com/shahinrahimi/teletradebot/models"
 	"github.com/shahinrahimi/teletradebot/swagger"
@@ -32,7 +31,7 @@ func (b *Bot) handleCloseExchange(
 	oe := i.GetOrderExecution(types.ExecutionGetOrder, orderIDStr)
 
 	// get order
-	res, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
+	res, err := b.retry("GetOrder", false, t, func() (interface{}, error) {
 		return ex.GetOrder(ctx, oe)
 	})
 	if err != nil {
@@ -47,7 +46,7 @@ func (b *Bot) handleCloseExchange(
 	switch status {
 	case string(futures.OrderStatusTypeNew), swagger.OrderStatusTypeNew:
 		oe := i.GetOrderExecution(types.ExecutionCancelOrder, orderIDStr)
-		_, err := b.retryDenyNotFound(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
+		_, err := b.retry("CancelOrder", true, t, func() (interface{}, error) {
 			return ex.CancelOrder(ctx, oe)
 		})
 		if err != nil {
@@ -68,7 +67,7 @@ func (b *Bot) handleCloseExchange(
 	case string(futures.OrderStatusTypeFilled), string(futures.OrderStatusTypePartiallyFilled), swagger.OrderStatusTypeFilled:
 		if isFilledClose {
 			oe := i.GetOrderExecution(closeOrderType, orderIDStr)
-			_, err := b.retry(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
+			_, err := b.retry("CloseOrder", false, t, func() (interface{}, error) {
 				return ex.CloseOrder(ctx, oe)
 			})
 			if err != nil {

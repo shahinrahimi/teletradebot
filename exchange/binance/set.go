@@ -19,9 +19,8 @@ func (bc *BinanceClient) ReadAllLeverageSymbols(ctx context.Context) ([]string, 
 	var symbols []string
 	for _, s := range res {
 		symbols = append(symbols, s.Symbol)
-		bc.l.Printf("symbol: %s bracket: %d\n", s.Symbol, s.Brackets)
 		for _, b := range s.Brackets {
-			bc.l.Printf("  bracket: %d InitialLeverage: %d\n", b.Bracket, b.InitialLeverage)
+			bc.l.Printf("bracket: %d InitialLeverage: %d\n", b.Bracket, b.InitialLeverage)
 		}
 	}
 	return symbols, nil

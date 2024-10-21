@@ -46,7 +46,7 @@ func NewBot(l *log.Logger, c *cash.Cash, bc exchange.Exchange, mc exchange.Excha
 
 func (b *Bot) Debug(msg string) {
 	if config.Debug {
-		b.l.Printf(msg)
+		b.l.Println(msg)
 	}
 }
 

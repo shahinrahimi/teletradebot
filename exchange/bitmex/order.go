@@ -83,7 +83,7 @@ func (mc *BitmexClient) GetOrder(ctx context.Context, oe interface{}) (interface
 			return &o, nil
 		}
 	}
-	return nil, fmt.Errorf("order not found")
+	return nil, fmt.Errorf("order with id %s not found, total orders: %d", oeb.OrderID, len(orders))
 }
 
 func (mc *BitmexClient) CloseOrder(ctx context.Context, oe interface{}) (interface{}, error) {

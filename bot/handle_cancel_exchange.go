@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/shahinrahimi/teletradebot/config"
 	"github.com/shahinrahimi/teletradebot/exchange"
 	"github.com/shahinrahimi/teletradebot/models"
 	"github.com/shahinrahimi/teletradebot/types"
@@ -24,7 +23,7 @@ func (b *Bot) handleCancelExchange(
 	}
 	//oe := i.GetOrderExecution(types.GetOrderExecution,orderIDStr)
 	oe := i.GetOrderExecution(types.ExecutionCancelOrder, orderIDStr)
-	_, err := b.retryDenyNotFound(config.MaxTries, config.WaitForNextTries, t, func() (interface{}, error) {
+	_, err := b.retry("CancelOrder", true, t, func() (interface{}, error) {
 		b.DbgChan <- fmt.Sprintf("Canceling order: %s, TradeID: %d", orderIDStr, t.ID)
 		return ex.CancelOrder(ctx, oe)
 	})
