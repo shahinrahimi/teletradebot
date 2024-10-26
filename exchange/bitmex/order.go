@@ -3,6 +3,7 @@ package bitmex
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/antihax/optional"
 	"github.com/shahinrahimi/teletradebot/models"
@@ -71,8 +72,13 @@ func (mc *BitmexClient) GetOrder(ctx context.Context, oe interface{}) (interface
 		mc.l.Panicf("unexpected order type: %T", oe)
 	}
 	ctx = mc.getAuthContext(ctx)
+	// endTime := time.Now().UTC().Format("2006-01-02 15:04")
+	// filter := fmt.Sprintf(`{"endTime": "%s"}`, endTime)
 	params := &swagger.OrderApiOrderGetOrdersOpts{
-		Symbol: optional.NewString(oeb.Symbol),
+		Symbol:  optional.NewString(oeb.Symbol),
+		Reverse: optional.NewBool(true),
+		EndTime: optional.NewTime(time.Now().UTC()),
+		// Filter:  optional.NewString(filter),
 	}
 	orders, _, err := mc.client.OrderApi.OrderGetOrders(ctx, params)
 	if err != nil {

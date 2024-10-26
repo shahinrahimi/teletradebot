@@ -132,7 +132,7 @@ func main() {
 	r2.Use(b.ProvideTradeByID)
 
 	go func() {
-		logger.Println("Bot started and running and listen for updates.")
+		logger.Println("Bot running and listen for updates...")
 		b.Start(ctx)
 	}()
 

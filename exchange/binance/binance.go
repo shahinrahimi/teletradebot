@@ -1,6 +1,7 @@
 package binance
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -40,6 +41,15 @@ func (bc *BinanceClient) CheckSymbol(symbol string) bool {
 		}
 	}
 	return false
+}
+
+func (bc *BinanceClient) CheckMultiAssetMode(ctx context.Context) (bool, error) {
+	accountInfo, err := bc.client.NewGetAccountService().Do(ctx)
+	if err != nil {
+		return false, fmt.Errorf("error getting account info: %v", err)
+	}
+
+	return accountInfo.MultiAssetsMargin, nil
 }
 
 func (bc *BinanceClient) GetSymbol(symbol string) (*futures.Symbol, error) {

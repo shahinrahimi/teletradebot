@@ -12,17 +12,18 @@ import (
 	"github.com/shahinrahimi/teletradebot/utils"
 )
 
-func (bc *BinanceClient) fetchBalance(ctx context.Context) (float64, error) {
+func (bc *BinanceClient) fetchBalances(ctx context.Context) ([]*futures.Balance, error) {
 	res, err := bc.client.NewGetBalanceService().Do(ctx)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	for _, balance := range res {
-		if balance.Asset == "USDT" {
-			return strconv.ParseFloat(balance.Balance, 64)
-		}
-	}
-	return 0, fmt.Errorf("asset USDT not found")
+	return res, nil
+	// for _, balance := range res {
+	// 	if balance.Asset == "USDT" {
+	// 		return strconv.ParseFloat(balance.Balance, 64)
+	// 	}
+	// }
+	// return 0, fmt.Errorf("asset USDT not found")
 }
 
 func (bc *BinanceClient) fetchPrice(ctx context.Context, symbol string) (float64, error) {
@@ -36,6 +37,100 @@ func (bc *BinanceClient) fetchPrice(ctx context.Context, symbol string) (float64
 		}
 	}
 	return 0, fmt.Errorf("symbol %s not found", symbol)
+}
+
+func (bc *BinanceClient) fetchCollateral(ctx context.Context) (float64, error) {
+
+	var cc = 4
+	errChan := make(chan error, cc)
+	balancesChan := make(chan []*futures.Balance, 1)
+	priceChanBTC := make(chan float64, 1)
+	priceChanETH := make(chan float64, 1)
+	priceChanBNB := make(chan float64, 1)
+
+	go func() {
+		bs, err := bc.fetchBalances(ctx)
+		if err != nil {
+			errChan <- fmt.Errorf("error fetching balances: %s", err)
+		}
+		balancesChan <- bs
+	}()
+
+	go func() {
+		price, err := bc.fetchPrice(ctx, fmt.Sprintf("%sUSDT", "BTC"))
+		if err != nil {
+			errChan <- fmt.Errorf("error fetching price for BTC: %s", err)
+		}
+		priceChanBTC <- price
+	}()
+
+	go func() {
+		price, err := bc.fetchPrice(ctx, fmt.Sprintf("%sUSDT", "ETH"))
+		if err != nil {
+			errChan <- fmt.Errorf("error fetching price for ETH: %s", err)
+		}
+		priceChanETH <- price
+	}()
+
+	go func() {
+		price, err := bc.fetchPrice(ctx, fmt.Sprintf("%sUSDT", "BNB"))
+		if err != nil {
+			errChan <- fmt.Errorf("error fetching price for BNB: %s", err)
+		}
+		priceChanBNB <- price
+	}()
+
+	var balances []*futures.Balance
+	var priceBTC float64
+	var priceETH float64
+	var priceBNB float64
+
+	for i := 0; i < cc; i++ {
+		select {
+		case err := <-errChan:
+			return 0, err
+		case balances = <-balancesChan:
+		case priceBTC = <-priceChanBTC:
+		case priceETH = <-priceChanETH:
+		case priceBNB = <-priceChanBNB:
+		}
+	}
+
+	var collateral float64
+	for _, balance := range balances {
+		switch balance.Asset {
+		case "USDT":
+			parsedFloat, err := strconv.ParseFloat(balance.Balance, 64)
+			if err != nil {
+				return 0, fmt.Errorf("error parsing USDT balance: %s", err)
+			}
+			collateral = collateral + parsedFloat
+		case "BTC":
+			parsedFloat, err := strconv.ParseFloat(balance.Balance, 64)
+			if err != nil {
+				return 0, fmt.Errorf("error parsing BTC balance: %s", err)
+			}
+			collateral = collateral + (parsedFloat * priceBTC)
+		case "ETH":
+			parsedFloat, err := strconv.ParseFloat(balance.Balance, 64)
+			if err != nil {
+				return 0, fmt.Errorf("error parsing ETH balance: %s", err)
+			}
+			collateral = collateral + (parsedFloat * priceETH)
+		case "BNB":
+			parsedFloat, err := strconv.ParseFloat(balance.Balance, 64)
+			if err != nil {
+				return 0, fmt.Errorf("error parsing BNB balance: %s", err)
+			}
+			collateral = collateral + (parsedFloat * priceBNB)
+		default:
+			bc.DbgChan <- fmt.Sprintf("skipping asset: %s", balance.Asset)
+			continue
+		}
+	}
+	bc.DbgChan <- fmt.Sprintf("Collateral calculated: %f", collateral)
+	return collateral, nil
+
 }
 
 func (bc *BinanceClient) fetchLastCompletedCandle(ctx context.Context, symbol string, t models.TimeframeType) (*futures.Kline, error) {
@@ -74,9 +169,11 @@ func (bc *BinanceClient) fetchSymbolBracket(ctx context.Context, symbol string) 
 
 func (bc *BinanceClient) FetchInterpreter(ctx context.Context, t *models.Trade) (*models.Interpreter, error) {
 	bc.DbgChan <- fmt.Sprintf("Fetching interpreter for trade: %d", t.ID)
-	var cc = 5
+	var cc = 7
 	errChan := make(chan error, cc)
-	balanceChan := make(chan float64, 1)
+	balancesChan := make(chan []*futures.Balance, 1)
+	multiAssetChan := make(chan bool, 1)
+	collateralChan := make(chan float64, 1)
 	priceChan := make(chan float64, 1)
 	candleChan := make(chan *futures.Kline, 1)
 	symbolChan := make(chan *futures.Symbol, 1)
@@ -101,12 +198,12 @@ func (bc *BinanceClient) FetchInterpreter(ctx context.Context, t *models.Trade) 
 		bc.DbgChan <- fmt.Sprintf("Using symbol: %v", symbol)
 	}()
 	go func() {
-		balance, err := bc.fetchBalance(ctx)
+		balances, err := bc.fetchBalances(ctx)
 		if err != nil {
 			errChan <- err
 		}
-		balanceChan <- balance
-		bc.DbgChan <- fmt.Sprintf("Using balance: %f", balance)
+		balancesChan <- balances
+		bc.DbgChan <- fmt.Sprintf("Using balance: %v", balances)
 	}()
 	go func() {
 		price, err := bc.fetchPrice(ctx, t.Symbol)
@@ -128,10 +225,29 @@ func (bc *BinanceClient) FetchInterpreter(ctx context.Context, t *models.Trade) 
 		bc.DbgChan <- fmt.Sprintf("Using symbol bracket: %v", symbolBracket)
 	}()
 
+	go func() {
+		isMultiAsset, err := bc.CheckMultiAssetMode(ctx)
+		if err != nil {
+			errChan <- err
+		}
+		multiAssetChan <- isMultiAsset
+	}()
+
+	go func() {
+		collateral, err := bc.fetchCollateral(ctx)
+		if err != nil {
+			errChan <- err
+		}
+		collateralChan <- collateral
+		bc.DbgChan <- fmt.Sprintf("Using collateral: %f", collateral)
+	}()
+
 	var candle *futures.Kline
 	var symbol *futures.Symbol
 	var symbolBracket []futures.Bracket
-	var balance float64
+	var balances []*futures.Balance
+	var collateralBalance float64
+	var isMultiAsset bool
 	var price float64
 	var err error
 
@@ -140,13 +256,51 @@ func (bc *BinanceClient) FetchInterpreter(ctx context.Context, t *models.Trade) 
 		case err = <-errChan:
 			return nil, err
 		case candle = <-candleChan:
-		case balance = <-balanceChan:
+		case balances = <-balancesChan:
 		case price = <-priceChan:
 		case symbol = <-symbolChan:
+		case collateralBalance = <-collateralChan:
 		case symbolBracket = <-symbolBracketChan:
+		case isMultiAsset = <-multiAssetChan:
 		}
 	}
 	bc.DbgChan <- fmt.Sprintf("bracket length: %d", len(symbolBracket))
+
+	var usingBalance float64
+	if !isMultiAsset {
+
+		var b *futures.Balance
+		for _, balance := range balances {
+			if balance.Asset == symbol.QuoteAsset {
+				b = balance
+				break
+			}
+		}
+		if b == nil {
+			return nil, &types.BotError{
+				Msg: fmt.Sprintf("cannot find balance for %s", symbol.QuoteAsset),
+			}
+		}
+		usingBalance, err = strconv.ParseFloat(b.Balance, 64)
+		if err != nil {
+			return nil, err
+		}
+		bc.DbgChan <- fmt.Sprintf("Using balance in single asset: %f", usingBalance)
+	} else {
+		usingBalance = collateralBalance
+		bc.DbgChan <- fmt.Sprintf("Using balance in multi asset (collateral): %f", collateralBalance)
+	}
+
+	size := usingBalance * float64(t.Size) / 100
+	quantity := size / price
+	rQuantity := quantity * float64(t.ReverseMultiplier)
+
+	// check quantity
+	if quantity == 0 {
+		return nil, &types.BotError{
+			Msg: fmt.Sprintf("insufficient balance. balance: %f.", usingBalance),
+		}
+	}
 
 	timeframeDur, err := models.GetDuration(t.Timeframe)
 	if err != nil {
@@ -189,21 +343,10 @@ func (bc *BinanceClient) FetchInterpreter(ctx context.Context, t *models.Trade) 
 		return nil, err
 	}
 
-	size := balance * float64(t.Size) / 100
-	quantity := size / price
-	rQuantity := quantity * float64(t.ReverseMultiplier)
-
-	// check quantity
-	if quantity == 0 {
-		return nil, &types.BotError{
-			Msg: fmt.Sprintf("quantity is 0. balance is %f price is %f size is %f", balance, price, size),
-		}
-	}
-
-	bc.DbgChan <- fmt.Sprintf("the size is %f balance is %f price is %f quantity is %f reverse quantity is %f", size, balance, price, quantity, rQuantity)
+	bc.DbgChan <- fmt.Sprintf("the size is %f balance is %f price is %f quantity is %f reverse quantity is %f", size, usingBalance, price, quantity, rQuantity)
 
 	return &models.Interpreter{
-		Balance:         balance,
+		Balance:         usingBalance,
 		Price:           price,
 		Quantity:        quantity,
 		ReverseQuantity: rQuantity,
