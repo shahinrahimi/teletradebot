@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"os"
 	"os/signal"
 	"time"
@@ -13,13 +12,17 @@ import (
 	"github.com/shahinrahimi/teletradebot/config"
 	"github.com/shahinrahimi/teletradebot/exchange/binance"
 	"github.com/shahinrahimi/teletradebot/exchange/bitmex"
+	"github.com/shahinrahimi/teletradebot/logger"
 	"github.com/shahinrahimi/teletradebot/store"
 	"github.com/shahinrahimi/teletradebot/types"
 )
 
 func main() {
 	// create custom logger
-	logger := log.New(os.Stdout, "[TELETRADE-BOT] ", log.LstdFlags)
+	l := logger.New("TELETRADE-BOT", config.SaveToDisk)
+	if config.SaveToDisk {
+		defer l.Close()
+	}
 
 	// create global context
 	ctx := context.WithoutCancel(context.Background())
@@ -29,28 +32,28 @@ func main() {
 	dbgChan := make(chan string)
 
 	// create global store (Storage)
-	s, err := store.NewSqliteStore(logger)
+	s, err := store.NewSqliteStore(l.Log)
 	if err != nil {
-		logger.Fatalf("error creating new sqlite store instance: %v", err)
+		l.Log.Fatalf("error creating new sqlite store instance: %v", err)
 	}
 	defer s.CloseDB()
 
 	// init DB
 	if err := s.Init(); err != nil {
-		logger.Fatalf("error initializing DB: %v", err)
+		l.Log.Fatalf("error initializing DB: %v", err)
 	}
 
-	c := cash.NewCash(s, logger)
+	c := cash.NewCash(s, l.Log)
 
 	// check .env file
 	if err := godotenv.Load(); err != nil {
-		logger.Fatalf("error loading environmental file: %v", err)
+		l.Log.Fatalf("error loading environmental file: %v", err)
 	}
 
 	// check environmental variable for telegram bot
 	token := os.Getenv("TELEGRAM_TOKEN")
 	if token == "" {
-		logger.Fatal("error wrong environmental variable")
+		l.Log.Fatal("error wrong environmental variable")
 
 	}
 
@@ -58,27 +61,27 @@ func main() {
 	apiKey := os.Getenv("BINANCE_API_KEY")
 	apiSec := os.Getenv("BINANCE_API_SEC")
 	if apiKey == "" || apiSec == "" {
-		logger.Fatal("error wrong environmental variable for binance client")
+		l.Log.Fatal("error wrong environmental variable for binance client")
 	}
 
 	// check environmental variable for binance api
 	apiKey2 := os.Getenv("BITMEX_API_ID")
 	apiSec2 := os.Getenv("BITMEX_API_KEY")
 	if apiKey2 == "" || apiSec2 == "" {
-		logger.Fatal("error wrong environmental variable for bitmex client")
+		l.Log.Fatal("error wrong environmental variable for bitmex client")
 	}
 
-	bc := binance.NewBinanceClient(logger, apiKey, apiSec, config.UseBinanceTestnet, dbgChan)
-	mc := bitmex.NewBitmexClient(logger, apiKey2, apiSec2, config.UseBitmexTestnet, dbgChan)
+	bc := binance.NewBinanceClient(l.Log, apiKey, apiSec, config.UseBinanceTestnet, dbgChan)
+	mc := bitmex.NewBitmexClient(l.Log, apiKey2, apiSec2, config.UseBitmexTestnet, dbgChan)
 
 	// start polling for binance
 	bc.StartPolling(ctx)
 	// start polling for bitmex
 	mc.StartPolling(ctx)
 
-	b, err := bot.NewBot(logger, c, bc, mc, token, msgChan, dbgChan)
+	b, err := bot.NewBot(l.Log, c, bc, mc, token, msgChan, dbgChan)
 	if err != nil {
-		logger.Fatalf("error creating instance of bot: %v", err)
+		l.Log.Fatalf("error creating instance of bot: %v", err)
 	}
 
 	// start listening for messages
@@ -132,7 +135,7 @@ func main() {
 	r2.Use(b.ProvideTradeByID)
 
 	go func() {
-		logger.Println("Bot running and listen for updates...")
+		l.Log.Println("Bot running and listen for updates...")
 		b.Start(ctx)
 	}()
 
@@ -143,7 +146,7 @@ func main() {
 
 	// block until a signal received
 	rc := <-cc
-	logger.Println("go signal", rc)
+	l.Log.Println("got signal", rc)
 
 	// gracefully shutdown bot, waiting max 30 secs
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)

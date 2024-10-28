@@ -3,7 +3,8 @@ package config
 import "time"
 
 const (
-	Debug                      bool = true
+	Debug                      bool = true // true will print verbose logs
+	SaveToDisk                 bool = true // true will write logs to file => logs directory
 	UseBinanceTestnet          bool = true
 	UseBitmexTestnet           bool = true
 	UseMarkPriceFromAggregator bool = false // false will use last price for bitmex exchange

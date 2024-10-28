@@ -15,6 +15,7 @@ type Cash struct {
 }
 
 func NewCash(s store.Storage, l *log.Logger) *Cash {
+
 	trades := make(map[int64]*models.Trade, 0)
 	ts, err := s.GetTrades()
 	if err != nil {
