@@ -45,10 +45,10 @@ func (b *Bot) ProvideAddTrade(next Handler) Handler {
 		switch t.Account {
 		case types.ExchangeBinance:
 			// check pair for binance
-			isAvailable = b.bc.CheckSymbol(t.Symbol)
+			isAvailable, err = b.bc.CheckSymbol(ctx, t.Symbol)
 		case types.ExchangeBitmex:
 			// check pair for bitmex
-			isAvailable = b.mc.CheckSymbol(t.Symbol)
+			isAvailable, err = b.mc.CheckSymbol(ctx, t.Symbol)
 		default:
 			// should never happen
 			b.l.Panicf("Unexpected account type while checking symbol '%s'", t.Symbol)
@@ -57,7 +57,7 @@ func (b *Bot) ProvideAddTrade(next Handler) Handler {
 
 		if !isAvailable {
 			b.l.Printf("Error checking symbol '%s' availability on %s", t.Symbol, t.Account)
-			msg := fmt.Sprintf("the symbol '%s' is not available for exchange '%s'.", t.Symbol, t.Account)
+			msg := fmt.Sprintf("the symbol '%s' is not available for exchange '%s'.\n error: %v", t.Symbol, t.Account, err.Error())
 			b.MsgChan <- types.BotMessage{
 				ChatID: userID,
 				MsgStr: msg,

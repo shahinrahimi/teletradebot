@@ -58,10 +58,10 @@ func (b *Bot) HandleBulkAdd(u *tgbotapi.Update, ctx context.Context) error {
 			// check for symbol availability
 			var isAvailable bool = false
 			if t.Account == types.ExchangeBinance {
-				isAvailable = b.bc.CheckSymbol(t.Symbol)
+				isAvailable, _ = b.bc.CheckSymbol(ctx, t.Symbol)
 			}
 			if t.Account == types.ExchangeBitmex {
-				isAvailable = b.mc.CheckSymbol(t.Symbol)
+				isAvailable, _ = b.mc.CheckSymbol(ctx, t.Symbol)
 			}
 			if !isAvailable {
 				msg := fmt.Sprintf("Symbol %s not available for account %s", t.Symbol, t.Account)

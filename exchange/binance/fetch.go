@@ -190,7 +190,7 @@ func (bc *BinanceClient) FetchInterpreter(ctx context.Context, t *models.Trade) 
 		bc.DbgChan <- fmt.Sprintf("Using candle: %v", candle)
 	}()
 	go func() {
-		symbol, err := bc.GetSymbol(t.Symbol)
+		symbol, err := bc.GetSymbol(ctx, t.Symbol)
 		if err != nil {
 			errChan <- err
 		}

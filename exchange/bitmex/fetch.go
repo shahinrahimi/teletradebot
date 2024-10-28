@@ -160,7 +160,7 @@ func (mc *BitmexClient) FetchInterpreter(ctx context.Context, t *models.Trade) (
 		candleChan <- candle
 	}()
 	go func() {
-		symbol, err := mc.GetSymbol(t.Symbol)
+		symbol, err := mc.GetSymbol(ctx, t.Symbol)
 		if err != nil {
 			errChan <- err
 		}

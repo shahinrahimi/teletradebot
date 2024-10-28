@@ -30,17 +30,12 @@ func NewBinanceClient(l *log.Logger, apiKey string, secretKey string, useTestnet
 	}
 }
 
-func (bc *BinanceClient) CheckSymbol(symbol string) bool {
-	if bc.lastExchangeInfo == nil {
-		bc.l.Printf("exchange info not available right now please try after some time")
-		return false
+func (bc *BinanceClient) CheckSymbol(ctx context.Context, symbol string) (bool, error) {
+	if _, err := bc.GetSymbol(ctx, symbol); err != nil {
+		return false, err
 	}
-	for _, s := range bc.lastExchangeInfo.Symbols {
-		if s.Symbol == symbol {
-			return true
-		}
-	}
-	return false
+	return true, nil
+	// fallback
 }
 
 func (bc *BinanceClient) CheckMultiAssetMode(ctx context.Context) (bool, error) {
@@ -52,14 +47,28 @@ func (bc *BinanceClient) CheckMultiAssetMode(ctx context.Context) (bool, error) 
 	return accountInfo.MultiAssetsMargin, nil
 }
 
-func (bc *BinanceClient) GetSymbol(symbol string) (*futures.Symbol, error) {
+func (bc *BinanceClient) GetSymbol(ctx context.Context, symbol string) (*futures.Symbol, error) {
+	// fallback
 	if bc.lastExchangeInfo == nil {
-		return nil, fmt.Errorf("exchange info not available right now")
-	}
-	for _, s := range bc.lastExchangeInfo.Symbols {
-		if s.Symbol == symbol {
-			return &s, nil
+		ef, err := bc.client.NewExchangeInfoService().Do(ctx)
+		if err != nil {
+			bc.l.Printf("error fetching exchange info: %v", err)
+			return nil, fmt.Errorf("error fetching exchange info: %v", err)
 		}
+		for _, s := range ef.Symbols {
+			if s.Symbol == symbol {
+				bc.lastExchangeInfo = ef
+				return &s, nil
+			}
+		}
+		return nil, fmt.Errorf("symbol %s not found for binance", symbol)
+	} else {
+		for _, s := range bc.lastExchangeInfo.Symbols {
+			if s.Symbol == symbol {
+				return &s, nil
+			}
+		}
+		return nil, fmt.Errorf("symbol %s not found", symbol)
 	}
-	return nil, fmt.Errorf("symbol %s not found", symbol)
+
 }
